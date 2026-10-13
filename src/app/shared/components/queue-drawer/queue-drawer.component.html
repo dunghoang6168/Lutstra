@@ -36,6 +36,19 @@
         </div>
       </div>
 
+      <!-- The roulette plays in place of the queue, which waits at its parked entry. -->
+      @if (player.externalSource()) {
+        <div class="external-banner" role="status">
+          <span class="external-label">
+            <app-icon name="sparkles" [size]="14" aria-hidden="true" />
+            Roulette is playing
+          </span>
+          <button type="button" class="external-action" (click)="player.backToQueue()">
+            {{ player.queue().length ? 'Back to queue' : 'Stop roulette' }}
+          </button>
+        </div>
+      }
+
       <!-- Drawer Content -->
       <div class="drawer-content">
         @if (player.queue().length === 0) {
@@ -49,7 +62,8 @@
             @for (entry of player.queue(); track entry.id; let i = $index) {
               <div
                 class="queue-item"
-                [class.current]="player.currentIndex() === i"
+                [class.current]="player.currentIndex() === i && !player.externalSource()"
+                [class.parked]="player.currentIndex() === i && !!player.externalSource()"
                 [class.unavailable]="!entry.track.isAvailable"
                 [class.dragging]="draggingEntryId() === entry.id"
                 [class.drop-before]="dropTarget()?.entryId === entry.id && dropTarget()?.placement === 'before'"
@@ -65,7 +79,12 @@
                 <!-- Index or Playing Indicator -->
                 <div class="queue-item-index">
                   <span class="queue-index-display">
-                    @if (player.currentIndex() === i) {
+                    @if (player.currentIndex() === i && player.externalSource()) {
+                      <span class="resume-indicator" title="Resumes here">
+                        <app-icon name="play" [size]="10" aria-hidden="true" />
+                        <span class="sr-only">Resumes here</span>
+                      </span>
+                    } @else if (player.currentIndex() === i) {
                       <span class="playing-indicator" title="Current track">
                         @if (player.isPlaying()) {
                           <span class="bar bar-1"></span>

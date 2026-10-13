@@ -110,6 +110,13 @@ export class RandomSessionService {
   };
   /** True while the player plays this round in place of the queue. */
   readonly active = computed(() => this.player.externalSource() === this.source);
+  /** The user's queue has entries to resume; with none, leaving the round stops playback. */
+  readonly queueWaiting = computed(() => this.player.queue().length > 0);
+
+  /** Back to queue, or Stop roulette when the queue is empty. */
+  leave(): void {
+    void this.player.backToQueue();
+  }
 
   constructor() {
     effect(() => {
@@ -120,14 +127,18 @@ export class RandomSessionService {
         // Storage blocked: options and pity last for this session only.
       }
     });
-    // The player left the round (Back to queue, Stop roulette, something else played): it is over.
+    // The player left the round (Back to queue, Stop roulette, something else played): it is over,
+    // and so is its roll view, so the page drops back to the folders with no reel or spectrum left.
     let wasActive = false;
     effect(() => {
       const active = this.active();
       if (active) wasActive = true;
       else if (wasActive) {
         wasActive = false;
-        untracked(() => this.endRound());
+        untracked(() => {
+          this.endRound();
+          this.leaveRollView();
+        });
       }
     });
   }
@@ -170,7 +181,7 @@ export class RandomSessionService {
     }
   }
 
-  /** Back to the folder list. The round keeps playing until a new Random starts the next one. */
+  /** Back to the folder list. The round keeps playing until the player leaves it or a new Roll starts. */
   leaveRollView(): void {
     this.spin.set(null);
     this.result.set(null);

@@ -191,6 +191,48 @@
       font-weight: 600;
     }
 
+    /* Where the queue resumes after the roulette: marked, not lit like the playing row. */
+    .queue-item.parked {
+      box-shadow: inset 2px 0 0 var(--accent-primary);
+    }
+
+    .resume-indicator {
+      display: inline-flex;
+      color: var(--text-accent);
+    }
+
+    .external-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+      font-size: var(--font-size-sm);
+    }
+
+    .external-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--text-secondary);
+    }
+
+    .external-action {
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--text-accent);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      transition: border-color var(--transition-fast);
+    }
+
+    .external-action:hover {
+      border-color: var(--accent-primary);
+    }
+
     .queue-item.unavailable {
       opacity: 0.45;
     }

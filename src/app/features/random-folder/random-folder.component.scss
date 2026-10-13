@@ -120,7 +120,9 @@ h2 { font-size: var(--font-size-2xl); font-weight: var(--card-title-weight); ove
 }
 .random-button:hover:not(:disabled) { background: var(--color-accent-fill-hover); }
 .random-button:disabled { cursor: default; opacity: 0.6; }
-.random-again { align-self: start; padding: var(--space-2) var(--space-6); font-size: var(--font-size-base); }
+.random-again { padding: var(--space-2) var(--space-6); font-size: var(--font-size-base); }
+.result-actions { align-self: start; display: grid; gap: var(--space-2); }
+.leave-button { align-self: auto; justify-content: center; }
 .random-again .roll-icon { --roll-icon-size: 30px; }
 .random-button:active:not(:disabled) { transform: scale(0.97); }
 .random-label { display: grid; line-height: 1.2; }
@@ -202,7 +204,8 @@ h2 { font-size: var(--font-size-2xl); font-weight: var(--card-title-weight); ove
 @container main-content (max-width: 560px) {
   .source-controls { grid-template-columns: minmax(0, 1fr); }
   .random-actions .random-button { flex: 1; justify-content: center; }
-  .random-again { justify-self: stretch; justify-content: center; }
+  .result-actions { justify-self: stretch; }
+  .random-again { justify-content: center; }
   .result-card { grid-template-columns: minmax(0, 1fr); padding: var(--space-4); }
   .result-cover { width: min(100%, var(--cover-min)); }
   // Narrow: the tier chip and time fall under the title.

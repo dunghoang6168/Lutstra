@@ -21,7 +21,8 @@
     <span class="reel-pointer"></span>
   </div>
   <app-spectrum-visualizer class="reel-spectrum" [mirrored]="true" [flipped]="true" [bare]="true" [barCount]="40" [minHz]="50" [maxHz]="23000"
-    [colorVar]="spectrumColor()" [liveColor]="spectrumColor() === '--holo-live'" />
+    [colorVar]="spectrumColor()" [liveColor]="spectrumColor() === '--holo-live'"
+    [style.visibility]="showSpectrum() ? null : 'hidden'" />
   @if (spinning()) {
     <button type="button" class="btn btn-secondary reel-skip" (click)="skip()">Skip</button>
   }

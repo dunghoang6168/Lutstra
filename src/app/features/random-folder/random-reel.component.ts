@@ -31,7 +31,10 @@ export class RandomReelComponent {
   readonly done = output<void>();
 
   readonly spinning = signal(true);
-  readonly rarity = inject(RandomSessionService).tierOf;
+  private readonly session = inject(RandomSessionService);
+  readonly rarity = this.session.tierOf;
+  /** Bars follow the roulette's own track: hidden while the reel spins or the user's queue still plays. */
+  readonly showSpectrum = computed(() => this.session.active() && !this.spinning());
   readonly winTier = computed(() => {
     const winner = this.items()[this.winnerIndex()];
     return winner ? this.rarity(winner) : 1;

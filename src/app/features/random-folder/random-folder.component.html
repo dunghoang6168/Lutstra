@@ -26,7 +26,7 @@
         [settled]="reel.settled" [durationMs]="reel.durationMs" (done)="onSpinDone()" />
     }
   } @else {
-    <p class="shuffle-note"><app-icon name="queue" aria-hidden="true" /> The queue is hidden on this page. Shuffle and repeat are off during a round</p>
+    <p class="shuffle-note"><app-icon name="queue" aria-hidden="true" /> The queue is hidden on this page and waits while a round plays. Shuffle and repeat are off during a round</p>
 
     @if (loadError(); as message) {
       <div class="load-error" role="status">
@@ -106,9 +106,17 @@
           </span>
         </div>
       </div>
-      <button type="button" class="random-button random-again" [disabled]="isLoading() || isRandomizing()" (click)="randomize()">
-        <span class="roll-icon" aria-hidden="true"></span> Roll again
-      </button>
+      <div class="result-actions">
+        <button type="button" class="random-button random-again" [disabled]="isLoading() || isRandomizing()" (click)="randomize()">
+          <span class="roll-icon" aria-hidden="true"></span> Roll again
+        </button>
+        @if (session.active()) {
+          <button type="button" class="back-button leave-button" (click)="session.leave()">
+            <app-icon [name]="session.queueWaiting() ? 'queue' : 'x'" [size]="16" aria-hidden="true" />
+            {{ session.queueWaiting() ? 'Back to queue' : 'Stop roulette' }}
+          </button>
+        }
+      </div>
     </article>
   }
 
