@@ -51,8 +51,38 @@
   border-radius: var(--surface-radius);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
-.gallery-rail { flex: 0 0 var(--rail-width); height: 100%; min-height: 0; }
-@media (max-width: 1100px) { .gallery-rail { flex-basis: 76px; } }
+/* The rail sits --rail-gap from the sheet, tighter than the gutter; that gap is its resize handle. */
+.gallery-rail {
+  position: relative;
+  flex: 0 0 var(--rail-width);
+  height: 100%;
+  min-height: 0;
+  margin-left: calc(var(--rail-gap) - var(--shell-gap));
+  container: gallery-rail / inline-size;
+}
+.gallery-rail > app-player-bar { display: block; height: 100%; }
+.rail-resize-handle {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--rail-gap) * -1);
+  width: var(--rail-gap);
+  display: flex;
+  justify-content: center;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.rail-resize-handle span {
+  width: 2px;
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: background var(--motion-dur) var(--motion-ease);
+}
+.rail-resize-handle:hover span,
+.rail-resize-handle:active span,
+.rail-resize-handle:focus-visible span { background: var(--accent-primary); }
+.rail-resize-handle:focus-visible { outline: none; }
 
 /* ---------- Console: flush panes split by hairlines ---------- */
 .layout-classic { --sidebar-width: 212px; }

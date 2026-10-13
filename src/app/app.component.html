@@ -5,6 +5,7 @@
       [class.layout-liquid-glass]="layout() === 'liquid-glass'"
       [class.has-player]="showPlayer()"
       [class.rail-hidden]="isSidebarHidden()"
+      [style.--rail-width.px]="railWidth()"
       [attr.inert]="showOnboarding() || showShortcuts() ? '' : null">
       @if (backdropArtwork(); as artwork) {
         <div class="now-playing-backdrop" aria-hidden="true">
@@ -62,8 +63,13 @@
         />
 
         @if (layout() === 'inset' && showPlayer()) {
-          <app-player-bar class="gallery-rail" variant="rail"
-            [isQueueOpen]="isQueueOpen()" (toggleQueue)="onToggleQueue()" />
+          <div class="gallery-rail">
+            <div class="rail-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize player"
+              tabindex="0" title="Drag to resize, double-click to reset"
+              aria-valuemin="76" aria-valuemax="560" [attr.aria-valuenow]="railWidth()"
+              (pointerdown)="onRailResizeStart($event)" (dblclick)="resetRailWidth()" (keydown)="onRailResizeKeyDown($event)"><span></span></div>
+            <app-player-bar variant="rail" [isQueueOpen]="isQueueOpen()" (toggleQueue)="onToggleQueue()" />
+          </div>
         }
       </div>
 
@@ -112,6 +118,7 @@
             <div><dt><kbd>S</kbd></dt><dd>Toggle shuffle</dd></div>
             <div><dt><kbd>R</kbd></dt><dd>Cycle repeat mode</dd></div>
             <div><dt><kbd>M</kbd></dt><dd>Mute / Unmute</dd></div>
+            <div><dt><kbd>↑ / ↓</kbd></dt><dd>Volume ±5% on Now Playing or after clicking the player</dd></div>
             <div><dt><kbd>Q</kbd></dt><dd>Toggle queue drawer</dd></div>
             <div><dt><kbd>Ctrl K</kbd></dt><dd>Open search</dd></div>
             <div><dt><kbd>Esc</kbd></dt><dd>Close dialog or right panel</dd></div>

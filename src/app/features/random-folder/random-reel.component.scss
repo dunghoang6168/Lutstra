@@ -1,0 +1,133 @@
+:host { display: block; min-width: 0; }
+
+.reel { display: grid; justify-items: center; gap: var(--space-3); }
+
+.reel-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  // Room for the winner to scale up and glow without being clipped.
+  padding: var(--space-10) 0;
+  border-radius: var(--surface-radius);
+  background: var(--bg-surface);
+  // Fade the strip out at both edges (alpha mask, any opaque token works).
+  mask-image: linear-gradient(90deg, transparent, var(--text-primary) 15%, var(--text-primary) 85%, transparent);
+}
+
+.reel-strip { display: flex; gap: var(--space-10); width: max-content; margin-left: 50%; will-change: transform; }
+.reel.done .reel-strip { will-change: auto; }
+
+.reel-cell {
+  width: var(--cover-min);
+  flex: none;
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  // Rarity tier 1-5 from popularityTiers() (YouTube views per region, CS:GO grade colours, hologram for 5).
+  --tier: 1;
+  --rarity: var(--rarity-1);
+  border: 2px solid var(--rarity);
+  border-radius: var(--cover-radius);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  transition: transform calc(var(--motion-dur) * 2) var(--motion-ease), opacity calc(var(--motion-dur) * 2) var(--motion-ease),
+    filter calc(var(--motion-dur) * 2) var(--motion-ease), box-shadow calc(var(--motion-dur) * 2) var(--motion-ease);
+}
+@for $tier from 2 through 4 {
+  .reel-cell[data-tier='#{$tier}'] { --tier: #{$tier}; --rarity: var(--rarity-#{$tier}); }
+}
+// Mythical: a hologram rim and halo cycling every hue, on the page's one hologram clock (--holo-live),
+// so the cell, the card and the spectrum show the same colour at every moment.
+.reel-cell[data-tier='5'] { --tier: 5; --rarity: var(--holo-live); }
+
+// After the roll: the pick pops forward with a halo in its rarity colour that grows with the tier,
+// the rest sink back. The halo is a deliberate exception to DESIGN.md's no-glow rule, asked for on
+// this developer page only.
+.reel.done .reel-cell:not(.winner) { opacity: 0.35; filter: blur(2px) saturate(0.6); }
+.reel.done .reel-cell.winner {
+  position: relative;
+  z-index: 1;
+  transform: scale(1.12);
+  box-shadow: 0 0 calc(var(--space-3) * var(--tier)) max(0px, calc(var(--space-1) * (var(--tier) - 2)))
+    color-mix(in srgb, var(--rarity) calc(10% + var(--tier) * 15%), transparent);
+}
+
+// Gold and mythical: one light sweep across the winner.
+.reel.done .reel-cell.winner:is([data-tier='4'], [data-tier='5'])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--rarity) 45%, transparent) 50%, transparent 65%);
+  translate: -100% 0;
+  animation: rare-sweep 1.2s var(--motion-ease) calc(var(--motion-dur) * 2) 1 forwards;
+  pointer-events: none;
+}
+@keyframes rare-sweep { to { translate: 100% 0; } }
+
+// Gold: the halo breathes three times, then rests at its tier glow.
+.reel.done .reel-cell.winner[data-tier='4'] { animation: gold-breathe 1.2s ease-in-out calc(var(--motion-dur) * 2) 3; }
+@keyframes gold-breathe {
+  50% { box-shadow: 0 0 calc(var(--space-3) * 7) var(--space-3) color-mix(in srgb, var(--rarity) 85%, transparent); }
+}
+
+// Mythical: a hologram flash spreads from the pointer across the whole strip, then fades.
+.reel-strip { position: relative; }
+.reel.done[data-win-tier='5'] .reel-viewport::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, var(--holo-live), transparent 70%);
+  opacity: 0;
+  animation: holo-burst 1.6s var(--motion-ease) forwards;
+  pointer-events: none;
+}
+@keyframes holo-burst {
+  20% { opacity: 0.85; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel.done .reel-cell.winner:is([data-tier='4'], [data-tier='5'])::after,
+  .reel.done[data-win-tier='5'] .reel-viewport::before { animation: none; display: none; }
+  .reel.done .reel-cell.winner[data-tier='4'] { animation: none; }
+}
+.reel.done .reel-pointer { opacity: 0; }
+
+.reel-cover {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+}
+.reel-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.reel-meta { min-width: 0; display: grid; padding: 0 var(--space-2); }
+.reel-title, .reel-artist { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reel-title { font-weight: 600; font-size: var(--font-size-sm); color: var(--text-primary); }
+.reel-artist { font-size: var(--font-size-xs); color: var(--text-secondary); }
+
+.reel-pointer {
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 2px;
+  translate: -50% 0;
+  background: var(--text-primary);
+  transition: opacity var(--motion-dur) var(--motion-ease);
+}
+
+.reel-skip { border-radius: var(--control-radius); }
+.reel-skip:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+
+// Mirrored spectrum hanging from under the strip, centred on the pointer line. It takes 80px of
+// layout and hangs a further 120px down behind the result card (which stacks above it).
+.reel-spectrum {
+  width: 100%;
+  flex: none;
+  min-height: 0;
+  height: calc(var(--space-10) * 5);
+  // Pulled up over the reel's row gap so the bars hang from the strip's bottom edge.
+  margin: calc(var(--space-3) * -1) 0 calc(var(--space-10) * -3);
+  pointer-events: none;
+}

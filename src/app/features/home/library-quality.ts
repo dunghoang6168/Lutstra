@@ -1,7 +1,7 @@
 import type { Track } from '../../core/models';
 
 // music-metadata reports WAV/AIFF as "PCM" and APE as "Monkey's Audio", so match by substring.
-const LOSSLESS_CODEC = /flac|alac|pcm|wav|aif|monkey|wavpack|tta|dsd/i;
+export const LOSSLESS_CODEC = /flac|alac|pcm|wav|aif|monkey|wavpack|tta|dsd/i;
 export const formatCount = new Intl.NumberFormat('en-US');
 
 export type TrackQuality = 'hires' | 'lossless' | 'lossy';

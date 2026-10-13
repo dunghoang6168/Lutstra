@@ -82,6 +82,13 @@ export class PlayerService implements OnDestroy {
   readonly isMuted = signal<boolean>(false);
   readonly repeatMode = signal<RepeatMode>('off');
   readonly isShuffle = signal<boolean>(false);
+  /**
+   * True while a queue-end handler (the developer roulette round) picks what plays next. Shuffle and
+   * repeat do not apply then: the UI hides them and playback treats repeat as off, without changing
+   * the saved modes.
+   */
+  readonly modesLocked = signal<boolean>(false);
+  private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() ? 'off' : this.repeatMode());
   readonly crossfadeEnabled = signal<boolean>(true);
   readonly crossfadeSeconds = signal<number>(5);
   readonly error = signal<string | null>(null);
@@ -498,6 +505,18 @@ export class PlayerService implements OnDestroy {
     }
   }
 
+  private queueEndHandler: (() => void) | null = null;
+
+  /**
+   * Lets the developer Random folder session choose what plays after the last queue entry:
+   * Next or a track ending on the last entry calls `handler` instead of pausing or wrapping.
+   */
+  setQueueEndHandler(handler: (() => void) | null): void {
+    this.queueEndHandler = handler;
+    this.modesLocked.set(handler !== null);
+    this.refreshPreparedCandidate();
+  }
+
   toggleShuffle(): void {
     const nextShuffle = !this.isShuffle();
     this.isShuffle.set(nextShuffle);
@@ -728,7 +747,11 @@ export class PlayerService implements OnDestroy {
     let nextIndex = this.currentIndex() + 1;
 
     if (nextIndex >= q.length) {
-      if (this.repeatMode() === 'all') {
+      if (this.queueEndHandler) {
+        this.queueEndHandler();
+        return;
+      }
+      if (this.activeRepeat() === 'all') {
         nextIndex = 0;
       } else {
         // End of queue in repeat 'off' or 'one'
@@ -743,7 +766,7 @@ export class PlayerService implements OnDestroy {
       nextIndex++;
       attempts++;
       if (nextIndex >= q.length) {
-        if (this.repeatMode() === 'all') {
+        if (this.activeRepeat() === 'all') {
           nextIndex = 0;
         } else {
           this.pause();
@@ -779,7 +802,7 @@ export class PlayerService implements OnDestroy {
     let prevIndex = this.currentIndex() - 1;
 
     if (prevIndex < 0) {
-      if (this.repeatMode() === 'all') {
+      if (this.activeRepeat() === 'all') {
         prevIndex = q.length - 1;
       } else {
         // At start of queue: restart current track
@@ -794,7 +817,7 @@ export class PlayerService implements OnDestroy {
       prevIndex--;
       attempts++;
       if (prevIndex < 0) {
-        if (this.repeatMode() === 'all') {
+        if (this.activeRepeat() === 'all') {
           prevIndex = q.length - 1;
         } else {
           this.seek(0);
@@ -1036,7 +1059,7 @@ export class PlayerService implements OnDestroy {
   }
 
   private handleTrackEnded(): void {
-    if (this.repeatMode() === 'one') {
+    if (this.activeRepeat() === 'one') {
       this.seek(0);
       void this.play();
     } else {
@@ -1098,10 +1121,10 @@ export class PlayerService implements OnDestroy {
 
   private automaticNextIndex(): number {
     const q = this.queue();
-    if (!q.length || this.currentIndex() < 0 || this.repeatMode() === 'one') return -1;
+    if (!q.length || this.currentIndex() < 0 || this.activeRepeat() === 'one') return -1;
     for (let offset = 1; offset < q.length; offset++) {
       const index = this.currentIndex() + offset;
-      if (index >= q.length && this.repeatMode() !== 'all') break;
+      if (index >= q.length && (this.activeRepeat() !== 'all' || this.queueEndHandler)) break;
       const candidate = index % q.length;
       if (this.isEntryPlayable(q[candidate])) return candidate;
     }
@@ -1224,7 +1247,7 @@ export class PlayerService implements OnDestroy {
   private nextPlayableIndexAfterFailure(): number {
     const entries = this.queue();
     const start = this.currentIndex();
-    return nextPlayableQueueIndex(entries.length, start, this.repeatMode() === 'all', (index) => this.isEntryPlayable(entries[index]));
+    return nextPlayableQueueIndex(entries.length, start, this.activeRepeat() === 'all', (index) => this.isEntryPlayable(entries[index]));
   }
 
   private async handleOutputDevicesChanged(): Promise<void> {

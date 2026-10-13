@@ -33,14 +33,14 @@ export class SidebarComponent implements OnDestroy {
     if (!tip.matches(':popover-open')) tip.showPopover();
   }
 
-  readonly navItems: { path: string; label: string; icon: IconName }[] = [
+  readonly navItems = computed((): { path: string; label: string; icon: IconName }[] => [
     { path: '/home', label: 'Home', icon: 'home' },
     { path: '/songs', label: 'Songs', icon: 'music' },
     { path: '/albums', label: 'Albums', icon: 'disc' },
     { path: '/artists', label: 'Artists', icon: 'user' },
     { path: '/playlists', label: 'Playlists', icon: 'list-music' },
     { path: '/folders', label: 'Folders', icon: 'folder' },
-  ];
+  ]);
   readonly exactQuery: IsActiveMatchOptions = { paths: 'subset', queryParams: 'exact', fragment: 'ignored', matrixParams: 'ignored' };
   private readonly library = signal<{ tracks: number; albums: number; artists: number; quality: QualityStats } | null>(null);
   readonly counts = computed((): Record<string, string> => {

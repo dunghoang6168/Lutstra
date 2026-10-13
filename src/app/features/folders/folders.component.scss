@@ -143,6 +143,16 @@
       animation: indeterminate 1.5s infinite ease-in-out;
     }
 
+    .views-fill {
+      width: 100%;
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: var(--radius-full);
+      transform-origin: left;
+      transition: transform var(--transition-fast);
+    }
+    .scan-title-row .btn-queue-folder { margin-left: auto; }
+
     @keyframes indeterminate {
       0% { left: -40%; }
       100% { left: 100%; }
@@ -485,6 +495,14 @@
     .col-num { width: 40px; text-align: center; color: var(--text-muted); }
     .col-title { min-width: 250px; }
     .col-codec { width: 100px; }
+    .col-views { width: 96px; white-space: nowrap; font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+    .files-table th.col-views, .files-table td.col-views { text-align: right; }
+    .views-muted { color: var(--text-muted); }
+    .views-count { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+    .views-error { max-width: 280px; font-size: var(--font-size-xs); color: var(--text-muted); }
+    .btn-action.secondary[aria-pressed='true'] { border-color: var(--accent-primary); color: var(--text-accent); }
+    .file-title-stack { display: flex; flex-direction: column; min-width: 0; }
+    .file-folder { font-size: var(--font-size-xs); color: var(--text-muted); }
     .badge-codec {
       font-size: var(--font-size-xs);
       padding: 2px 6px;

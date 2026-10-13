@@ -5,6 +5,8 @@
 #include <cstring>
 #include <unordered_map>
 
+void RegisterMediaControls(napi_env env, napi_value exports);
+
 namespace {
 struct ButtonRect { double x, y, width, height; };
 struct Overlay { HWND child; ButtonRect bounds; bool hasBounds; bool hovered; };
@@ -189,6 +191,7 @@ napi_value Init(napi_env env, napi_value exports) {
     {"remove", nullptr, Remove, nullptr, nullptr, nullptr, napi_default, nullptr},
   };
   napi_define_properties(env, exports, 4, methods);
+  RegisterMediaControls(env, exports);
   return exports;
 }
 }

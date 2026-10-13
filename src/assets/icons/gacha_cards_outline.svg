@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <rect id="card" x="-28" y="-37" width="56" height="74" rx="7"/>
+    <path id="wave" d="M0,-17 Q3.5,-5 11,0 Q3.5,5 0,17 Q-3.5,5 -11,0 Q-3.5,-5 0,-17Z
+      M14,-9 Q16,-3 20,0 Q16,3 14,9 Q12,3 8,0 Q12,-3 14,-9Z
+      M-14,-9 Q-12,-3 -8,0 Q-12,3 -14,9 Q-16,3 -20,0 Q-16,-3 -14,-9Z
+      M-22,0 Q-11,-2.4 0,-2.4 Q11,-2.4 22,0 Q11,2.4 0,2.4 Q-11,2.4 -22,0Z"/>
+    <mask id="m1" maskUnits="userSpaceOnUse" x="-60" y="-60" width="260" height="260">
+      <rect x="-60" y="-60" width="260" height="260" fill="#fff"/>
+      <g fill="#000" stroke="#000" stroke-width="13" stroke-linejoin="round">
+        <use xlink:href="#card" transform="translate(50,63) rotate(-12)"/>
+        <use xlink:href="#card" transform="translate(60,62) rotate(-4)"/>
+        <use xlink:href="#card" transform="translate(74,64) rotate(6)"/>
+      </g>
+    </mask>
+    <mask id="m2" maskUnits="userSpaceOnUse" x="-60" y="-60" width="260" height="260">
+      <rect x="-60" y="-60" width="260" height="260" fill="#fff"/>
+      <g fill="#000" stroke="#000" stroke-width="13" stroke-linejoin="round">
+        <use xlink:href="#card" transform="translate(60,62) rotate(-4)"/>
+        <use xlink:href="#card" transform="translate(74,64) rotate(6)"/>
+      </g>
+    </mask>
+    <mask id="m3" maskUnits="userSpaceOnUse" x="-60" y="-60" width="260" height="260">
+      <rect x="-60" y="-60" width="260" height="260" fill="#fff"/>
+      <g fill="#000" stroke="#000" stroke-width="13" stroke-linejoin="round">
+        <use xlink:href="#card" transform="translate(74,64) rotate(6)"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(10,-2)" fill="none" stroke="#000" stroke-width="6" stroke-linejoin="round">
+    <g mask="url(#m1)"><use xlink:href="#card" transform="translate(40,66) rotate(-20)"/></g>
+    <g mask="url(#m2)"><use xlink:href="#card" transform="translate(50,63) rotate(-12)"/></g>
+    <g mask="url(#m3)"><use xlink:href="#card" transform="translate(60,62) rotate(-4)"/></g>
+    <use xlink:href="#card" transform="translate(74,64) rotate(6)"/>
+    <use xlink:href="#wave" fill="#000" stroke="none" transform="translate(74,64) rotate(6)"/>
+  </g>
+</svg>

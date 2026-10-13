@@ -25,6 +25,15 @@
   </button>
 </ng-template>
 
+<!-- Developer mode: Music Roulette (the random-folder page) is its own icon, apart from the Folders section. -->
+<ng-template #randomFolder>
+  @if (devMode.enabled()) {
+    <a routerLink="/random-folder" routerLinkActive="active" class="header-button" aria-label="Music Roulette" title="Music Roulette">
+      <span class="gacha-icon" aria-hidden="true"></span>
+    </a>
+  }
+</ng-template>
+
 <header class="app-header" [attr.data-variant]="layoutPreference.mode()">
   <div class="titlebar-content" [class.compact-search-open]="compactSearchOpen()">
     @switch (layoutPreference.mode()) {
@@ -33,7 +42,7 @@
         <div class="header-left">
           <ng-container *ngTemplateOutlet="history" />
           <nav class="gallery-tabs" aria-label="Main navigation">
-            @for (tab of tabs; track tab.path) {
+            @for (tab of tabs(); track tab.path) {
               <a [routerLink]="tab.path" routerLinkActive="active" ariaCurrentWhenActive="page" class="gallery-tab">{{ tab.label }}</a>
             }
           </nav>
@@ -42,7 +51,7 @@
               <app-icon name="menu" [size]="18" />
             </summary>
             <nav class="tabs-menu-list" aria-label="Main navigation">
-              @for (tab of tabs; track tab.path) {
+              @for (tab of tabs(); track tab.path) {
                 <a [routerLink]="tab.path" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="tabsMenu.open = false">{{ tab.label }}</a>
               }
             </nav>
@@ -53,6 +62,7 @@
           <ng-container *ngTemplateOutlet="compactSearchButton" />
           <app-global-search />
           <ng-container *ngTemplateOutlet="status" />
+          <ng-container *ngTemplateOutlet="randomFolder" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
             <app-icon name="settings" [size]="18" />
           </a>
@@ -75,6 +85,7 @@
         <div class="header-drag-space" aria-hidden="true"></div>
         <div class="header-right float-cluster">
           <ng-container *ngTemplateOutlet="status" />
+          <ng-container *ngTemplateOutlet="randomFolder" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
             <app-icon name="settings" [size]="18" />
           </a>
@@ -96,6 +107,7 @@
         <app-global-search />
         <div class="header-right">
           <ng-container *ngTemplateOutlet="status" />
+          <ng-container *ngTemplateOutlet="randomFolder" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
             <app-icon name="settings" [size]="18" />
           </a>

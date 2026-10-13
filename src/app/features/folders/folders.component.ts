@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LIBRARY_GATEWAY, LYRICS_GATEWAY } from '../../core/contracts';
+import { LIBRARY_GATEWAY, LYRICS_GATEWAY, TrackPopularity } from '../../core/contracts';
+import { DevModeService } from '../../core/settings/dev-mode.service';
+import { PopularityFetchService } from './popularity-fetch.service';
 import { FolderNode, MusicFolder, ScanProgress, Track } from '../../core/models';
 import { trackQuality } from '../home/library-quality';
 import { PlayerService } from '../../core/player/player.service';
@@ -20,6 +22,7 @@ interface FolderSummary {
 }
 
 const EMPTY_FOLDER_SUMMARY: FolderSummary = { trackCount: 0, duration: 0, artwork: null };
+const VIEWS_FORMAT = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 
 @Component({
   selector: 'app-folders',
@@ -31,6 +34,7 @@ const EMPTY_FOLDER_SUMMARY: FolderSummary = { trackCount: 0, duration: 0, artwor
 export class FoldersComponent implements OnInit, OnDestroy {
   private readonly libraryGateway = inject(LIBRARY_GATEWAY);
   private readonly lyricsGateway = inject(LYRICS_GATEWAY);
+  readonly devMode = inject(DevModeService).enabled;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly player = inject(PlayerService);
@@ -78,6 +82,12 @@ export class FoldersComponent implements OnInit, OnDestroy {
   });
   readonly failedArtworks = signal<ReadonlySet<string>>(new Set());
   readonly lyricTrackIds = signal<ReadonlySet<string>>(new Set());
+  // Developer mode: YouTube views per track, cached in the main process.
+  private readonly views = inject(PopularityFetchService);
+  readonly popularity = this.views.popularity;
+  readonly viewsProgress = this.views.progress;
+  readonly viewsError = this.views.error;
+  readonly noMatchOnly = signal(false);
   readonly isLoading = signal<boolean>(true);
   readonly errorMessage = signal<string | null>(null);
 
@@ -134,7 +144,23 @@ export class FoldersComponent implements OnInit, OnDestroy {
     return (curr?.children?.filter((child) => !child.isFolder) ?? [])
       .sort(compareFolderFiles);
   });
-  readonly currentFolderTracks = computed(() => this.filesInCurrentFolder()
+  // Developer mode: every file under the open folder, and the No match filter over them.
+  readonly subtreeFiles = computed(() => {
+    const files: FolderNode[] = [];
+    const walk = (node: FolderNode) => node.children?.forEach((child) => child.isFolder ? walk(child) : files.push(child));
+    const curr = this.currentNode();
+    if (curr) walk(curr);
+    return files;
+  });
+  readonly subtreeTrackIds = computed(() => [...new Set(this.subtreeFiles().flatMap((file) => file.trackId ? [file.trackId] : []))]);
+  readonly missingViewsCount = computed(() => this.subtreeTrackIds().filter((id) => !this.popularity().has(id)).length);
+  readonly unmatchedFiles = computed(() => this.subtreeFiles()
+    .filter((file) => file.trackId && this.popularity().get(file.trackId)?.status === 'unmatched')
+    .sort((a, b) => a.path.localeCompare(b.path)));
+  readonly showNoMatchFilter = computed(() => this.devMode() && this.subfolders().length > 0);
+  readonly noMatchActive = computed(() => this.noMatchOnly() && this.showNoMatchFilter());
+  readonly visibleFiles = computed(() => this.noMatchActive() ? this.unmatchedFiles() : this.filesInCurrentFolder());
+  readonly currentFolderTracks = computed(() => this.visibleFiles()
     .flatMap((file) => {
       const track = file.trackId ? this.tracksById().get(file.trackId) : undefined;
       return track ? [track] : [];
@@ -143,7 +169,7 @@ export class FoldersComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      const trackIds = this.filesInCurrentFolder().flatMap((file) => file.trackId ? [file.trackId] : []);
+      const trackIds = this.visibleFiles().flatMap((file) => file.trackId ? [file.trackId] : []);
       const version = ++this.lyricsRequestVersion;
       this.lyricTrackIds.set(new Set());
       if (!trackIds.length) return;
@@ -152,6 +178,9 @@ export class FoldersComponent implements OnInit, OnDestroy {
       }).catch(() => {
         if (version === this.lyricsRequestVersion) this.lyricTrackIds.set(new Set());
       });
+    });
+    effect(() => {
+      if (this.devMode()) void this.views.load(this.subtreeTrackIds());
     });
   }
 
@@ -375,6 +404,35 @@ export class FoldersComponent implements OnInit, OnDestroy {
 
   onAddFolderFilesToQueue(): void {
     this.queueActions.add(this.currentFolderTracks());
+  }
+
+  /** Looks up YouTube views again for the files listed, cached or not. */
+  onFetchViews(): void {
+    void this.views.fetch(this.currentFolderTracks().map((track) => track.id));
+  }
+
+  /** Looks up YouTube views for every uncached track under this folder, subfolders included. */
+  onFetchMissingViews(): void {
+    void this.views.fetch(this.subtreeTrackIds(), true);
+  }
+
+  onStopViews(): void {
+    this.views.cancel();
+  }
+
+  /** Folder of a file relative to the open folder, for the No match list. */
+  relativeFolder(file: FolderNode): string {
+    const base = this.currentNode()?.path ?? '';
+    const folder = file.path.slice(0, Math.max(0, file.path.length - file.name.length - 1));
+    return (folder.startsWith(base) ? folder.slice(base.length) : folder).replace(/^[\\/]+/, '') || '.';
+  }
+
+  formatViews(views: number | null): string {
+    return views == null ? '—' : VIEWS_FORMAT.format(views);
+  }
+
+  viewsTooltip(entry: TrackPopularity): string {
+    return entry.status === 'matched' ? `${entry.videoTitle ?? 'Unknown video'} · ${entry.channel ?? 'Unknown channel'}` : 'No matching upload found';
   }
 
 

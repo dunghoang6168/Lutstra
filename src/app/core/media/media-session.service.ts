@@ -41,6 +41,11 @@ export class MediaSessionService implements OnDestroy {
 
   constructor() {
     this.removeNativeMediaKeyListener = getDesktopApi()?.mediaKeys?.onAction((action) => this.handleNativeMediaKey(action)) ?? null;
+    effect(() => this.syncNativeMediaControls(
+      this.player.currentTrack(),
+      this.player.playbackState(),
+      this.player.audioEngineBackend(),
+    ));
     if (!this.mediaSession) return;
 
     this.registerActionHandlers();
@@ -118,6 +123,19 @@ export class MediaSessionService implements OnDestroy {
       else if (action === 'next') void this.player.next().catch(() => undefined);
       else this.player.stop();
     });
+  }
+
+  // Chromium publishes Media Session to the OS flyout only while its own media element
+  // plays, so the native Audio Host path drives Windows SMTC through the main process.
+  private syncNativeMediaControls(track: Track | null, playbackState: string, backend: string): void {
+    const state = !track || backend !== 'native-shared' ? 'none' : playbackState === 'playing' ? 'playing' : 'paused';
+    void getDesktopApi()?.mediaControls?.update({
+      title: track?.title ?? '',
+      artist: track?.artist ?? '',
+      album: track?.album ?? '',
+      artwork: track?.artwork ?? null,
+      state,
+    }).catch(() => undefined);
   }
 
   private syncMetadata(track: Track | null): void {

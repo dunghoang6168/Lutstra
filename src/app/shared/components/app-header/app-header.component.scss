@@ -178,3 +178,12 @@ app-window-controls { flex: 0 0 auto; }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   .float-cluster { background: var(--glass-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* Random folder's gacha cards: outline at rest, solid on its page. Masked so it takes currentColor. */
+.gacha-icon {
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: url('../../../../assets/icons/gacha_cards_outline.svg') center / contain no-repeat;
+}
+.header-button.active .gacha-icon { mask-image: url('../../../../assets/icons/gacha_cards_solid.svg'); }

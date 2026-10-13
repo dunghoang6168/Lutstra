@@ -1,13 +1,14 @@
 import { ApplicationConfig, inject, InjectionToken, NgZone, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { ARTIST_METADATA_GATEWAY, AUDIO_ANALYSIS_ENGINE, AudioAnalysisEngine, LIBRARY_GATEWAY, LYRICS_GATEWAY, PLAYBACK_ENGINE, PlaybackEngine, PLAYLIST_GATEWAY, SETTINGS_GATEWAY } from './core/contracts';
-import { MockArtistMetadataGateway, MockLibraryGateway, MockLyricsGateway, MockPlaybackEngine, MockPlaylistGateway, MockSettingsGateway } from './core/mock';
+import { ARTIST_METADATA_GATEWAY, AUDIO_ANALYSIS_ENGINE, AudioAnalysisEngine, LIBRARY_GATEWAY, LYRICS_GATEWAY, PLAYBACK_ENGINE, PlaybackEngine, PLAYLIST_GATEWAY, POPULARITY_GATEWAY, SETTINGS_GATEWAY } from './core/contracts';
+import { MockArtistMetadataGateway, MockLibraryGateway, MockLyricsGateway, MockPlaybackEngine, MockPopularityGateway, MockPlaylistGateway, MockSettingsGateway } from './core/mock';
 import { ElectronLibraryGateway } from './core/desktop/electron-library.gateway';
 import { ElectronPlaylistGateway } from './core/desktop/electron-playlist.gateway';
 import { ElectronSettingsGateway } from './core/desktop/electron-settings.gateway';
 import { ElectronArtistMetadataGateway } from './core/desktop/electron-artist-metadata.gateway';
 import { ElectronLyricsGateway } from './core/desktop/electron-lyrics.gateway';
+import { ElectronPopularityGateway } from './core/desktop/electron-popularity.gateway';
 import { HtmlAudioPlaybackEngine } from './core/desktop/html-audio-playback.engine';
 import { NativeAudioPlaybackEngine } from './core/desktop/native-audio-playback.engine';
 import { SwitchingPlaybackEngine } from './core/desktop/switching-playback.engine';
@@ -30,6 +31,7 @@ export const appConfig: ApplicationConfig = {
     { provide: SETTINGS_GATEWAY, useFactory: () => isDesktop() ? new ElectronSettingsGateway() : new MockSettingsGateway() },
     { provide: ARTIST_METADATA_GATEWAY, useFactory: () => isDesktop() ? new ElectronArtistMetadataGateway() : new MockArtistMetadataGateway() },
     { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : new MockLyricsGateway() },
+    { provide: POPULARITY_GATEWAY, useFactory: () => isDesktop() ? new ElectronPopularityGateway() : new MockPopularityGateway() },
     { provide: ACTIVE_AUDIO_ENGINE, useFactory: () => isDesktop()
       ? new SwitchingPlaybackEngine(new HtmlAudioPlaybackEngine(), new NativeAudioPlaybackEngine(inject(NgZone)))
       : new MockPlaybackEngine() },

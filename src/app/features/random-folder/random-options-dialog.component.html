@@ -1,0 +1,41 @@
+<dialog #dialog class="options-dialog" aria-labelledby="random-options-title" (click)="onDialogClick($event)">
+  <div class="options-header">
+    <h2 id="random-options-title">Roulette options</h2>
+    <button type="button" class="close-button" aria-label="Close" (click)="close()">
+      <app-icon name="x" [size]="18" aria-hidden="true" />
+    </button>
+  </div>
+
+  <div class="option-list">
+    @for (row of rows; track row.key) {
+      <div class="option-row">
+        <div class="option-text">
+          <span class="option-label" [id]="'random-option-' + row.key">{{ row.label }}</span>
+          <span class="option-desc" [id]="'random-option-' + row.key + '-desc'">{{ row.description }}</span>
+        </div>
+        <button type="button" role="switch" class="switch" [attr.aria-checked]="session.options()[row.key]"
+          [attr.aria-labelledby]="'random-option-' + row.key" [attr.aria-describedby]="'random-option-' + row.key + '-desc'"
+          [disabled]="isDisabled(row.key)" (click)="toggle(row.key)">
+          <span class="switch-thumb"></span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <section class="rates" aria-labelledby="random-rates-title">
+    <h3 id="random-rates-title">Rates</h3>
+    <ul class="rate-list">
+      @for (rate of rates; track rate.tier) {
+        <li class="rate-row" [attr.data-tier]="rate.tier">
+          <span class="rate-dot" aria-hidden="true"></span>
+          <span class="rate-name">{{ rate.name }}</span>
+          <span class="rate-format">{{ rate.format }}</span>
+          <span class="rate-value">{{ rate.rate }}</span>
+        </li>
+      }
+    </ul>
+    <p class="rate-rule">Tiers rank YouTube views within each top-level folder. {{ pityRule }}</p>
+  </section>
+
+  <p class="options-note">Changes apply from the next pick. Roll, Roll again or Change folder starts a new round.</p>
+</dialog>

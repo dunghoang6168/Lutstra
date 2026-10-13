@@ -6,3 +6,4 @@ export * from './mock-settings.gateway';
 export * from './mock-playback.engine';
 export * from './mock-artist-metadata.gateway';
 export * from './mock-lyrics.gateway';
+export * from './mock-popularity.gateway';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { QueueEntry, Track } from '../src/app/core/models';
-import { nextQueueEntries, selectPlaylistArtwork } from '../src/app/shared/utils/list-media';
+import type { Track } from '../src/app/core/models';
+import { selectPlaylistArtwork } from '../src/app/shared/utils/list-media';
 
 const track = (id: string, artwork: string | null = null) => ({ id, artwork } as Track);
 const entries = (tracks: readonly Track[]) => tracks.map(({ id }) => ({ trackId: id }));
@@ -27,28 +27,4 @@ describe('playlist artwork', () => {
     expect(playlist.map(e => e.trackId)).toEqual(['b', 'a']);
   });
 });
-
-describe('Up next queue entries', () => {
-  const queue: QueueEntry[] = Array.from({ length: 7 }, (_, i) => ({
-    id: 'entry-' + i, track: track('track-' + i), originalIndex: 6 - i,
-  }));
-  it('takes the next three entries at the start', () => {
-    expect(nextQueueEntries(queue, 0)).toEqual([1, 2, 3].map(index => ({ entry: queue[index], index })));
-  });
-  it('takes the next three entries in the middle', () => {
-    expect(nextQueueEntries(queue, 2)).toEqual([3, 4, 5].map(index => ({ entry: queue[index], index })));
-  });
-  it('returns only remaining entries near the end', () => {
-    expect(nextQueueEntries(queue, 5)).toEqual([{ entry: queue[6], index: 6 }]);
-  });
-  it('returns no entries at the end', () => expect(nextQueueEntries(queue, 6)).toEqual([]));
-  it('handles an empty queue', () => expect(nextQueueEntries([], -1)).toEqual([]));
-  it('returns no preview when there is no current entry', () => expect(nextQueueEntries(queue, -1)).toEqual([]));
-  it('preserves queue order and duplicate tracks with independent entry IDs', () => {
-    const shuffled = Object.freeze([queue[4], queue[1], { ...queue[1], id: 'duplicate' }, queue[6]]);
-    const preview = nextQueueEntries(shuffled, 0);
-    expect(preview.map(x => x.entry.id)).toEqual(['entry-1', 'duplicate', 'entry-6']);
-    expect(preview.map(x => x.index)).toEqual([1, 2, 3]);
-    expect(shuffled[0]).toBe(queue[4]);
-  });
-});
+

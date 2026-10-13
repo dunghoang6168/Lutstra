@@ -21,7 +21,8 @@
         var(--bg-surface);
     }
     /* Ambient: the surrounding card is the glass; the panel adds no second frame. */
-    :host-context(.layout-liquid-glass) .spectrum-panel {
+    :host-context(.layout-liquid-glass) .spectrum-panel,
+    .spectrum-panel.bare {
       border-color: transparent;
       background: transparent;
     }

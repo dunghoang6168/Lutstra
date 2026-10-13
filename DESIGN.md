@@ -198,7 +198,7 @@ components:
 
 **Creative North Star: "One Library, Three Listening Rooms"**
 
-Lutstra is one palette and one typeface carried by three shells that differ in topology, not in skin. Gallery (layout id `inset`) is the listening room: text tabs in the header, a single inset sheet with wide gutters and 800-weight display type, chrome-free covers, and a 300px now-playing rail. Console (id `classic`) is the archivist's workstation: a library tree with a Quality group, flush panes split by hairlines, 30px rows, a docked inspector and a 52px instrument strip whose signal path is set in mono. Ambient (id `liquid-glass`) lets chrome recede over the playing artwork: an icon rail, floating header clusters, a glass sheet over blurred cover art and one centred pill dock.
+Lutstra is one palette and one typeface carried by three shells that differ in topology, not in skin. Gallery (layout id `inset`) is the listening room: text tabs in the header, a single inset sheet with wide gutters and 800-weight display type, chrome-free covers, and a now-playing rail 6px from the sheet, 300px by default and dragged from its left edge between 240 and 560px. Console (id `classic`) is the archivist's workstation: a library tree with a Quality group, flush panes split by hairlines, 30px rows, a docked inspector and a 52px instrument strip whose signal path is set in mono. Ambient (id `liquid-glass`) lets chrome recede over the playing artwork: an icon rail, floating header clusters, a glass sheet over blurred cover art and one centred pill dock.
 
 Colour never changes between shells. Each shell takes the Graphite (dark) or Cloud (light) preset plus the user's accent, and each re-declares only its own layout tokens: shell gap, surface radius, control radius, page padding, display size and weight, label variant, row height, cover size, radius and shadow, and motion duration and easing. Type and cover art lead. Colour is rare and means something: the accent marks Hi-Res and active state, and the warning hue marks files and outputs that are not there.
 
@@ -226,7 +226,7 @@ The palette is cool graphite or cloud paper, with exactly one user-chosen hue on
 - **Navigation tone** (`*-navigation`) is the room colour. Gallery paints the whole window in it so the inset sheet reads as a page laid on a desk. Console uses it for the tree, title bar, inspector and strip.
 
 ### Status
-- **Missing Amber** (`status-warning`): reserved for file and output truth. It colours the Missing tree entry and its tick, the Missing state cell in tables, Unavailable badges (Songs, detail tables, Up next), a disconnected output in the signal path, and output or playback notices. It is never decoration. Text in this hue uses `--status-warning-text` (amber on Graphite, `#92400e` on Cloud). Under the Amber accent the warning shifts to orange (`#f97316` / `#c2410c`) so absence and accent never share a hue; the contrast script checks the ΔE (CIE76 ≥ 20) between them.
+- **Missing Amber** (`status-warning`): reserved for file and output truth. It colours the Missing tree entry and its tick, the Missing state cell in tables, Unavailable badges (Songs, detail tables, queue), a disconnected output in the signal path, and output or playback notices. It is never decoration. Text in this hue uses `--status-warning-text` (amber on Graphite, `#92400e` on Cloud). Under the Amber accent the warning shifts to orange (`#f97316` / `#c2410c`) so absence and accent never share a hue; the contrast script checks the ΔE (CIE76 ≥ 20) between them.
 - **Error Red** (`status-error`): failures such as scan errors and runtime errors. Destructive buttons fill with `--status-error-fill` (`#dc2626`) and darken to `--status-error-fill-hover` (`#b91c1c`) with `--color-on-error` text; both states are in the contrast script's danger table.
 - **Scrims** (`--scrim-soft` .35, `--scrim-strong` .68, `--scrim-heavy` .75): the only black overlays allowed over artwork and dialogs.
 - **Status tints** are derived, not literal: `color-mix(in srgb, var(--status-*) N%, transparent)` for banner and badge backgrounds and borders. No `rgba()` status literals in components.
@@ -267,7 +267,7 @@ All three shells share one Angular shell and one content container. `.main-conte
 |---|---|---|---|
 | Navigation | text tabs in a 60px header (folding into a menu under 900px) | 212px tree with Library and Quality groups (52px collapsed, forced under 650px) | 56px glass icon rail plus floating header clusters (52px high) |
 | Content | inset sheet, r20, 14px gap from the room | flush pane, r0, hairline-divided | glass sheet, r22, 10px gap, over blurred artwork |
-| Player | 300px now-playing rail (76px slim column under 1100px) | 52px strip; signal path hidden under 1180px | single 64px pill dock, max 860px, centred |
+| Player | now-playing rail, 300px default, resizable 240–560px from its left edge, 6px from the sheet (snaps to a 76px slim column when dragged under 160px, or when the window leaves no room; small windows start slim) | 52px strip; signal path hidden under 1180px | single 64px pill dock, max 860px, centred |
 | Side pane | none | docked 320px inspector (selected track, fallback playing) | floating details sheet |
 | Page padding | clamp(24, 4cqi, 64) × clamp(28, 4cqi, 52) | 20 × 18 | clamp(20, 3cqi, 44) × 76 (clears the floating header) |
 | Row height | 52px | 30px | 44px |
@@ -334,8 +334,8 @@ Gallery and Ambient share one listening-first Home; Console keeps its table Home
 - **Recently played:** from `RecentPlaysService` (`core/layout`), stored as `lutsra.recentPlays` = `[{ trackId, playedAt }]`, newest first, at most 20, recorded when `player.currentTrack` changes.
 - Then Recently modified albums and Playlists.
 
-### Up Next (Gallery rail)
-Between the signal path and the timeline, the rail lists up to three upcoming queue entries (`nextQueueEntries`) as real buttons that jump to that entry, with "Open queue" in the header. A ResizeObserver renders only rows that fit fully, and the block is hidden below 1101 × 701 or in the slim rail. Unavailable entries dim like Songs rows and swap the format for an Unavailable badge. "Queue ends after this track" replaces an empty list.
+### Lyrics (Gallery rail)
+Between the signal path and the timeline, the rail shows the current track's timed lyrics from `CurrentLyricsService` (`features/now-playing`, shared with Now Playing). Lines are real buttons that seek, the active line is accent and kept centred, and the list fades at both edges. A track without lyrics shows "No lyrics for this track." The block is hidden below 1101 × 701. Upcoming tracks live in the queue drawer.
 
 ### Signal Path (signature)
 A mono line reading `source → path`, for example `FLAC 24/96 → bit-perfect` or `M4A 256k → shared mixer`. The source is set in the text colour (accent if Hi-Res). The path is accent when bit-perfect, amber when the output is disconnected, and secondary otherwise. It states only what the engine reports. It appears in the Console strip, the Gallery rail and the Ambient dock. Its tooltip names the device and explains the current state in one sentence; Settings › Audio output explains the engines and the Windows shared mixer in place.

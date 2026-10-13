@@ -1,4 +1,5 @@
 import { LibrarySnapshot } from '../contracts/library.gateway';
+import { PopularityBatchSummary, PopularityProgress, TrackPopularity } from '../contracts/popularity.gateway';
 import { AudioHostState, AudioOutputDevice, AudioPathStatus, ArtistMatchCandidate, ArtistMetadataUpdate, ArtistOnlineMetadata, FolderNode, MusicFolder, PlaybackError, PlaybackState, PlaybackTimeEvent, PlaybackVolumeEvent, Playlist, ScanProgress, Settings, Track, TrackDetails } from '../models';
 
 export type NativeAudioHostEvent =
@@ -21,6 +22,9 @@ export interface DesktopApi {
   mediaKeys: {
     setNativeActive(enabled: boolean): Promise<void>;
     onAction(listener: (action: NativeMediaKeyAction) => void): () => void;
+  };
+  mediaControls: {
+    update(info: { title: string; artist: string; album: string; artwork: string | null; state: 'playing' | 'paused' | 'none' }): Promise<void>;
   };
   audioHost: {
     getState(): Promise<AudioHostState>;
@@ -91,6 +95,12 @@ export interface DesktopApi {
   settings: {
     get(): Promise<Settings>;
     save(value: Partial<Settings>): Promise<Settings>;
+  };
+  popularity: {
+    get(trackIds: string[]): Promise<TrackPopularity[]>;
+    fetchBatch(trackIds: string[]): Promise<PopularityBatchSummary>;
+    cancel(): Promise<void>;
+    onProgress(listener: (progress: PopularityProgress) => void): () => void;
   };
 }
 

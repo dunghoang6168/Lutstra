@@ -1,7 +1,7 @@
 @if (variant() === 'rail') {
   <!-- Ambient: a floating icon rail; labels surface on hover and focus. -->
   <nav class="icon-rail" aria-label="Main navigation">
-    @for (item of navItems; track item.path) {
+    @for (item of navItems(); track item.path) {
       <a #railLink [routerLink]="item.path" routerLinkActive="active" class="rail-item" [attr.aria-label]="item.label"
         (mouseenter)="showRailTip(railLink, railTip)" (focus)="showRailTip(railLink, railTip)"
         (mouseleave)="railTip.hidePopover()" (blur)="railTip.hidePopover()">
@@ -34,7 +34,7 @@
     </div>
 
     <nav class="nav-menu" aria-label="Main navigation">
-      @for (item of navItems; track item.path) {
+      @for (item of navItems(); track item.path) {
         <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="exactQuery"
           class="nav-item" [title]="item.label">
           <app-icon [name]="item.icon" [size]="16" class="nav-icon" />

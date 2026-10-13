@@ -1,10 +1,9 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, ViewChild, effect, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, ViewChild, effect, inject, input } from '@angular/core';
 import { AUDIO_ANALYSIS_ENGINE } from '../../../core/contracts';
 import { PlayerService } from '../../../core/player/player.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { FrequencyBand, createLogFrequencyBands, decaySpectrumLevels, updateSpectrumLevels } from './spectrum-utils';
 
-const BAR_COUNT = 48;
 const CANVAS_RESIZE_DEBOUNCE_MS = 120;
 
 @Component({
@@ -17,12 +16,27 @@ const CANVAS_RESIZE_DEBOUNCE_MS = 120;
 export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvas', { static: true }) private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  /** Bands from `minHz` to `maxHz`, read once when analysis starts. */
+  readonly barCount = input(48);
+  readonly minHz = input(40);
+  readonly maxHz = input(16_000);
+  /** Draw each band twice, mirrored out from the centre (lowest band at the centre). */
+  readonly mirrored = input(false);
+  /** Bars hang down from the top edge. */
+  readonly flipped = input(false);
+  /** Canvas only: no frame, label or paused status. */
+  readonly bare = input(false);
+  /** Colour token for the bars. Accent fades to `--accent-muted`; any other token is drawn solid. */
+  readonly colorVar = input('--accent-primary');
+  /** Re-read the colour token every frame, for a token that animates (the Music Roulette hologram). */
+  readonly liveColor = input(false);
+
   private readonly analysis = inject(AUDIO_ANALYSIS_ENGINE);
   readonly player = inject(PlayerService);
   private readonly theme = inject(ThemeService);
   private readonly zone = inject(NgZone);
   private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly levels = new Float32Array(BAR_COUNT);
+  private levels = new Float32Array(0);
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private frequencyData: Uint8Array<ArrayBuffer> | null = null;
   private bands: FrequencyBand[] = [];
@@ -47,6 +61,7 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
     this.theme.effectiveTheme();
     this.theme.themePreset();
     this.theme.accentColor();
+    this.colorVar();
     if (this.viewReady) {
       this.readThemeColors();
       this.draw();
@@ -55,6 +70,7 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.viewReady = true;
+    this.levels = new Float32Array(this.barCount());
     this.host.nativeElement.hidden = !this.analysis.isAnalysisSupported;
     this.context = this.canvasRef.nativeElement.getContext('2d');
     this.readThemeColors();
@@ -113,7 +129,7 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
         return false;
       }
       this.frequencyData = new Uint8Array(binCount);
-      this.bands = createLogFrequencyBands(binCount, BAR_COUNT);
+      this.bands = createLogFrequencyBands(binCount, this.levels.length, undefined, this.minHz(), this.maxHz());
       this.host.nativeElement.hidden = false;
       return true;
     }).catch(() => {
@@ -140,6 +156,7 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
         if (state === 'playing') this.readLiveData(dt);
         else if (state === 'loading') keepRendering = decaySpectrumLevels(this.levels, 0.985);
         else keepRendering = decaySpectrumLevels(this.levels, 0.9);
+        if (this.liveColor()) this.readThemeColors();
         this.draw();
 
         if (keepRendering) this.frameId = requestAnimationFrame(render);
@@ -194,36 +211,54 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
     context.clearRect(0, 0, width, height);
 
     const horizontalPadding = 12;
-    const topPadding = 24;
-    const bottomPadding = 10;
+    // A bare flipped spectrum hangs from its very top edge.
+    const topPadding = this.bare() ? (this.flipped() ? 0 : 4) : 24;
+    const bottomPadding = this.bare() ? 4 : 10;
     const availableWidth = Math.max(1, width - horizontalPadding * 2);
     const availableHeight = Math.max(1, height - topPadding - bottomPadding);
+    const flipped = this.flipped();
+    const baseline = flipped ? topPadding : height - bottomPadding;
 
     if (!this.player.isPlaying()) {
       context.fillStyle = this.baselineColor;
-      context.fillRect(horizontalPadding, height - bottomPadding - 1, availableWidth, 1);
+      context.fillRect(horizontalPadding, flipped ? baseline : baseline - 1, availableWidth, 1);
       return;
     }
 
+    const count = this.levels.length;
+    const mirrored = this.mirrored();
+    const columns = mirrored ? count * 2 : count;
     const gap = Math.max(2, Math.min(4, availableWidth / 180));
-    const barWidth = Math.max(1, (availableWidth - gap * (BAR_COUNT - 1)) / BAR_COUNT);
-    const gradient = context.createLinearGradient(0, topPadding, 0, height - bottomPadding);
+    const barWidth = Math.max(1, (availableWidth - gap * (columns - 1)) / columns);
+    // The solid colour sits at the bars' tips, so a flipped spectrum fades downwards.
+    const gradient = flipped
+      ? context.createLinearGradient(0, height - bottomPadding, 0, topPadding)
+      : context.createLinearGradient(0, topPadding, 0, height - bottomPadding);
     gradient.addColorStop(0, this.accentColor);
     gradient.addColorStop(1, this.accentMuted);
     context.fillStyle = gradient;
 
-    for (let index = 0; index < BAR_COUNT; index++) {
+    const centre = width / 2;
+    for (let index = 0; index < count; index++) {
       const barHeight = Math.max(2, this.levels[index] * availableHeight);
-      const x = horizontalPadding + index * (barWidth + gap);
-      const y = height - bottomPadding - barHeight;
-      drawRoundedBar(context, x, y, barWidth, barHeight);
+      const y = flipped ? baseline : baseline - barHeight;
+      if (mirrored) {
+        const step = gap / 2 + index * (barWidth + gap);
+        drawRoundedBar(context, centre + step, y, barWidth, barHeight);
+        drawRoundedBar(context, centre - step - barWidth, y, barWidth, barHeight);
+      } else {
+        drawRoundedBar(context, horizontalPadding + index * (barWidth + gap), y, barWidth, barHeight);
+      }
     }
   }
 
   private readThemeColors(): void {
     const styles = getComputedStyle(this.host.nativeElement);
-    this.accentColor = styles.getPropertyValue('--accent-primary').trim() || '#8b5cf6';
-    this.accentMuted = styles.getPropertyValue('--accent-muted').trim() || 'rgba(139, 92, 246, 0.15)';
+    const colorVar = this.colorVar();
+    this.accentColor = styles.getPropertyValue(colorVar).trim() || '#8b5cf6';
+    this.accentMuted = colorVar === '--accent-primary'
+      ? styles.getPropertyValue('--accent-muted').trim() || 'rgba(139, 92, 246, 0.15)'
+      : this.accentColor;
     this.baselineColor = styles.getPropertyValue('--border-default').trim()
       || styles.getPropertyValue('--border-subtle').trim()
       || 'rgba(255, 255, 255, 0.12)';

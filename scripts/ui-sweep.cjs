@@ -50,12 +50,12 @@ app.whenReady().then(async () => {
   const errors = [];
   win.webContents.on('console-message', (e) => { const m = e.message || ''; if ((e.level === 'error' || e.level === 3) && !m.includes('frame-ancestors')) errors.push(m.slice(0, 160)); });
   await win.loadURL(BASE);
-  await js(`localStorage.setItem('lutsra.layout.mode','inset')`);
+  await js(`localStorage.setItem('lutsra.layout.mode','inset'); localStorage.setItem('lutsra.dev.enabled','true')`);
   await win.loadURL(BASE + '/artists'); await wait(3000);
   const artist = await js(`[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).find(h=>h.startsWith('/artists/'))`);
   await win.loadURL(BASE + '/playlists'); await wait(3000);
   const playlist = await js(`[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).find(h=>h.startsWith('/playlists/'))`);
-  const routes = ['/home', '/songs', '/albums', '/albums/album-midnight', '/artists', artist, '/playlists', playlist, '/folders', '/settings', '/now-playing'];
+  const routes = ['/home', '/songs', '/albums', '/albums/album-midnight', '/artists', artist, '/playlists', playlist, '/folders', '/settings', '/now-playing', '/random-folder'];
   const report = [];
   for (const layout of ['inset', 'classic', 'liquid-glass']) {
     await js(`localStorage.setItem('lutsra.layout.mode','${layout}')`);

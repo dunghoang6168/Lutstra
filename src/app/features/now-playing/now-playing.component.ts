@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, computed, effect, ElementRef, inject, OnDestroy, signal } from '@angular/core';
+import { AfterViewChecked, Component, computed, ElementRef, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
@@ -8,9 +8,8 @@ import { SpectrumVisualizerComponent } from '../../shared/components/spectrum-vi
 import { RightPanelService } from '../../core/layout/right-panel.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { ArtworkGlowPositionService } from '../../core/layout/artwork-glow-position.service';
-import { LYRICS_GATEWAY } from '../../core/contracts';
 import { LyricLine } from '../../core/models';
-import { activeLyricIndex, parseLrc } from './lrc-parser';
+import { CurrentLyricsService, centerLyricLine } from './current-lyrics.service';
 import { InlineVolumeControlComponent } from './inline-volume-control.component';
 import { SignalPathComponent } from '../../shared/components/signal-path/signal-path.component';
 import { WaveformSeekComponent } from './waveform-seek.component';
@@ -30,11 +29,11 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
   readonly layoutPreference = inject(LayoutPreferenceService);
   readonly audioVisualization = inject(AudioVisualizationPreferenceService);
   private readonly artworkGlowPosition = inject(ArtworkGlowPositionService);
-  private readonly lyricsGateway = inject(LYRICS_GATEWAY);
+  private readonly lyrics = inject(CurrentLyricsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  readonly lyricsStatus = signal<'loading' | 'ready' | 'missing' | 'unsupported' | 'error'>('loading');
-  readonly lyricLines = signal<LyricLine[]>([]);
-  readonly activeLineIndex = computed(() => activeLyricIndex(this.lyricLines(), this.player.currentTime()));
+  readonly lyricsStatus = this.lyrics.status;
+  readonly lyricLines = this.lyrics.lines;
+  readonly activeLineIndex = this.lyrics.activeLineIndex;
   readonly trackMetadataLabel = computed(() => {
     const track = this.player.currentTrack();
     if (!track) return '';
@@ -71,10 +70,9 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     const duration = this.player.duration();
     return duration > 0 ? Math.min(100, Math.max(0, this.displayTime() / duration * 100)) : 0;
   });
-  private lyricsRequest = 0;
-  private lastTrackKey: string | null = null;
   private destroyed = false;
   private lastScrolledLine: number | null = null;
+  private lastScrolledLines: LyricLine[] | null = null;
   private scrollFrame: number | null = null;
   private glowFrame: number | null = null;
   private glowCard: HTMLElement | null = null;
@@ -99,37 +97,12 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     });
   };
 
-  private readonly trackEffect = effect(() => {
-    const trackId = this.player.currentTrack()?.id ?? null;
-    const queueEntry = this.player.currentQueueEntry();
-    const trackKey = trackId ? `${trackId}:${queueEntry?.track.id === trackId ? queueEntry.id : ''}` : null;
-    if (trackKey === this.lastTrackKey) return;
-    this.lastTrackKey = trackKey;
-    const request = ++this.lyricsRequest;
-    this.lastScrolledLine = null;
-    if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
-    this.scrollFrame = null;
-    this.lyricLines.set([]);
-    if (!trackId) { this.lyricsStatus.set('missing'); return; }
-    this.lyricsStatus.set('loading');
-    void this.lyricsGateway.getLyrics(trackId).then((contents) => {
-      if (this.destroyed || request !== this.lyricsRequest) return;
-      if (contents === null) { this.lyricsStatus.set('missing'); return; }
-      const lines = parseLrc(contents);
-      this.lyricLines.set(lines);
-      this.lyricsStatus.set(lines.length ? 'ready' : 'unsupported');
-    }).catch(() => {
-      if (!this.destroyed && request === this.lyricsRequest) this.lyricsStatus.set('error');
-    });
-  });
-
   openTrackDetails(event: MouseEvent): void {
     this.rightPanels.openTrackDetails(event.currentTarget as HTMLElement);
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
-    this.lyricsRequest++;
     if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
     this.disconnectGlow();
     this.rightPanels.closeTrackDetails(false);
@@ -139,20 +112,16 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     this.syncGlowTarget();
     if (this.lyricsStatus() !== 'ready') return;
     const active = this.activeLineIndex();
-    if (active === this.lastScrolledLine) return;
+    const lines = this.lyricLines();
+    if (active === this.lastScrolledLine && lines === this.lastScrolledLines) return;
     this.lastScrolledLine = active;
+    this.lastScrolledLines = lines;
     if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
     this.scrollFrame = requestAnimationFrame(() => {
       this.scrollFrame = null;
       const viewport = this.host.nativeElement.querySelector<HTMLElement>('.lyrics-lines');
       if (!viewport || this.destroyed) return;
-      if (active < 0) { viewport.scrollTo({ top: 0, behavior: 'instant' }); return; }
-      const line = viewport.querySelector<HTMLElement>(`[data-lyric-index="${active}"]`);
-      if (!line) return;
-      const top = viewport.scrollTop + line.getBoundingClientRect().top
-        - viewport.getBoundingClientRect().top + line.offsetHeight / 2 - viewport.clientHeight / 2;
-      const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-      viewport.scrollTo({ top: Math.max(0, top), behavior });
+      centerLyricLine(viewport, active);
     });
   }
 
@@ -191,7 +160,7 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     this.artworkGlowPosition.clear();
   }
 
-  seekToLyric(line: LyricLine): void { this.player.seek(line.time); }
+  seekToLyric(line: LyricLine): void { this.lyrics.seek(line); }
 
   cyclePlaybackMode(): void {
     const current = this.playbackMode();

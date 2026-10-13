@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { DesktopApi, NativeAudioHostEvent, NativeMediaKeyAction } from '../src/app/core/desktop/desktop-api';
 import type { ArtistMetadataUpdate, AudioHostState, ScanProgress } from '../src/app/core/models';
+import type { PopularityProgress } from '../src/app/core/contracts/popularity.gateway';
 
 const api: DesktopApi = {
   runtime: 'electron',
@@ -24,6 +25,9 @@ const api: DesktopApi = {
       ipcRenderer.on('media-keys:action', handler);
       return () => ipcRenderer.removeListener('media-keys:action', handler);
     },
+  },
+  mediaControls: {
+    update: (info) => ipcRenderer.invoke('media-controls:update', info),
   },
   audioHost: {
     getState: () => ipcRenderer.invoke('audio-host:get-state'),
@@ -118,6 +122,16 @@ const api: DesktopApi = {
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     save: (value) => ipcRenderer.invoke('settings:save', value),
+  },
+  popularity: {
+    get: (trackIds) => ipcRenderer.invoke('popularity:get', trackIds),
+    fetchBatch: (trackIds) => ipcRenderer.invoke('popularity:fetch-batch', trackIds),
+    cancel: () => ipcRenderer.invoke('popularity:cancel'),
+    onProgress: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, value: PopularityProgress) => listener(value);
+      ipcRenderer.on('popularity:progress', handler);
+      return () => ipcRenderer.removeListener('popularity:progress', handler);
+    },
   },
 };
 

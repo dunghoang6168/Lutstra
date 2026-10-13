@@ -309,7 +309,7 @@
               </div>
               <div class="pref-control output-device-control">
                 <app-searchable-filter-select label="Output device" [options]="audioOutputOptions()" [allLabel]="null"
-                  [value]="player.preferredAudioOutputId()" (valueChange)="onAudioOutputChange($event)" />
+                  [value]="audioOutputValue()" (valueChange)="onAudioOutputChange($event)" />
               </div>
             </div>
             <div class="pref-row">
@@ -391,7 +391,11 @@
         <!-- Section 3: About -->
         <section class="settings-card card-base">
           <div class="card-header">
-            <h2>About Lutstra</h2>
+            @if (devModeEnabled()) {
+              <h2>About Lutstra</h2>
+            } @else {
+              <h2><button type="button" class="about-heading-button" aria-haspopup="dialog" (click)="showDevModeDialog.set(true)">About Lutstra</button></h2>
+            }
           </div>
 
           <p class="about-description">A local-first player for lossless and hi-res libraries.</p>
@@ -401,9 +405,19 @@
               <span class="about-label">Third-party audio</span>
               <span class="about-value">Dynamically links an LGPL-licensed FFmpeg build. Notices and corresponding source ship with the app.</span>
             </div>
+            @if (devModeEnabled()) {
+              <div class="about-item dev-mode-item">
+                <span class="about-label">Developer mode</span>
+                <span class="about-value">On</span>
+                <button type="button" class="btn btn-secondary btn-sm dev-mode-exit" (click)="onExitDevMode()">Exit developer mode</button>
+              </div>
+            }
           </div>
         </section>
       </div>
+      @if (showDevModeDialog()) {
+        <app-dev-mode-dialog (cancelled)="showDevModeDialog.set(false)" (unlocked)="onDevModeUnlocked()" />
+      }
       @if (pendingRemoveFolder(); as folder) {
         <app-confirm-remove-folder-dialog [folderName]="folder.name" [busy]="removingFolder()"
           [errorMessage]="errorMessage()" (cancelled)="pendingRemoveFolder.set(null)"

@@ -1,3 +1,5 @@
+import type { MediaControlsInfo } from '../media-controls.js';
+
 const ID_PATTERN = /^[a-z]+-[a-f0-9]{64}$/;
 
 export function validId(value: unknown): string {
@@ -56,4 +58,17 @@ export function validOutputMode(value: unknown): 'shared' | 'exclusive-dsp' {
 export function validExclusiveBufferMs(value: unknown): number {
   if (typeof value !== 'number' || ![10,20,40,80].includes(value)) throw new Error('Invalid Exclusive buffer');
   return value;
+}
+
+export function validMediaControlsInfo(value: unknown, resolveArtworkPath: (hash: string) => string | null): MediaControlsInfo {
+  const info = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const state = info['state'];
+  if (state !== 'playing' && state !== 'paused' && state !== 'none') throw new Error('Invalid media controls state');
+  const text = (field: unknown) => typeof field === 'string' ? field.slice(0, 512) : '';
+  // Only the app's own artwork URLs resolve to a file; the renderer never sends a raw path.
+  const hash = typeof info['artwork'] === 'string' ? /^music:\/\/artwork\/([a-f0-9]{64})$/.exec(info['artwork'])?.[1] : undefined;
+  return {
+    title: text(info['title']), artist: text(info['artist']), album: text(info['album']), state,
+    artworkPath: hash ? resolveArtworkPath(hash) : null,
+  };
 }

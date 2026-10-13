@@ -1,0 +1,158 @@
+<section class="random-folder-page" aria-labelledby="random-folder-title" [attr.aria-busy]="isLoading()">
+  <!-- The roll view shows only the reel and its result; the heading stays for screen readers. -->
+  <header class="page-heading" [class.sr-only]="spin()">
+    <h1 id="random-folder-title">Music Roulette</h1>
+    <p>Roll a track from a folder. The rarer the tier, the bigger the hit.</p>
+  </header>
+
+  @if (spin(); as current) {
+    <div class="roll-toolbar">
+      <button type="button" class="back-button" [disabled]="isRandomizing()" (click)="backToFolders()">
+        <app-icon name="chevron-left" [size]="18" aria-hidden="true" /> Change folder
+      </button>
+      <div class="roll-tools">
+        <!-- Hidden while spinning: the counters already include this roll and would give it away. -->
+        <span class="pity measurement" [class.pending]="isRandomizing()" [attr.aria-hidden]="isRandomizing()">
+          Gold pity {{ session.pity().gold }}/{{ hardPity }} · Red {{ session.pity().red }}/{{ redPity }} · Mythical {{ session.pity().mythic }}/{{ mythicGuarantee }}
+        </span>
+        <button type="button" class="options-button" aria-label="Roulette options" title="Roulette options" (click)="options.open()">
+          <app-icon name="settings" [size]="18" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+
+    @for (reel of [current]; track reel.id) {
+      <app-random-reel [items]="reel.items" [winnerIndex]="reel.winnerIndex" [offset]="reel.offset"
+        [settled]="reel.settled" [durationMs]="reel.durationMs" (done)="onSpinDone()" />
+    }
+  } @else {
+    <p class="shuffle-note"><app-icon name="queue" aria-hidden="true" /> The queue is hidden on this page. Shuffle and repeat are off during a round</p>
+
+    @if (loadError(); as message) {
+      <div class="load-error" role="status">
+        <p>{{ message }}</p>
+        <button type="button" class="btn btn-secondary" [disabled]="isLoading()" (click)="loadLibrary()">Retry</button>
+      </div>
+    }
+
+    @if (isLoading()) {
+      <p role="status">Loading library folders…</p>
+    } @else if (folders().length) {
+      <div class="source-controls">
+        <nav class="breadcrumb-trail" aria-label="Source folder">
+          @if (nodeStack().length) {
+            <button type="button" class="crumb-btn" (click)="openCrumb(-1)">Music roots</button>
+          } @else {
+            <span class="crumb-current" aria-current="location">Music roots</span>
+          }
+          @for (crumb of nodeStack(); track crumb.id; let idx = $index; let last = $last) {
+            <span class="crumb-sep" aria-hidden="true">/</span>
+            @if (!last) {
+              <button type="button" class="crumb-btn" (click)="openCrumb(idx)">{{ crumb.name }}</button>
+            } @else {
+              <span class="crumb-current" aria-current="location">{{ crumb.name }}</span>
+            }
+          }
+        </nav>
+        <div class="random-actions">
+          <button type="button" class="options-button" aria-label="Roulette options" title="Roulette options" (click)="options.open()">
+            <app-icon name="settings" [size]="20" aria-hidden="true" />
+          </button>
+          <button type="button" class="random-button" [disabled]="isRandomizing()" (click)="randomize()">
+          <span class="roll-icon" style="--roll-icon-size: 36px" aria-hidden="true"></span>
+          <span class="random-label">
+            Roll
+            <span class="random-source">{{ sourceLabel() }}</span>
+          </span>
+          </button>
+        </div>
+      </div>
+      @if (checkedSummary(); as summary) {
+        <p class="checked-bar">
+          <span>{{ summary }} ticked to roll together</span>
+          <button type="button" class="crumb-btn" (click)="clearChecked()">Clear</button>
+        </p>
+      }
+    } @else if (!loadError()) {
+      <div class="empty-source" role="status">
+        <h2>No library folders yet</h2>
+        <p>Add a music folder on the Folders page, then return here to pick a source.</p>
+      </div>
+    }
+  }
+
+  <div class="feedback" role="status" aria-atomic="true">
+    @if (errorMessage() ?? session.notice(); as message) { <p>{{ message }}</p> }
+    @else if (result(); as picked) { <p class="sr-only">Picked {{ picked.track.title || picked.track.fileName }}</p> }
+  </div>
+
+  @if (spin() && result(); as selection) {
+    <article class="result-card" aria-labelledby="result-title" [attr.data-tier]="rarity(selection.track)">
+      <div class="result-cover">
+        @if (selection.track.artwork && !artworkFailed()) {
+          <img [src]="selection.track.artwork" alt="" (error)="artworkFailed.set(true)" />
+        } @else {
+          <app-icon name="disc" aria-hidden="true" />
+        }
+      </div>
+      <div class="result-details">
+        <h2 id="result-title">{{ selection.track.title || selection.track.fileName }}</h2>
+        <p class="artist">{{ selection.track.artist || 'Unknown artist' }}</p>
+        @let tier = rarity(selection.track);
+        <div class="result-grade">
+          <span class="rarity-chip" [attr.data-tier]="tier"><span class="rarity-dot" aria-hidden="true"></span>{{ rarityNames[tier] }}</span>
+          <span class="measurement">
+            {{ formatTrackFormat(selection.track)?.label ?? 'Unknown format' }} · {{ selection.track.duration | duration }}
+          </span>
+        </div>
+      </div>
+      <button type="button" class="random-button random-again" [disabled]="isLoading() || isRandomizing()" (click)="randomize()">
+        <span class="roll-icon" aria-hidden="true"></span> Roll again
+      </button>
+    </article>
+  }
+
+  @if (!spin() && !isLoading() && rows().length) {
+    <div class="folder-list" [attr.aria-label]="selectedFolder() ? 'Subfolders' : 'Music roots'">
+      @for (row of rows(); track row.node.id) {
+        <div class="folder-item">
+          <!-- Beside the row, not inside it: the row is a button that opens the folder. -->
+          <input type="checkbox" class="folder-check" [checked]="checkedIds().has(row.node.id)" (change)="toggleChecked(row.node)"
+            [attr.aria-label]="'Roll with ' + row.node.name" [title]="'Roll with ' + row.node.name" />
+          <button type="button" class="folder-row" (click)="openFolder(row.node)" [attr.aria-label]="'Open ' + row.node.name">
+            <app-icon name="folder" [size]="20" class="folder-row-icon" aria-hidden="true" />
+            <span class="folder-row-name" [title]="row.node.path">{{ row.node.name }}</span>
+            <span class="folder-row-stats measurement">{{ row.trackCount }} tracks</span>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!spin() && !isLoading() && trackRows().length) {
+    <section class="track-list" aria-labelledby="track-list-title">
+      <h2 id="track-list-title" class="list-heading">Tracks <span class="measurement">{{ trackRows().length }}</span></h2>
+      @for (track of trackRows(); track track.id) {
+        @let tier = rarity(track);
+        <!-- The whole row is the checkbox's label: a click anywhere ticks the track. -->
+        <label class="track-item">
+          <input type="checkbox" class="folder-check" [checked]="checkedTrackIds().has(track.id)" (change)="toggleTrack(track)" />
+          <span class="track-cover" aria-hidden="true">
+            <app-icon name="disc" [size]="20" />
+            @if (track.artwork) {
+              <img [src]="track.artwork" alt="" loading="lazy" (error)="$any($event.target).hidden = true" />
+            }
+          </span>
+          <span class="track-text">
+            <span class="track-title">{{ track.title || track.fileName }}</span>
+            <span class="track-artist">{{ track.artist || 'Unknown artist' }}</span>
+          </span>
+          <span class="rarity-chip" [attr.data-tier]="tier"><span class="rarity-dot" aria-hidden="true"></span>{{ rarityNames[tier] }}</span>
+          <span class="track-duration measurement">{{ track.duration | duration }}</span>
+        </label>
+      }
+    </section>
+  }
+</section>
+
+<app-random-options-dialog #options />

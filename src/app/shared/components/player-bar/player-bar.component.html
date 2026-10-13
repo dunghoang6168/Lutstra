@@ -1,7 +1,8 @@
 <ng-template #transport let-size="size" let-modes="modes">
-  @if (modes) {
+  @if (modes && !player.modesLocked()) {
     <button type="button" class="ctrl-btn" [class.active]="player.isShuffle()" (click)="player.toggleShuffle()"
-      [disabled]="player.queue().length === 0" title="Shuffle (S)" aria-label="Shuffle"
+      [disabled]="player.queue().length === 0"
+      title="Shuffle (S)" aria-label="Shuffle"
       [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
       <app-icon name="shuffle" [size]="16" />
     </button>
@@ -20,7 +21,7 @@
     title="Next (N)" aria-label="Next track" aria-keyshortcuts="N">
     <app-icon name="skip-forward" [size]="18" />
   </button>
-  @if (modes) {
+  @if (modes && !player.modesLocked()) {
     <button type="button" class="ctrl-btn" [class.active]="player.repeatMode() !== 'off'"
       (click)="player.cycleRepeatMode()" [title]="'Repeat: ' + player.repeatMode() + ' (R)'"
       [attr.aria-label]="'Repeat: ' + player.repeatMode()" [attr.aria-pressed]="player.repeatMode() !== 'off'"
@@ -55,23 +56,26 @@
       [attr.aria-pressed]="player.isMuted()" aria-keyshortcuts="M">
       <app-icon [name]="player.isMuted() || player.volume() === 0 ? 'volume-x' : 'volume-2'" [size]="18" />
     </button>
-    <div class="volume-slider-shell" [class.adjusting]="isVolumeAdjusting()" [style.--volume-position]="volumePosition()">
+    <div class="volume-slider-shell" [class.adjusting]="isVolumeAdjusting() || isVolumeFlashing()" [style.--volume-position]="volumePosition()">
       <app-range-slider class="volume-slider" [min]="0" [max]="100" [step]="1"
         [value]="volumePercent()" [muted]="player.isMuted()"
         ariaLabel="Volume" [ariaValueText]="volumeAriaText()"
         (valueChange)="player.setVolume($event / 100)"
-        (adjustingChange)="isVolumeAdjusting.set($event)" />
+        (adjustingChange)="isVolumeAdjusting.set($event)"
+        (keydown.arrowup)="stepVolume($event, 0.05)" (keydown.arrowdown)="stepVolume($event, -0.05)" />
       <span class="volume-tooltip" aria-hidden="true">{{ volumeTooltip() }}</span>
     </div>
   </div>
 </ng-template>
 
 <ng-template #queueButton>
-  <button type="button" class="queue-btn" [class.active]="isQueueOpen()" (click)="toggleQueue.emit()"
-    title="Queue (Q)" aria-label="Toggle playback queue" [attr.aria-pressed]="isQueueOpen()" aria-keyshortcuts="Q">
-    <app-icon name="queue" [size]="18" />
-    @if (player.queue().length > 0) { <span class="queue-badge">{{ player.queue().length }}</span> }
-  </button>
+  @if (!rightPanels.queueHidden()) {
+    <button type="button" class="queue-btn" [class.active]="isQueueOpen()" (click)="toggleQueue.emit()"
+      title="Queue (Q)" aria-label="Toggle playback queue" [attr.aria-pressed]="isQueueOpen()" aria-keyshortcuts="Q">
+      <app-icon name="queue" [size]="18" />
+      @if (player.queue().length > 0) { <span class="queue-badge">{{ player.queue().length }}</span> }
+    </button>
+  }
 </ng-template>
 
 <ng-template #cover let-size="size">
@@ -92,7 +96,7 @@
 @switch (variant()) {
   @case ('rail') {
     <!-- Gallery: the now-playing rail is the whole player. -->
-    <section class="player-rail" aria-label="Now playing">
+    <section class="player-rail" tabindex="-1" aria-label="Now playing">
       <div class="rail-cover">
         <ng-container *ngTemplateOutlet="cover; context: { size: 40 }" />
       </div>
@@ -109,40 +113,24 @@
         </div>
       }
       <app-signal-path class="rail-signal" />
-      @if (player.currentTrack() && upNextEnabled()) {
-        <section class="rail-up-next" #upNextSlot aria-labelledby="up-next-title">
-          <div class="up-next-header">
-            <h2 id="up-next-title">Up next</h2>
-            @if (upNextHeaderFits()) {
-              <button type="button" class="open-queue-link" (click)="toggleQueue.emit()"
-                [attr.aria-expanded]="isQueueOpen()">Open queue</button>
+      @if (player.currentTrack() && railPanelEnabled()) {
+        <section class="rail-lyrics" aria-labelledby="rail-lyrics-title">
+          <h2 id="rail-lyrics-title">Lyrics</h2>
+          @switch (lyrics.status()) {
+            @case ('loading') { <p class="rail-lyrics-message">Loading lyrics…</p> }
+            @case ('missing') { <p class="rail-lyrics-message">No lyrics for this track.</p> }
+            @case ('unsupported') { <p class="rail-lyrics-message">This .lrc file has no timed lyric lines.</p> }
+            @case ('error') { <p class="rail-lyrics-message">The lyrics file could not be read.</p> }
+            @default {
+              <div class="rail-lyrics-lines" #lyricsViewport aria-label="Timed lyrics">
+                @for (line of lyrics.lines(); track $index) {
+                  <button type="button" class="rail-lyrics-line" [class.active]="lyrics.activeLineIndex() === $index"
+                    [attr.data-lyric-index]="$index" [attr.aria-current]="lyrics.activeLineIndex() === $index ? 'true' : null"
+                    (click)="lyrics.seek(line)">{{ line.text }}</button>
+                }
+              </div>
             }
-          </div>
-          <span class="up-next-measure" aria-hidden="true"></span>
-          <div class="up-next-list">
-            @for (item of visibleUpNext(); track item.entry.id) {
-              <button type="button" class="up-next-track" [class.unavailable]="item.entry.track.isAvailable === false" (click)="player.jumpToQueueIndex(item.index)"
-                [attr.aria-label]="'Play ' + item.entry.track.title + ' next in queue' + (item.entry.track.isAvailable === false ? ', unavailable' : '')">
-                <span class="up-next-cover" aria-hidden="true">
-                  @if (item.entry.track.artwork) {
-                    <img [src]="item.entry.track.artwork" alt="" />
-                  } @else { <app-icon name="disc" [size]="20" /> }
-                </span>
-                <span class="up-next-copy">
-                  <span class="up-next-title">{{ item.entry.track.title }}</span>
-                  <span class="up-next-artist">{{ item.entry.track.artist || 'Unknown Artist' }}</span>
-                  @if (item.entry.track.isAvailable === false) {
-                    <span class="badge-unavailable">Unavailable</span>
-                  } @else if (formatTrackFormat(item.entry.track); as format) {
-                    <span class="up-next-format" [class.hires]="format.hires">{{ format.label }}</span>
-                  }
-                </span>
-              </button>
-            }
-            @if (upNext().length === 0) {
-              <p class="up-next-empty">Queue ends after this track</p>
-            }
-          </div>
+          }
         </section>
       }
       <div class="rail-timeline"><ng-container *ngTemplateOutlet="timeline" /></div>
@@ -157,7 +145,7 @@
   }
   @case ('pill') {
     <!-- Ambient: one floating dock. -->
-    <section class="player-pill" aria-label="Audio player">
+    <section class="player-pill" tabindex="-1" aria-label="Audio player">
       <div class="pill-identity">
         <div class="pill-cover"><ng-container *ngTemplateOutlet="cover; context: { size: 18 }" /></div>
         <div class="pill-meta">
@@ -179,7 +167,7 @@
   }
   @default {
     <!-- Console: a single 52px instrument strip with the signal path always in view. -->
-    <section class="player-strip" aria-label="Audio player">
+    <section class="player-strip" tabindex="-1" aria-label="Audio player">
       <div class="strip-identity">
         <div class="strip-cover"><ng-container *ngTemplateOutlet="cover; context: { size: 16 }" /></div>
         @if (player.currentTrack(); as track) {

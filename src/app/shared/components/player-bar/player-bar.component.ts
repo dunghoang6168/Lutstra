@@ -1,10 +1,10 @@
 import { Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { nextQueueEntries } from '../../utils/list-media';
 import { TimelineScrub, timelineFraction } from '../../utils/timeline-scrub';
-import { formatTrackFormat } from '../../../features/home/library-quality';
+import { CurrentLyricsService, centerLyricLine } from '../../../features/now-playing/current-lyrics.service';
 import { PlayerService } from '../../../core/player/player.service';
+import { RightPanelService } from '../../../core/layout/right-panel.service';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { RangeSliderComponent } from '../range-slider/range-slider.component';
@@ -21,10 +21,14 @@ export type PlayerVariant = 'strip' | 'rail' | 'pill';
 })
 export class PlayerBarComponent {
   readonly player = inject(PlayerService);
+  readonly rightPanels = inject(RightPanelService);
   readonly variant = input<PlayerVariant>('strip');
   readonly isQueueOpen = input<boolean>(false);
   readonly toggleQueue = output<void>();
   readonly isVolumeAdjusting = signal(false);
+  /** Shows the volume tooltip briefly after a keyboard volume change. */
+  readonly isVolumeFlashing = signal(false);
+  private volumeFlashTimer?: ReturnType<typeof setTimeout>;
   readonly volumePercent = computed(() => Math.round(this.player.volume() * 100));
   readonly volumePosition = computed(() => `${this.volumePercent()}%`);
   readonly volumeTooltip = computed(() => this.player.isMuted()
@@ -43,46 +47,39 @@ export class PlayerBarComponent {
   readonly timelineValueText = computed(() =>
     `${formatClock(this.displayTime())} of ${formatClock(this.player.duration())}`);
 
-  readonly formatTrackFormat = formatTrackFormat;
-  readonly upNext = computed(() => nextQueueEntries(this.player.queue(), this.player.currentIndex()));
-  readonly upNextEnabled = signal(false);
-  readonly upNextRowCount = signal(0);
-  readonly upNextHeaderFits = signal(false);
-  readonly visibleUpNext = computed(() => this.upNext().slice(0, this.upNextRowCount()));
-  private readonly upNextSlot = viewChild<ElementRef<HTMLElement>>('upNextSlot');
+  /** Gallery's rail shows the current track's lyrics between the signal path and the timeline. */
+  readonly lyrics = inject(CurrentLyricsService);
+  readonly railPanelEnabled = signal(false);
+  private readonly lyricsViewport = viewChild<ElementRef<HTMLElement>>('lyricsViewport');
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     afterNextRender(() => {
-      const media = window.matchMedia('(min-width: 1101px) and (min-height: 701px)');
-      const update = () => this.upNextEnabled.set(media.matches);
+      const media = window.matchMedia('(min-height: 701px)');
+      const update = () => this.railPanelEnabled.set(media.matches);
       update();
       media.addEventListener('change', update);
       this.destroyRef.onDestroy(() => media.removeEventListener('change', update));
     });
-    afterRenderEffect((onCleanup) => {
-      const slot = this.upNextSlot()?.nativeElement;
-      if (!slot) return;
-      const update = () => {
-        const header = slot.querySelector<HTMLElement>('.up-next-header');
-        const measure = slot.querySelector<HTMLElement>('.up-next-measure');
-        const list = slot.querySelector<HTMLElement>('.up-next-list');
-        if (!header || !measure || !list) return;
-        const headerHeight = header.getBoundingClientRect().height;
-        const rowHeight = measure.getBoundingClientRect().height;
-        const sectionGap = Number.parseFloat(getComputedStyle(slot).rowGap) || 0;
-        const rowGap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
-        const available = slot.clientHeight - headerHeight - sectionGap;
-        this.upNextHeaderFits.set(slot.clientHeight >= headerHeight);
-        this.upNextRowCount.set(rowHeight > 0
-          ? Math.max(0, Math.min(3, Math.floor((available + rowGap) / (rowHeight + rowGap))))
-          : 0);
-      };
-      const observer = new ResizeObserver(update);
-      observer.observe(slot);
-      update();
-      onCleanup(() => observer.disconnect());
+    // Keep the active line centred; re-runs when the line, the track's lines or the viewport change.
+    afterRenderEffect(() => {
+      const viewport = this.lyricsViewport()?.nativeElement;
+      const active = this.lyrics.activeLineIndex();
+      this.lyrics.lines();
+      if (viewport) centerLyricLine(viewport, active);
     });
+  }
+
+  flashVolume(): void {
+    this.isVolumeFlashing.set(true);
+    clearTimeout(this.volumeFlashTimer);
+    this.volumeFlashTimer = setTimeout(() => this.isVolumeFlashing.set(false), 1000);
+  }
+
+  /** ↑/↓ on the volume slider step 5% like the app shortcut; ←/→ and dragging keep the native 1%. */
+  stepVolume(event: Event, delta: number): void {
+    event.preventDefault();
+    this.player.setVolume(Math.round((this.player.volume() + delta) * 100) / 100);
   }
 
   onTimelinePointerDown(event: PointerEvent): void {

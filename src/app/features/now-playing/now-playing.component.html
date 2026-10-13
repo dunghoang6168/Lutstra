@@ -39,7 +39,7 @@
                   }
                 </div>
               </div>
-              @if (layoutPreference.mode() === 'inset') {
+              @if (layoutPreference.mode() === 'inset' && !rightPanels.queueHidden()) {
                 <button
                   type="button"
                   class="heading-queue-btn"
@@ -108,6 +108,7 @@
                     class="btn-icon playback-mode-button"
                     [class.active]="playbackMode() !== 'off'"
                     (click)="cyclePlaybackMode()"
+                    [style.visibility]="player.modesLocked() ? 'hidden' : null"
                     [title]="playbackModeLabel()"
                     [attr.aria-label]="playbackModeLabel()">
                     <app-icon [name]="playbackMode() === 'repeat-one' ? 'repeat-one' : playbackMode() === 'repeat-all' ? 'repeat' : 'shuffle'" [size]="16" />
@@ -121,6 +122,7 @@
                     class="btn-icon"
                     [class.active]="player.isShuffle()"
                     (click)="player.toggleShuffle()"
+                    [style.visibility]="player.modesLocked() ? 'hidden' : null"
                     title="Toggle shuffle"
                     aria-label="Shuffle" [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
                     <app-icon name="shuffle" [size]="16" />
@@ -166,6 +168,7 @@
                     class="btn-icon"
                     [class.active]="player.repeatMode() !== 'off'"
                     (click)="player.cycleRepeatMode()"
+                    [style.visibility]="player.modesLocked() ? 'hidden' : null"
                     [title]="'Repeat Mode: ' + player.repeatMode()"
                     [attr.aria-label]="'Repeat: ' + player.repeatMode()" aria-keyshortcuts="R">
                     <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="16" />

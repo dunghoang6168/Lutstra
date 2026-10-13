@@ -2,6 +2,7 @@ import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 import path from 'node:path';
 import { Album, Artist, ArtistMetadataSource, ArtistOnlineMetadata, DEFAULT_ACCENT_COLOR, DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, DEFAULT_THEME_PRESET, FolderNode, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isThemePreset, MusicFolder, normalizeHiddenSongColumns, normalizeSongColumnOrder, normalizeThemePreset, orderAlbumTracks, Playlist, PlaylistEntry, Settings, Track } from '../../src/app/core/models/index.js';
 import { LibrarySnapshot } from '../../src/app/core/contracts/library.gateway.js';
+import type { TrackPopularity } from '../../src/app/core/contracts/popularity.gateway.js';
 import { pathKey, stableId } from '../utils/path-utils.js';
 
 const { DatabaseSync } = await import('node:sqlite');
@@ -68,6 +69,9 @@ export class DatabaseService {
         fetched_at INTEGER, next_retry_at INTEGER NOT NULL DEFAULT 0, last_error TEXT,
         resolver_version INTEGER NOT NULL DEFAULT 1, custom_avatar_hash TEXT REFERENCES artworks(hash),
         FOREIGN KEY(avatar_hash) REFERENCES artworks(hash), FOREIGN KEY(about_image_hash) REFERENCES artworks(hash)
+      );
+      CREATE TABLE IF NOT EXISTS track_popularity (
+        track_id TEXT PRIMARY KEY, status TEXT NOT NULL, views INTEGER, video_title TEXT, channel TEXT, url TEXT, fetched_at INTEGER NOT NULL
       );
       INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, unixepoch('now') * 1000);
       INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, unixepoch('now') * 1000);
@@ -146,6 +150,26 @@ export class DatabaseService {
       value.biography, value.biographySourceUrl, value.avatarHash, value.avatarSourceUrl, value.aboutImageHash,
       value.aboutImageSourceUrl, JSON.stringify(value.sources), value.status, value.fetchedAt, value.nextRetryAt, value.lastError,
       value.resolverVersion, value.customAvatarHash,
+    );
+  }
+
+  getTrackPopularity(trackIds: string[]): TrackPopularity[] {
+    const select = this.db.prepare('SELECT * FROM track_popularity WHERE track_id=?');
+    return trackIds.flatMap((id) => {
+      const row = select.get(id) as Row | undefined;
+      return row ? [{
+        trackId: String(row['track_id']), status: row['status'] === 'matched' ? 'matched' as const : 'unmatched' as const,
+        views: row['views'] == null ? null : Number(row['views']), videoTitle: row['video_title'] == null ? null : String(row['video_title']),
+        channel: row['channel'] == null ? null : String(row['channel']), url: row['url'] == null ? null : String(row['url']), fetchedAt: Number(row['fetched_at']),
+      }] : [];
+    });
+  }
+
+  saveTrackPopularity(value: TrackPopularity): void {
+    this.db.prepare(`INSERT INTO track_popularity(track_id,status,views,video_title,channel,url,fetched_at) VALUES(?,?,?,?,?,?,?)
+      ON CONFLICT(track_id) DO UPDATE SET status=excluded.status,views=excluded.views,video_title=excluded.video_title,
+      channel=excluded.channel,url=excluded.url,fetched_at=excluded.fetched_at`).run(
+      value.trackId, value.status, value.views, value.videoTitle, value.channel, value.url, value.fetchedAt,
     );
   }
 

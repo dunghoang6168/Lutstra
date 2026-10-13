@@ -730,6 +730,18 @@
       margin-top: 2px;
     }
 
+    // Looks like the heading; a real button so the developer code dialog is reachable by keyboard.
+    .about-heading-button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+    .about-heading-button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+    .dev-mode-exit { align-self: flex-start; margin-top: var(--space-2); }
+
     :host-context(html[data-runtime='desktop'][data-layout='liquid-glass']) .integration-notice-card {
       background: color-mix(in srgb, var(--accent-primary) 10%, var(--glass-elevated));
       border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent);

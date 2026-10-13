@@ -1,4 +1,6 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
+import { DevModeService } from './core/settings/dev-mode.service';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -45,6 +47,11 @@ export const routes: Routes = [
   {
     path: 'settings',
     loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
+  },
+  {
+    path: 'random-folder',
+    canActivate: [() => inject(DevModeService).enabled() || inject(Router).parseUrl('/home')],
+    loadComponent: () => import('./features/random-folder/random-folder.component').then((m) => m.RandomFolderComponent),
   },
   { path: '**', redirectTo: 'home' },
 ];

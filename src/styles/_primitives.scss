@@ -324,3 +324,15 @@
     transform: rotate(360deg);
   }
 }
+
+/* Developer Random folder: the mythical tier's hologram, a hue that cycles through every colour.
+   Registered so it can animate; shared by the reel and the result card. */
+@property --holo-hue {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 320;
+}
+@keyframes holo-cycle {
+  from { --holo-hue: 0; }
+  to { --holo-hue: 360; }
+}

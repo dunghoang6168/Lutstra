@@ -7,11 +7,13 @@ import { ScannerService } from './services/scanner.service.js';
 import { TrackDetailsService } from './services/track-details.service.js';
 import { ArtistMetadataService } from './services/artist-metadata.service.js';
 import { LyricsService } from './services/lyrics.service.js';
+import { PopularityService } from './services/popularity.service.js';
 import { AudioHostService } from './services/audio-host.service.js';
 import { copyLegacyBrowserStorage, migrateLegacyProfile } from './services/profile-migration.service.js';
 import { broadcastProgress, registerIpc } from './ipc/register-ipc.js';
 import { installProtocolHandlers, registerPrivilegedSchemes } from './protocols/register-protocols.js';
 import { installWindowSnap } from './window-snap.js';
+import { installMediaControls } from './media-controls.js';
 
 registerPrivilegedSchemes();
 // Chromium may open profile storage at ready; copy complete legacy directories beforehand.
@@ -61,6 +63,9 @@ function createWindow(): void {
     },
   });
   installWindowSnap(mainWindow);
+  installMediaControls(mainWindow, (action) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('media-keys:action', action);
+  });
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, target) => {
@@ -82,6 +87,8 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  // Match the installer shortcut so the Windows media flyout shows Lutstra's name and icon.
+  if (app.isPackaged) app.setAppUserModelId('com.lutstra.desktop');
   const userData = app.getPath('userData');
   const migratedFrom = await migrateLegacyProfile(userData, app.getPath('appData'));
   if (migratedFrom) console.info('[profile] Migrated legacy library from', migratedFrom);
@@ -97,7 +104,10 @@ app.whenReady().then(async () => {
 
   installProtocolHandlers(database, rendererRoot, development);
   audioHost = new AudioHostService(database, () => mainWindow);
-  registerIpc(database, scanner, trackDetails, artistMetadata, lyrics, audioHost, () => mainWindow, development, setNativeMediaKeysActive);
+  const popularity = new PopularityService(database, (progress) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('popularity:progress', progress);
+  });
+  registerIpc(database, scanner, trackDetails, artistMetadata, lyrics, popularity, audioHost, () => mainWindow, development, setNativeMediaKeysActive);
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
     callback(permission === 'speaker-selection'
       && webContents === mainWindow?.webContents

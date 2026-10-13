@@ -7,8 +7,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LIBRARY_GATEWAY, SETTINGS_GATEWAY } from '../../core/contracts';
-import { AccentColor, AudioEngineBackend, AudioHostState, MusicFolder, RepeatMode, ThemePreset } from '../../core/models';
+import { AccentColor, AudioEngineBackend, AudioHostState, MusicFolder, RepeatMode, SYSTEM_DEFAULT_OUTPUT_ID, ThemePreset } from '../../core/models';
 import { PlayerService } from '../../core/player/player.service';
+import { QueueActionsService } from '../../core/player/queue-actions.service';
+import { DevModeService } from '../../core/settings/dev-mode.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { getDesktopApi } from '../../core/desktop/desktop-api';
@@ -17,6 +19,7 @@ import { RangeSliderComponent } from '../../shared/components/range-slider/range
 import { SongColumnsSettingsComponent } from './song-columns-settings.component';
 import { LayoutSettingsComponent } from './layout-settings.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
+import { DevModeDialogComponent } from './dev-mode-dialog/dev-mode-dialog.component';
 
 export const AUDIO_HOST_LABELS: Record<AudioHostState, string> = {
   unavailable: 'Unavailable',
@@ -47,7 +50,7 @@ export interface ThemePresetOption {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, DevModeDialogComponent],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
@@ -82,7 +85,21 @@ export class SettingsComponent implements OnInit {
   readonly themeService = inject(ThemeService);
   readonly layoutPreference = inject(LayoutPreferenceService);
   readonly player = inject(PlayerService);
+  private readonly devMode = inject(DevModeService);
+  readonly devModeEnabled = this.devMode.enabled;
+  readonly showDevModeDialog = signal(false);
+  private readonly queueActions = inject(QueueActionsService);
   readonly isDesktop = Boolean(getDesktopApi());
+
+  onDevModeUnlocked(): void {
+    this.showDevModeDialog.set(false);
+    this.queueActions.notify('Developer mode on');
+  }
+
+  onExitDevMode(): void {
+    this.devMode.disable();
+    this.queueActions.notify('Developer mode off');
+  }
 
   readonly themePresets: ThemePresetOption[] = [
     {
@@ -121,10 +138,15 @@ export class SettingsComponent implements OnInit {
   readonly removingFolder = signal(false);
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
-  readonly audioOutputOptions = computed(() => this.player.outputDevices().map((device) => ({
-    value: device.id,
-    label: `${device.name}${device.isConnected ? '' : ' (Disconnected)'}`,
-  })));
+  // Only devices Windows reports right now are offered. A disconnected saved choice is kept by the player
+  // (shown as "Chosen device" below) and returns when its device reconnects; the select shows System Default meanwhile.
+  readonly audioOutputOptions = computed(() => this.player.outputDevices()
+    .filter((device) => device.isConnected)
+    .map((device) => ({ value: device.id, label: device.name })));
+  readonly audioOutputValue = computed(() => {
+    const preferred = this.player.preferredAudioOutputId();
+    return this.audioOutputOptions().some((option) => option.value === preferred) ? preferred : SYSTEM_DEFAULT_OUTPUT_ID;
+  });
 
   async ngOnInit(): Promise<void> {
     this.libraryGateway.libraryChanged$?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => void this.loadFolders());

@@ -9,6 +9,7 @@ import { getDesktopApi } from '../../../core/desktop/desktop-api';
 import { NavigationHistoryService } from '../../../core/layout/navigation-history.service';
 import { LayoutPreferenceService } from '../../../core/layout/layout-preference.service';
 import { type ScanProgress } from '../../../core/models';
+import { DevModeService } from '../../../core/settings/dev-mode.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { GlobalSearchComponent } from '../global-search/global-search.component';
 import { IconComponent } from '../icon/icon.component';
@@ -35,14 +36,15 @@ export class AppHeaderComponent {
 
   readonly navHistory = inject(NavigationHistoryService);
   /** Gallery's section tabs, shared by the wide navigation and compact menu. */
-  readonly tabs = [
+  readonly devMode = inject(DevModeService);
+  readonly tabs = computed(() => [
     { path: '/home', label: 'Home' },
     { path: '/songs', label: 'Songs' },
     { path: '/albums', label: 'Albums' },
     { path: '/artists', label: 'Artists' },
     { path: '/playlists', label: 'Playlists' },
     { path: '/folders', label: 'Folders' },
-  ];
+  ]);
   readonly scanProgress = toSignal(this.gateway.scanProgress$, {
     initialValue: {
       isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null, error: null,

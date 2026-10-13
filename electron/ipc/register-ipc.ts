@@ -7,14 +7,17 @@ import { ScannerService } from '../services/scanner.service.js';
 import { TrackDetailsService } from '../services/track-details.service.js';
 import { ArtistMetadataService } from '../services/artist-metadata.service.js';
 import { LyricsService } from '../services/lyrics.service.js';
+import { PopularityService } from '../services/popularity.service.js';
 import { AudioHostService } from '../services/audio-host.service.js';
 import { validSettings } from './settings-validation.js';
-import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validId, validIdArray, validMusicBrainzId, validName, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
+import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
 import { updateWindowSnapBounds } from '../window-snap.js';
+import { updateMediaControls } from '../media-controls.js';
 
-export function registerIpc(database: DatabaseService, scanner: ScannerService, trackDetails: TrackDetailsService, artistMetadata: ArtistMetadataService, lyrics: LyricsService, audioHost: AudioHostService, getWindow: () => BrowserWindow | null, development: boolean, setNativeMediaKeysActive: (enabled: boolean) => void): void {
+export function registerIpc(database: DatabaseService, scanner: ScannerService, trackDetails: TrackDetailsService, artistMetadata: ArtistMetadataService, lyrics: LyricsService, popularity: PopularityService, audioHost: AudioHostService, getWindow: () => BrowserWindow | null, development: boolean, setNativeMediaKeysActive: (enabled: boolean) => void): void {
   handle('system:ping', () => 'pong', development);
   handle('media-keys:set-native-active', (_event, enabled) => setNativeMediaKeysActive(validBoolean(enabled)), development);
+  handle('media-controls:update', (_event, info) => updateMediaControls(validMediaControlsInfo(info, (hash) => database.resolveArtwork(hash)?.path ?? null)), development);
   handle('audio-host:get-state', () => audioHost.getState(), development);
   handle('audio-host:start', () => audioHost.ensureStarted(), development);
   handle('audio-host:load', (_event, trackId) => audioHost.loadTrack(validId(trackId)), development);
@@ -61,6 +64,9 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('library:get-track-details', (_event, trackId) => trackDetails.get(validId(trackId)), development);
   handle('library:get-lyrics', (_event, trackId) => lyrics.get(validId(trackId)), development);
   handle('library:find-tracks-with-lyrics', (_event, trackIds) => lyrics.findTracksWithLyrics(validIdArray(trackIds)), development);
+  handle('popularity:get', (_event, trackIds) => popularity.get(validIdArray(trackIds)), development);
+  handle('popularity:fetch-batch', (_event, trackIds) => popularity.fetchBatch(validIdArray(trackIds)), development);
+  handle('popularity:cancel', () => popularity.cancel(), development);
   handle('library:select-and-add-folders', async () => {
     const window = getWindow();
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'multiSelections'] };

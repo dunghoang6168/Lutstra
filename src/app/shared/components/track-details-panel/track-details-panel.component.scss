@@ -282,7 +282,7 @@ h2 { margin: 0; font-size: var(--font-size-lg); line-height: 1.25; }
 
 @media (max-width: 700px) {
   /* Overlaid, it must still stop at the slim rail instead of covering it. */
-  :host-context(.layout-inset.has-player) { right: calc(76px + var(--shell-gap) * 2); bottom: var(--shell-gap); }
+  :host-context(.layout-inset.has-player) { right: calc(var(--rail-width) + var(--shell-gap) + var(--rail-gap)); bottom: var(--shell-gap); }
   :host { position: absolute; top: 0; right: 0; bottom: 0; }
   :host(.open),
   :host(.open.resizing) { width: min(400px, calc(100% - 52px)); }

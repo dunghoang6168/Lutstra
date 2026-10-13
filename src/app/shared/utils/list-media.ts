@@ -1,4 +1,4 @@
-import type { PlaylistEntry, QueueEntry, Track } from '../../core/models';
+import type { PlaylistEntry, Track } from '../../core/models';
 
 /** First four distinct artworks, in playlist entry order. */
 export function selectPlaylistArtwork(
@@ -13,13 +13,6 @@ export function selectPlaylistArtwork(
     if (artworks.size === 4) break;
   }
   return [...artworks];
-}
-
-/** Queue indexes, rather than original indexes, also preserve the active shuffle order. */
-export function nextQueueEntries(queue: readonly QueueEntry[], currentIndex: number) {
-  if (currentIndex < 0 || currentIndex >= queue.length) return [];
-  return queue.slice(currentIndex + 1, currentIndex + 4)
-    .map((entry, offset) => ({ entry, index: currentIndex + 1 + offset }));
 }
 
 /** Splits track ids by whether the playlist already holds them; repeated ids keep their verdict. */
