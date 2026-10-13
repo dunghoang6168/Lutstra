@@ -11,10 +11,8 @@ export class RightPanelService {
   private trackDetailsOpener: HTMLElement | null = null;
 
   private readonly hiddenOnPage = signal(false);
-  /** Set by the developer Random folder session while its round owns the queue. */
-  readonly randomSessionActive = signal(false);
-  /** Upcoming tracks stay a surprise on the Random folder page and during its rounds. */
-  readonly queueHidden = computed(() => this.hiddenOnPage() || this.randomSessionActive());
+  /** Hidden on the Random folder page; elsewhere the queue shows even while a roulette round plays. */
+  readonly queueHidden = computed(() => this.hiddenOnPage());
 
   hideQueue(hidden: boolean): void {
     this.hiddenOnPage.set(hidden);

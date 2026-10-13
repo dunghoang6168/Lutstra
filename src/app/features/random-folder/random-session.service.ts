@@ -1,7 +1,6 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Track } from '../../core/models';
-import { RightPanelService } from '../../core/layout/right-panel.service';
-import { PlayerService } from '../../core/player/player.service';
+import { ExternalSource, PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
 import { Pity, RarityTier, Reel, TierCounts, buildReel, drawTrack } from './random-folder.utils';
 
@@ -34,6 +33,12 @@ interface Round {
   pool: Track[];
   source: string;
   picked: Set<string>;
+  /** Tracks this round played, in order; Previous and Next walk it before a new pick. */
+  history: Track[];
+  /** Index of the playing track in `history`. */
+  cursor: number;
+  /** Picked ahead (handed to the player by `peek`) so gapless and crossfade can prepare it. */
+  pending: Track | null;
 }
 
 const OPTIONS_KEY = 'lutsra.dev.randomFolder.options';
@@ -71,9 +76,10 @@ function readOptions(): RandomOptions {
 }
 
 /**
- * A round of the developer Random folder page. The queue holds only the round's history: each
- * next track is picked from the source when it is needed. The round outlives the page, so it keeps
- * picking (silently) while you are elsewhere, and ends once anything else is played or queued.
+ * A round of the developer Random folder page. It plays as the player's external source, so the
+ * user's queue stays parked and untouched: each next track is picked from the source when it is
+ * needed. The round outlives the page, so it keeps picking (silently) while you are elsewhere, and
+ * ends once the player leaves it (Back to queue, Stop roulette, or playing something else).
  */
 @Injectable({ providedIn: 'root' })
 export class RandomSessionService {
@@ -96,16 +102,16 @@ export class RandomSessionService {
 
   private round: Round | null = null;
   private spinCount = 0;
-  /** Queue entries this round created; the round owns the queue while it holds only these. */
-  private readonly entryIds = signal<ReadonlySet<string>>(new Set());
-  readonly active = computed(() => {
-    const ids = this.entryIds();
-    const queue = this.player.queue();
-    return ids.size > 0 && queue.length > 0 && queue.every((entry) => ids.has(entry.id));
-  });
+  /** What the player calls for the round's next, prepared and previous tracks. */
+  private readonly source: ExternalSource = {
+    next: () => this.nextTrack(),
+    peek: () => this.peekTrack(),
+    previous: () => this.previousTrack(),
+  };
+  /** True while the player plays this round in place of the queue. */
+  readonly active = computed(() => this.player.externalSource() === this.source);
 
   constructor() {
-    const rightPanels = inject(RightPanelService);
     effect(() => {
       const saved = [[OPTIONS_KEY, this.options()], [PITY_KEY, this.pity()]] as const;
       try {
@@ -114,19 +120,15 @@ export class RandomSessionService {
         // Storage blocked: options and pity last for this session only.
       }
     });
+    // The player left the round (Back to queue, Stop roulette, something else played): it is over.
+    let wasActive = false;
     effect(() => {
       const active = this.active();
-      rightPanels.randomSessionActive.set(active);
-      if (active) rightPanels.closeQueue();
-      // Something else replaced or extended the queue: the round is over.
-      else if (this.entryIds().size) untracked(() => this.endRound());
-    });
-    // Roll once: keep one picked track queued ahead so crossfade and gapless still work.
-    effect(() => {
-      const index = this.player.currentIndex();
-      const length = this.player.queue().length;
-      if (!this.active() || this.options().rollEveryTrack || index !== length - 1) return;
-      untracked(() => this.queueAhead());
+      if (active) wasActive = true;
+      else if (wasActive) {
+        wasActive = false;
+        untracked(() => this.endRound());
+      }
     });
   }
 
@@ -137,7 +139,7 @@ export class RandomSessionService {
   /** Starts a new round from the page: clears what this round picked and rolls the first track. */
   start(pool: Track[], source: string): boolean {
     this.endRound();
-    this.round = { pool, source, picked: new Set() };
+    this.round = { pool, source, picked: new Set(), history: [], cursor: -1, pending: null };
     this.notice.set(null);
     const pick = this.pick();
     if (!pick) return false;
@@ -152,7 +154,7 @@ export class RandomSessionService {
     if (!spin || spin.settled) return;
     this.spin.set({ ...spin, settled: true });
     this.showResult(spin.pick);
-    await this.play(spin.pick, spin.first);
+    await this.play(spin.pick);
   }
 
   /** The page closed. A first roll still spinning is dropped; a later one finishes silently. */
@@ -176,8 +178,6 @@ export class RandomSessionService {
   }
 
   private endRound(): void {
-    this.player.setQueueEndHandler(null);
-    this.entryIds.set(new Set());
     this.round = null;
   }
 
@@ -215,61 +215,90 @@ export class RandomSessionService {
     this.result.set({ track });
   }
 
-  private async play(track: Track, first: boolean): Promise<void> {
+  /** Plays a pick the reel revealed (or the round's first) as the player's external source. */
+  private async play(track: Track): Promise<void> {
+    const round = this.round;
+    if (!round) return;
+    this.record(round, track);
     try {
-      if (first) {
-        await this.player.playCollection([track], 0);
-        this.player.setQueueEndHandler(() => this.onQueueEnd());
-      } else {
-        this.player.addToQueue([track]);
-        this.trackQueue();
-        await this.player.jumpToQueueIndex(this.player.queue().length - 1);
-      }
-      this.trackQueue();
+      await this.player.playExternal(this.source, track);
     } catch {
       this.notice.set('Could not start playback. Roll again.');
     }
   }
 
-  /** Remembers every current queue entry as this round's own. */
-  private trackQueue(): void {
-    this.entryIds.set(new Set(this.player.queue().map((entry) => entry.id)));
+  private record(round: Round, track: Track): void {
+    round.history.push(track);
+    round.cursor = round.history.length - 1;
   }
 
-  private queueAhead(): void {
-    const track = this.pick();
-    if (!track) return;
-    this.player.addToQueue([track]);
-    this.trackQueue();
+  /** Shows a track the round moved to without a reel, when the roll view is up. */
+  private display(track: Track): void {
+    if (!this.spin()) return;
+    this.spin.set(this.makeSpin(track, { first: false, settled: true, durationMs: 0 }));
+    this.showResult(track);
   }
 
-  /** Next was pressed, or a track ended, on the last entry of the round. */
-  private onQueueEnd(): void {
+  /** True while the page should show a reel for the next pick instead of picking silently. */
+  private rollsOnPage(): boolean {
+    // Roll on the page only while its roll view is showing and the window is visible; otherwise pick
+    // silently, so music in the background does not wait through a reel nobody sees.
+    return this.options().rollEveryTrack && this.pageOpen() && !!this.spin() && !document.hidden;
+  }
+
+  /** A reel still spinning (a new round's first roll) holds the round. */
+  private reelSpinning(): boolean {
+    const spin = this.spin();
+    return !!spin && !spin.settled;
+  }
+
+  /** The player's Next, or the end of a track. Null pauses: a reel, or the round is used up. */
+  private nextTrack(): Track | null {
     const round = this.round;
-    if (!round || (this.spin() && !this.spin()!.settled)) return;
-    const track = this.pick();
+    if (!round || this.reelSpinning()) return null;
+    if (round.cursor < round.history.length - 1) {
+      const track = round.history[++round.cursor];
+      this.display(track);
+      return track;
+    }
+    // A pick handed out by `peek` may already be playing gaplessly: it must not go through a reel.
+    const pending = round.pending;
+    round.pending = null;
+    const track = pending ?? this.pick();
     if (!track) {
-      this.player.pause();
       const message = `Played all ${round.pool.length} tracks in ${round.source}. Roll again for a new round.`;
       this.notice.set(message);
       this.queueActions.notify(message);
-      return;
+      return null;
     }
-    // Roll on the page only while its roll view is showing and the window is visible; otherwise pick
-    // silently, so music in the background does not wait through a reel nobody sees.
-    if (this.options().rollEveryTrack && this.pageOpen() && this.spin() && !document.hidden) {
-      this.player.pause();
+    if (!pending && this.rollsOnPage()) {
       this.result.set(null);
       const spin = this.makeSpin(track, { first: false, settled: false, durationMs: NEXT_SPIN_MS });
       this.spin.set(spin);
       // Safety net: a reel the browser stopped animating (an occluded window) must not hold the music.
       setTimeout(() => { if (this.spin() === spin) void this.spinDone(); }, NEXT_SPIN_MS + SPIN_GRACE_MS);
-      return;
+      return null;
     }
-    if (this.spin()) {
-      this.spin.set(this.makeSpin(track, { first: false, settled: true, durationMs: 0 }));
-      this.showResult(track);
-    }
-    void this.play(track, false);
+    this.record(round, track);
+    this.display(track);
+    return track;
+  }
+
+  /** The track Next would play, picked ahead so gapless and crossfade work; null when a reel decides it. */
+  private peekTrack(): Track | null {
+    const round = this.round;
+    if (!round || this.reelSpinning()) return null;
+    if (round.cursor < round.history.length - 1) return round.history[round.cursor + 1];
+    if (!round.pending && !this.rollsOnPage()) round.pending = this.pick();
+    return round.pending;
+  }
+
+  /** The player's Previous: back through what this round played. */
+  private previousTrack(): Track | null {
+    const round = this.round;
+    if (!round || this.reelSpinning() || round.cursor <= 0) return null;
+    const track = round.history[--round.cursor];
+    this.display(track);
+    return track;
   }
 }

@@ -111,7 +111,6 @@ export class PlayerService implements OnDestroy {
   readonly isMuted = signal<boolean>(false);
   readonly repeatMode = signal<RepeatMode>('off');
   readonly isShuffle = signal<boolean>(false);
-  private readonly queueEndLocked = signal(false);
   private readonly external = signal<ExternalPlayback | null>(null);
   private externalCount = 0;
   /** The source playing outside the queue, if any. */
@@ -121,7 +120,7 @@ export class PlayerService implements OnDestroy {
    * Shuffle and repeat do not apply then: the UI hides them and playback treats repeat as off, without
    * changing the saved modes.
    */
-  readonly modesLocked = computed(() => this.queueEndLocked() || this.external() !== null);
+  readonly modesLocked = computed(() => this.external() !== null);
   private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() ? 'off' : this.repeatMode());
   readonly crossfadeEnabled = signal<boolean>(true);
   readonly crossfadeSeconds = signal<number>(5);
@@ -548,18 +547,6 @@ export class PlayerService implements OnDestroy {
     }
   }
 
-  private queueEndHandler: (() => void) | null = null;
-
-  /**
-   * Lets the developer Random folder session choose what plays after the last queue entry:
-   * Next or a track ending on the last entry calls `handler` instead of pausing or wrapping.
-   */
-  setQueueEndHandler(handler: (() => void) | null): void {
-    this.queueEndHandler = handler;
-    this.queueEndLocked.set(handler !== null);
-    this.refreshPreparedCandidate();
-  }
-
   toggleShuffle(): void {
     const nextShuffle = !this.isShuffle();
     this.isShuffle.set(nextShuffle);
@@ -797,10 +784,6 @@ export class PlayerService implements OnDestroy {
     let nextIndex = this.currentIndex() + 1;
 
     if (nextIndex >= q.length) {
-      if (this.queueEndHandler) {
-        this.queueEndHandler();
-        return;
-      }
       if (this.activeRepeat() === 'all') {
         nextIndex = 0;
       } else {
@@ -1261,7 +1244,7 @@ export class PlayerService implements OnDestroy {
     if (!q.length || this.currentIndex() < 0 || this.activeRepeat() === 'one') return -1;
     for (let offset = 1; offset < q.length; offset++) {
       const index = this.currentIndex() + offset;
-      if (index >= q.length && (this.activeRepeat() !== 'all' || this.queueEndHandler)) break;
+      if (index >= q.length && this.activeRepeat() !== 'all') break;
       const candidate = index % q.length;
       if (this.isEntryPlayable(q[candidate])) return candidate;
     }
