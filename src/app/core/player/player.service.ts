@@ -18,6 +18,35 @@ export interface QueueSnapshot {
   isShuffle: boolean;
 }
 
+/**
+ * Plays tracks outside the queue (the developer roulette). While one is active the queue stays the
+ * user's own: it is parked at its current entry and position and still takes Add to queue / Play next.
+ */
+export interface ExternalSource {
+  /**
+   * The track after the current one, consumed. After `peek()` it must return the peeked track.
+   * Null pauses playback; the source may start a track later with `playExternal()` (a reel).
+   */
+  next(): Track | null;
+  /** The track `next()` would return, without consuming it, so gapless and crossfade can prepare it. */
+  peek(): Track | null;
+  /** The track before the current one, or null at the first. */
+  previous(): Track | null;
+}
+
+/** What the engine plays: the current queue entry, or the external track standing in for it. */
+interface PlaybackItem {
+  id: string;
+  track: Track;
+}
+
+interface ExternalPlayback {
+  source: ExternalSource;
+  item: PlaybackItem;
+  /** Where the parked queue entry resumes, in seconds. */
+  resumeAt: number;
+}
+
 function normalizePlaybackFailure(error: unknown, trackId?: string): PlaybackError {
   // Native Host errors cross Electron IPC with the code carried as "[CODE] message".
   const rawCode = typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: unknown }).code
@@ -82,12 +111,17 @@ export class PlayerService implements OnDestroy {
   readonly isMuted = signal<boolean>(false);
   readonly repeatMode = signal<RepeatMode>('off');
   readonly isShuffle = signal<boolean>(false);
+  private readonly queueEndLocked = signal(false);
+  private readonly external = signal<ExternalPlayback | null>(null);
+  private externalCount = 0;
+  /** The source playing outside the queue, if any. */
+  readonly externalSource = computed(() => this.external()?.source ?? null);
   /**
-   * True while a queue-end handler (the developer roulette round) picks what plays next. Shuffle and
-   * repeat do not apply then: the UI hides them and playback treats repeat as off, without changing
-   * the saved modes.
+   * True while the developer roulette picks what plays next (a queue-end handler or an external source).
+   * Shuffle and repeat do not apply then: the UI hides them and playback treats repeat as off, without
+   * changing the saved modes.
    */
-  readonly modesLocked = signal<boolean>(false);
+  readonly modesLocked = computed(() => this.queueEndLocked() || this.external() !== null);
   private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() ? 'off' : this.repeatMode());
   readonly crossfadeEnabled = signal<boolean>(true);
   readonly crossfadeSeconds = signal<number>(5);
@@ -124,6 +158,8 @@ export class PlayerService implements OnDestroy {
     const idx = this.currentIndex();
     return idx >= 0 && idx < q.length ? q[idx] : null;
   });
+
+  private readonly currentItem = computed<PlaybackItem | null>(() => this.external()?.item ?? this.currentQueueEntry());
 
   readonly progressPercent = computed<number>(() => {
     const d = this.duration();
@@ -180,7 +216,11 @@ export class PlayerService implements OnDestroy {
       this.queue.set(nextQueue);
       this.failedEntryIds.clear();
       const currentIndex = currentEntry ? nextQueue.findIndex((entry) => entry.id === currentEntry.id) : -1;
-      if (currentEntry && currentIndex < 0) {
+      if (this.external()) {
+        // The engine plays the external track: only the parked queue entry moves.
+        if (currentEntry && currentIndex < 0) this.parkAt(nextQueue.length ? Math.min(Math.max(previousIndex, 0), nextQueue.length - 1) : -1);
+        else this.currentIndex.set(currentIndex);
+      } else if (currentEntry && currentIndex < 0) {
         this.loadSequence++;
         this.clearPreparedCandidate();
         this.engine.dispose();
@@ -357,6 +397,8 @@ export class PlayerService implements OnDestroy {
     const safeIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
     const entries = this.createQueueEntries(tracks);
     this.failedEntryIds.clear();
+    // Playing something from the library ends any external source (the roulette).
+    this.external.set(null);
 
     this.originalQueue = [...entries];
 
@@ -381,6 +423,7 @@ export class PlayerService implements OnDestroy {
    */
   async playTrack(track: Track): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    this.external.set(null);
     const q = this.queue();
     const existingIndex = q.findIndex((e) => e.track.id === track.id);
 
@@ -513,7 +556,7 @@ export class PlayerService implements OnDestroy {
    */
   setQueueEndHandler(handler: (() => void) | null): void {
     this.queueEndHandler = handler;
-    this.modesLocked.set(handler !== null);
+    this.queueEndLocked.set(handler !== null);
     this.refreshPreparedCandidate();
   }
 
@@ -741,6 +784,13 @@ export class PlayerService implements OnDestroy {
    */
   async next(): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    const external = this.external();
+    if (external) {
+      const track = external.source.next();
+      if (track) await this.playExternal(external.source, track);
+      else this.pause();
+      return;
+    }
     const q = this.queue();
     if (q.length === 0) return;
 
@@ -791,6 +841,13 @@ export class PlayerService implements OnDestroy {
    */
   async previous(): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    const external = this.external();
+    if (external) {
+      const track = this.currentTime() > 3 ? null : external.source.previous();
+      if (track) await this.playExternal(external.source, track);
+      else this.seek(0);
+      return;
+    }
     const q = this.queue();
     if (q.length === 0) return;
 
@@ -849,6 +906,11 @@ export class PlayerService implements OnDestroy {
     if (currIdx < 0 || q.length === 0) {
       this.queue.set(newEntries);
       this.originalQueue = [...newEntries];
+      if (this.external()) {
+        // The external track keeps playing; the new entries wait as the parked queue.
+        this.parkAt(0);
+        return;
+      }
       this.currentIndex.set(0);
       this.loadAndPlayCurrent();
       return;
@@ -876,6 +938,10 @@ export class PlayerService implements OnDestroy {
     if (q.length === 0) {
       this.queue.set(newEntries);
       this.originalQueue = [...newEntries];
+      if (this.external()) {
+        this.parkAt(0);
+        return result;
+      }
       this.currentIndex.set(0);
       void this.loadCurrentPaused();
       return result;
@@ -906,8 +972,12 @@ export class PlayerService implements OnDestroy {
     if (isRemovingCurrent) {
       // User rule: "Xóa current entry chuyển tới entry kế tiếp; không còn bài thì dừng."
       const nextIdx = removeIdx < nextQueue.length ? removeIdx : 0;
-      this.currentIndex.set(nextIdx);
-      this.loadAndPlayCurrent();
+      if (this.external()) {
+        this.parkAt(nextIdx);
+      } else {
+        this.currentIndex.set(nextIdx);
+        this.loadAndPlayCurrent();
+      }
     } else if (removeIdx < this.currentIndex()) {
       this.currentIndex.update((idx) => idx - 1);
     }
@@ -954,19 +1024,26 @@ export class PlayerService implements OnDestroy {
     const index = snapshot.currentIndex;
     if (index >= 0 && index < snapshot.queue.length) {
       this.currentIndex.set(index);
-      await this.loadCurrentPaused(false);
+      // Undo while an external track plays restores the parked queue without interrupting it.
+      if (!this.external()) await this.loadCurrentPaused(false);
     }
   }
 
+  /** Empties the queue. An external track keeps playing; otherwise playback stops. */
   clearQueue(): void {
-    this.loadSequence++;
-    this.clearPreparedCandidate();
-    this.playRequested.set(false);
-    this.engine.dispose();
     this.queue.set([]);
     this.failedEntryIds.clear();
     this.originalQueue = [];
     this.currentIndex.set(-1);
+    if (this.external()) this.parkAt(-1);
+    else this.resetPlayback();
+  }
+
+  private resetPlayback(): void {
+    this.loadSequence++;
+    this.clearPreparedCandidate();
+    this.playRequested.set(false);
+    this.engine.dispose();
     this.currentTrack.set(null);
     this.currentTime.set(0);
     this.duration.set(0);
@@ -979,9 +1056,71 @@ export class PlayerService implements OnDestroy {
     const q = this.queue();
     if (index >= 0 && index < q.length) {
       this.failedEntryIds.delete(q[index].id);
+      this.external.set(null);
       this.currentIndex.set(index);
       await this.loadAndPlayCurrent();
     }
+  }
+
+  // ==========================================
+  // External Source (developer roulette)
+  // ==========================================
+
+  /**
+   * Plays `track` from `source` in place of the queue. The first call parks the queue at its current
+   * entry and position; later calls (the source's next pick) keep that resume point.
+   */
+  async playExternal(source: ExternalSource, track: Track): Promise<void> {
+    if (this.blockedByBusyOutput()) return;
+    const current = this.external();
+    const resumeAt = current ? current.resumeAt : this.currentQueueEntry() ? this.currentTime() : 0;
+    this.external.set({ source, item: this.externalItem(track), resumeAt });
+    await this.loadAndPlayCurrent();
+  }
+
+  /** Ends the external source and resumes the parked queue entry where it was left. */
+  async backToQueue(): Promise<void> {
+    const current = this.external();
+    if (!current || this.blockedByBusyOutput()) return;
+    let resumeAt = current.resumeAt;
+    if (!this.currentQueueEntry()) {
+      if (!this.queue().length) {
+        this.stopExternal();
+        return;
+      }
+      this.currentIndex.set(0);
+      resumeAt = 0;
+    }
+    this.external.set(null);
+    await this.loadAndPlayCurrent(resumeAt);
+  }
+
+  /** Ends the external source and stops playback; the queue keeps its entries but nothing is loaded. */
+  stopExternal(): void {
+    if (!this.external()) return;
+    this.external.set(null);
+    this.resetPlayback();
+  }
+
+  private externalItem(track: Track): PlaybackItem {
+    return { id: `ext-${++this.externalCount}`, track };
+  }
+
+  /** Moves the parked queue entry while an external track plays; it then resumes from the start. */
+  private parkAt(index: number): void {
+    this.currentIndex.set(index);
+    this.external.update((current) => current && { ...current, resumeAt: 0 });
+  }
+
+  /** Playback moved on into the source's prepared track: consume it and follow it. */
+  private followExternal(track: Track): void {
+    const current = this.external();
+    if (!current) return;
+    current.source.next();
+    this.external.set({ ...current, item: this.externalItem(track) });
+    this.currentTrack.set(track);
+    this.playRequested.set(true);
+    this.error.set(null);
   }
 
   // ==========================================
@@ -998,9 +1137,9 @@ export class PlayerService implements OnDestroy {
     return true;
   }
 
-  private async loadAndPlayCurrent(): Promise<void> {
+  private async loadAndPlayCurrent(startAt = 0): Promise<void> {
     this.clearPreparedCandidate();
-    const entry = this.currentQueueEntry();
+    const entry = this.currentItem();
     if (!entry) {
       this.currentTrack.set(null);
       return;
@@ -1015,11 +1154,12 @@ export class PlayerService implements OnDestroy {
 
     try {
       await this.engine.load(track);
-      if (thisSequence === this.loadSequence && this.queue().length > 0 && this.playRequested()) {
+      if (thisSequence === this.loadSequence && this.currentItem() && this.playRequested()) {
+        if (startAt > 0) this.engine.seek(startAt);
         await this.engine.play();
       }
     } catch (err) {
-      if (thisSequence === this.loadSequence && this.queue().length > 0) {
+      if (thisSequence === this.loadSequence && this.currentItem()) {
         this.playRequested.set(false);
         const failure = normalizePlaybackFailure(err, track.id);
         this.error.set(failure.message);
@@ -1030,7 +1170,7 @@ export class PlayerService implements OnDestroy {
 
   private async loadCurrentPaused(recoverOnFailure = true): Promise<void> {
     this.clearPreparedCandidate();
-    const entry = this.currentQueueEntry();
+    const entry = this.currentItem();
     if (!entry) {
       this.currentTrack.set(null);
       return;
@@ -1044,11 +1184,11 @@ export class PlayerService implements OnDestroy {
 
     try {
       await this.engine.load(track);
-      if (thisSequence === this.loadSequence && this.currentQueueEntry()?.id === entry.id && !this.playRequested()) {
+      if (thisSequence === this.loadSequence && this.currentItem()?.id === entry.id && !this.playRequested()) {
         this.playbackState.set('paused');
       }
     } catch (err) {
-      if (thisSequence === this.loadSequence && this.currentQueueEntry()?.id === entry.id) {
+      if (thisSequence === this.loadSequence && this.currentItem()?.id === entry.id) {
         this.playRequested.set(false);
         this.playbackState.set('error');
         const failure = normalizePlaybackFailure(err, track.id);
@@ -1069,6 +1209,12 @@ export class PlayerService implements OnDestroy {
 
   /** The engine already continued gaplessly into the prepared track; follow it in the queue. */
   private handleTrackAutoAdvanced(track: Track): void {
+    if (this.external()) {
+      this.preparedCandidateId = null;
+      this.preparationReady = false;
+      this.followExternal(track);
+      return;
+    }
     const q = this.queue();
     let nextIndex = this.preparedCandidateId ? q.findIndex((entry) => entry.id === this.preparedCandidateId) : -1;
     if (nextIndex < 0 || q[nextIndex].track.id !== track.id) {
@@ -1086,8 +1232,7 @@ export class PlayerService implements OnDestroy {
 
   private async advanceAfterEnded(): Promise<void> {
     if (this.transitioning) return;
-    const index = this.automaticNextIndex();
-    const candidate = index >= 0 ? this.queue()[index] : null;
+    const candidate = this.nextCandidate();
     if (!candidate) {
       await this.next();
       return;
@@ -1095,18 +1240,10 @@ export class PlayerService implements OnDestroy {
 
     if (this.preparationReady && this.preparedCandidateId === candidate.id) {
       this.transitioning = true;
-      const originalEntryId = this.currentQueueEntry()?.id;
+      const originalId = this.currentItem()?.id;
       try {
         const started = await this.engine.transitionTo(candidate.track, 0);
-        const stillCurrent = this.currentQueueEntry()?.id === originalEntryId;
-        const nextIndex = this.queue().findIndex((entry) => entry.id === candidate.id);
-        if (started && stillCurrent && nextIndex >= 0) {
-          this.currentIndex.set(nextIndex);
-          this.currentTrack.set(candidate.track);
-          this.playRequested.set(true);
-          this.error.set(null);
-          return;
-        }
+        if (started && this.currentItem()?.id === originalId && this.followCandidate(candidate)) return;
       } catch { /* Fall back to the regular load path below. */ }
       finally {
         this.transitioning = false;
@@ -1131,13 +1268,36 @@ export class PlayerService implements OnDestroy {
     return -1;
   }
 
-  private automaticCandidate(): { id: string; index: number; track: Track } | null {
-    const current = this.currentTrack();
-    if (!current || !this.isPlaying()) return null;
+  /** What plays when the current item ends: the source's peek, or the next playable queue entry. */
+  private nextCandidate(): PlaybackItem | null {
+    const external = this.external();
+    if (external) {
+      const track = external.source.peek();
+      // Keyed to the current item, so a new peek after each track is prepared afresh.
+      return track ? { id: `${external.item.id}>${track.id}`, track } : null;
+    }
     const index = this.automaticNextIndex();
-    if (index < 0) return null;
-    const entry = this.queue()[index];
-    return { id: entry.id, index, track: entry.track };
+    return index >= 0 ? this.queue()[index] : null;
+  }
+
+  private automaticCandidate(): PlaybackItem | null {
+    if (!this.currentTrack() || !this.isPlaying()) return null;
+    return this.nextCandidate();
+  }
+
+  /** The engine moved into `candidate`: make it the current item. False when the queue lost it. */
+  private followCandidate(candidate: PlaybackItem): boolean {
+    if (this.external()) {
+      this.followExternal(candidate.track);
+      return true;
+    }
+    const nextIndex = this.queue().findIndex((entry) => entry.id === candidate.id);
+    if (nextIndex < 0) return false;
+    this.currentIndex.set(nextIndex);
+    this.currentTrack.set(candidate.track);
+    this.playRequested.set(true);
+    this.error.set(null);
+    return true;
   }
 
   private clearPreparedCandidate(): void {
@@ -1170,16 +1330,9 @@ export class PlayerService implements OnDestroy {
     const seconds = Math.min(this.crossfadeSeconds(), duration / 2);
     if (duration - time > seconds) return;
     this.transitioning = true;
-    const originalEntryId = this.currentQueueEntry()?.id;
+    const originalId = this.currentItem()?.id;
     void this.engine.transitionTo(candidate.track, seconds).then((started) => {
-      if (!started) return;
-      const stillCurrent = this.currentQueueEntry()?.id === originalEntryId;
-      const nextIndex = this.queue().findIndex((entry) => entry.id === candidate.id);
-      if (stillCurrent && nextIndex >= 0) {
-        this.currentIndex.set(nextIndex);
-        this.currentTrack.set(candidate.track);
-        this.error.set(null);
-      }
+      if (started && this.currentItem()?.id === originalId) this.followCandidate(candidate);
     }).catch(() => { /* The current track continues until its normal end. */ }).finally(() => {
       this.transitioning = false;
       this.preparedCandidateId = null;
@@ -1199,26 +1352,24 @@ export class PlayerService implements OnDestroy {
       this.playbackNotice.set(failure.message);
       return;
     }
-    const entry = this.currentQueueEntry();
+    const entry = this.currentItem();
     if (!entry || this.recoveringFromFailure || this.failedEntryIds.has(entry.id)) return;
     this.recoveringFromFailure = true;
     try {
       let currentFailure = failure;
       while (true) {
-        const failedEntry = this.currentQueueEntry();
+        const failedEntry = this.currentItem();
         if (!failedEntry) return;
         this.failedEntryIds.add(failedEntry.id);
         this.playRequested.set(false);
         this.playbackNotice.set(`${failedEntry.track.title} could not be played and was skipped.`);
         logPlaybackDiagnostic('warn', { operation: 'transition', state: 'error', errorCode: currentFailure.code, trackId: failedEntry.track.id });
-        const nextIndex = this.nextPlayableIndexAfterFailure();
-        if (nextIndex < 0) {
+        const nextEntry = this.skipFailedItem();
+        if (!nextEntry) {
           this.playbackState.set('error');
-          this.error.set('No playable tracks remain in the queue.');
+          this.error.set(this.external() ? 'No playable tracks remain.' : 'No playable tracks remain in the queue.');
           return;
         }
-        this.currentIndex.set(nextIndex);
-        const nextEntry = this.queue()[nextIndex];
         this.currentTrack.set(nextEntry.track);
         this.playRequested.set(true);
         const sequence = ++this.loadSequence;
@@ -1242,6 +1393,22 @@ export class PlayerService implements OnDestroy {
     } finally {
       this.recoveringFromFailure = false;
     }
+  }
+
+  /** Moves past a track that failed to play: the source's next pick, or the next playable entry. */
+  private skipFailedItem(): PlaybackItem | null {
+    const external = this.external();
+    if (external) {
+      const track = external.source.next();
+      if (!track) return null;
+      const item = this.externalItem(track);
+      this.external.set({ ...external, item });
+      return item;
+    }
+    const nextIndex = this.nextPlayableIndexAfterFailure();
+    if (nextIndex < 0) return null;
+    this.currentIndex.set(nextIndex);
+    return this.queue()[nextIndex];
   }
 
   private nextPlayableIndexAfterFailure(): number {
@@ -1268,7 +1435,7 @@ export class PlayerService implements OnDestroy {
   }
 
   private handleSuspend(): void {
-    const entry = this.currentQueueEntry();
+    const entry = this.currentItem();
     if (!entry) return;
     this.suspendSnapshot = {
       entryId: entry.id,
@@ -1283,15 +1450,22 @@ export class PlayerService implements OnDestroy {
     const snapshot = this.suspendSnapshot;
     this.suspendSnapshot = null;
     if (!snapshot) return;
-    const index = this.queue().findIndex((entry) => entry.id === snapshot.entryId);
-    if (index < 0) return;
-    this.currentIndex.set(index);
+    const external = this.external();
+    let track: Track;
+    if (external) {
+      if (external.item.id !== snapshot.entryId) return;
+      track = external.item.track;
+    } else {
+      const index = this.queue().findIndex((entry) => entry.id === snapshot.entryId);
+      if (index < 0) return;
+      this.currentIndex.set(index);
+      track = this.queue()[index].track;
+    }
     try {
       this.engine.setOutputFallbackEnabled(this.audioOutputFallbackEnabled());
       await this.engine.selectOutputDevice(this.preferredAudioOutputId());
       await this.refreshAudioOutputState();
       const sequence = ++this.loadSequence;
-      const track = this.queue()[index].track;
       await this.engine.load(track);
       if (sequence !== this.loadSequence) return;
       this.currentTrack.set(track);
