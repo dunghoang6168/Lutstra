@@ -5,3 +5,13 @@ export interface QueueEntry {
   track: Track;
   originalIndex: number;
 }
+
+/** The queue and position kept across restarts (`session:get` / `session:save`). */
+export interface PlaybackSession {
+  version: 1;
+  trackIds: string[];
+  /** The order before shuffle, as indices into `trackIds`. */
+  originalOrder: number[];
+  currentIndex: number;
+  positionSeconds: number;
+}

@@ -1,6 +1,6 @@
 import { LibrarySnapshot } from '../contracts/library.gateway';
 import { PopularityBatchSummary, PopularityProgress, TrackPopularity } from '../contracts/popularity.gateway';
-import { AudioHostState, AudioOutputDevice, AudioPathStatus, ArtistMatchCandidate, ArtistMetadataUpdate, ArtistOnlineMetadata, FolderNode, MusicFolder, PlaybackError, PlaybackState, PlaybackTimeEvent, PlaybackVolumeEvent, Playlist, ScanProgress, Settings, Track, TrackDetails } from '../models';
+import { AudioHostState, AudioOutputDevice, AudioPathStatus, ArtistMatchCandidate, ArtistMetadataUpdate, ArtistOnlineMetadata, FolderNode, MusicFolder, PlaybackError, PlaybackSession, PlaybackState, PlaybackTimeEvent, PlaybackVolumeEvent, Playlist, ScanProgress, Settings, Track, TrackDetails } from '../models';
 
 export type NativeAudioHostEvent =
   | { kind: 'state'; value: { state: PlaybackState; trackId?: string; error?: PlaybackError } }
@@ -95,6 +95,8 @@ export interface DesktopApi {
   settings: {
     get(): Promise<Settings>;
     save(value: Partial<Settings>): Promise<Settings>;
+    getSession(): Promise<PlaybackSession | null>;
+    saveSession(session: PlaybackSession): Promise<void>;
   };
   popularity: {
     get(trackIds: string[]): Promise<TrackPopularity[]>;

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SettingsGateway } from '../contracts/settings.gateway';
-import { DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, normalizeHiddenSongColumns, normalizeSongColumnOrder, Settings } from '../models';
+import { DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, normalizeHiddenSongColumns, normalizeSongColumnOrder, PlaybackSession, Settings } from '../models';
 import { MOCK_FOLDERS } from './fixtures/mock-data';
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +30,12 @@ export class MockSettingsGateway implements SettingsGateway {
     songColumnOrder: [...DEFAULT_SONG_COLUMN_ORDER],
     addTracksTab: DEFAULT_ADD_TRACKS_TAB,
   };
+
+  // The browser mock forgets the session on reload, like its settings.
+  private session: PlaybackSession | null = null;
+
+  async getSession(): Promise<PlaybackSession | null> { return this.session; }
+  async saveSession(session: PlaybackSession): Promise<void> { this.session = session; }
 
   async getSettings(): Promise<Settings> {
     await new Promise((resolve) => setTimeout(resolve, 30));

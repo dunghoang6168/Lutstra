@@ -1,5 +1,5 @@
-import { validOutputMode, validExclusiveBufferMs } from './ipc-validation.js';
-import { isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isSongColumn, isSongColumnOrder, isThemePreset } from '../../src/app/core/models/index.js';
+import { validOutputMode, validExclusiveBufferMs, validIdArray } from './ipc-validation.js';
+import { isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isSongColumn, isSongColumnOrder, isThemePreset, type PlaybackSession } from '../../src/app/core/models/index.js';
 
 export function validSettings(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid settings');
@@ -35,4 +35,18 @@ export function validSettings(value: unknown): Record<string, unknown> {
     result['songColumnOrder'] = [...input['songColumnOrder']];
   }
   return result;
+}
+
+export function validPlaybackSession(value: unknown): PlaybackSession {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid playback session');
+  const input = value as Record<string, unknown>;
+  const trackIds = validIdArray(input['trackIds']);
+  const order = input['originalOrder'];
+  if (!Array.isArray(order) || order.length !== trackIds.length || new Set(order).size !== order.length
+    || !order.every((index) => Number.isInteger(index) && index >= 0 && index < trackIds.length)) throw new Error('Invalid playback session order');
+  const currentIndex = input['currentIndex'];
+  if (!Number.isInteger(currentIndex) || (currentIndex as number) < -1 || (currentIndex as number) >= trackIds.length) throw new Error('Invalid playback session index');
+  const position = input['positionSeconds'];
+  if (typeof position !== 'number' || !Number.isFinite(position) || position < 0) throw new Error('Invalid playback session position');
+  return { version: 1, trackIds, originalOrder: [...order], currentIndex: currentIndex as number, positionSeconds: position };
 }

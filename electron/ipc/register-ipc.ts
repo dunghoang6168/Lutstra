@@ -9,7 +9,7 @@ import { ArtistMetadataService } from '../services/artist-metadata.service.js';
 import { LyricsService } from '../services/lyrics.service.js';
 import { PopularityService } from '../services/popularity.service.js';
 import { AudioHostService } from '../services/audio-host.service.js';
-import { validSettings } from './settings-validation.js';
+import { validPlaybackSession, validSettings } from './settings-validation.js';
 import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
 import { updateWindowSnapBounds } from '../window-snap.js';
 import { updateMediaControls } from '../media-controls.js';
@@ -117,6 +117,8 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('playlists:reorder', (_event, id, entryIds) => database.reorderPlaylist(validId(id), validIdArray(entryIds)), development);
   handle('settings:get', () => database.getSettings(), development);
   handle('settings:save', (_event, value) => database.saveSettings(validSettings(value)), development);
+  handle('session:get', () => database.getSession(), development);
+  handle('session:save', (_event, value) => database.saveSession(validPlaybackSession(value)), development);
 }
 
 export function broadcastProgress(window: BrowserWindow | null, progress: ScanProgress): void {

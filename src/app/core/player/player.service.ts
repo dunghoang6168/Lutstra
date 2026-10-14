@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { LIBRARY_GATEWAY, PLAYBACK_ENGINE, SETTINGS_GATEWAY } from '../contracts';
-import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackState, PlaybackMode, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track } from '../models';
+import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackSession, PlaybackState, PlaybackMode, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track } from '../models';
 import { getDesktopApi } from '../desktop/desktop-api';
 import { logPlaybackDiagnostic } from './playback-diagnostics';
 import { nextPlayableQueueIndex } from './playback-policy';
@@ -98,6 +98,8 @@ export class PlayerService implements OnDestroy {
   private recoveringFromFailure = false;
   private readonly failedEntryIds = new Set<string>();
   private suspendSnapshot: { entryId: string; position: number; shouldResume: boolean } | null = null;
+  private sessionTimer: ReturnType<typeof setInterval> | null = null;
+  private savedSession: { queue: QueueEntry[]; index: number; position: number; at: number } | null = null;
   private readonly playRequested = signal(false);
 
   // Primary Signals
@@ -214,7 +216,7 @@ export class PlayerService implements OnDestroy {
       this.subscriptions.add(lifecycle.onSuspend(() => this.handleSuspend()));
       this.subscriptions.add(lifecycle.onResume(() => void this.handleResume()));
     }
-    this.loadSavedSettings();
+    void this.loadSavedSettings().then(() => this.restoreSession());
     let wasScanning = false;
     if (this.libraryGateway) this.subscriptions.add(this.libraryGateway.scanProgress$.subscribe((progress) => {
       const justFinished = wasScanning && !progress.isScanning;
@@ -292,6 +294,7 @@ export class PlayerService implements OnDestroy {
   ngOnDestroy(): void {
     this.loadSequence++;
     if (this.volumeSaveTimer) clearTimeout(this.volumeSaveTimer);
+    if (this.sessionTimer) clearInterval(this.sessionTimer);
     this.subscriptions.unsubscribe();
     this.engine.dispose();
   }
@@ -343,6 +346,65 @@ export class PlayerService implements OnDestroy {
     } finally {
       this.restoringSettings = false;
     }
+  }
+
+  /**
+   * Reloads the last run's queue, paused at its position (never playing), then keeps it saved.
+   * Saving runs throughout because the main process closes the database as soon as the app quits.
+   */
+  private async restoreSession(): Promise<void> {
+    try {
+      const session = await this.settingsGateway?.getSession();
+      if (session && !this.queue().length && this.libraryGateway) {
+        const tracks = new Map((await this.libraryGateway.getLibrary()).tracks.map((track) => [track.id, track]));
+        if (!this.queue().length) await this.applySession(session, tracks);
+      }
+    } catch { /* Start with an empty queue. */ }
+    if (!this.subscriptions.closed) this.sessionTimer = setInterval(() => this.saveSession(), 1000);
+  }
+
+  private async applySession(session: PlaybackSession, tracks: Map<string, Track>): Promise<void> {
+    // Tracks gone from the library are dropped; a missing current track hands over to the next one, from the start.
+    const kept = session.trackIds.flatMap((id, index) => tracks.has(id) ? [index] : []);
+    if (!kept.length) return;
+    const entries = kept.map((old, index) => this.createQueueEntry(tracks.get(session.trackIds[old])!, index));
+    const newIndex = new Map(kept.map((old, index) => [old, index]));
+    const next = kept.findIndex((old) => old >= session.currentIndex);
+    const index = session.currentIndex < 0 ? -1 : next >= 0 ? next : kept.length - 1;
+    const position = index >= 0 && kept[index] === session.currentIndex ? session.positionSeconds : 0;
+    this.queue.set(entries);
+    this.originalQueue = session.originalOrder.flatMap((old) => newIndex.has(old) ? [entries[newIndex.get(old)!]] : []);
+    this.currentIndex.set(index);
+    if (index < 0) return;
+    // A file that is gone shows as unavailable instead of skipping ahead.
+    await this.loadCurrentPaused(false);
+    if (position > 0 && this.playbackState() === 'paused' && this.currentQueueEntry() === entries[index]) {
+      this.engine.seek(position);
+      this.currentTime.set(position);
+    }
+  }
+
+  /** Saves on a queue change, and the position on a change, at most every 5 seconds while playing. */
+  private saveSession(): void {
+    if (!this.settingsGateway) return;
+    const queue = this.queue();
+    const index = this.currentIndex();
+    const external = this.external();
+    // While the roulette plays, the parked queue entry and its resume point are what to keep.
+    const position = Math.floor(external ? external.resumeAt : index >= 0 ? this.currentTime() : 0);
+    const now = Date.now();
+    const last = this.savedSession;
+    if (last && last.queue === queue && last.index === index
+      && (last.position === position || (this.isPlaybackActive() && now - last.at < 5000))) return;
+    this.savedSession = { queue, index, position, at: now };
+    const positions = new Map(queue.map((entry, i) => [entry.id, i]));
+    const order = this.originalQueue.map((entry) => positions.get(entry.id) ?? -1);
+    const originalOrder = order.length === queue.length && new Set(order).size === order.length && !order.includes(-1)
+      ? order : queue.map((_, i) => i);
+    try {
+      void this.settingsGateway.saveSession({ version: 1, trackIds: queue.map((entry) => entry.track.id), originalOrder, currentIndex: index, positionSeconds: position })
+        .catch(() => undefined);
+    } catch { /* A gateway without sessions keeps nothing. */ }
   }
 
   private initEngineListeners(): void {

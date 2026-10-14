@@ -122,6 +122,8 @@ const api: DesktopApi = {
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     save: (value) => ipcRenderer.invoke('settings:save', value),
+    getSession: () => ipcRenderer.invoke('session:get'),
+    saveSession: (session) => ipcRenderer.invoke('session:save', session),
   },
   popularity: {
     get: (trackIds) => ipcRenderer.invoke('popularity:get', trackIds),

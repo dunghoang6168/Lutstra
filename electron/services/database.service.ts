@@ -1,6 +1,6 @@
 import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 import path from 'node:path';
-import { Album, Artist, ArtistMetadataSource, ArtistOnlineMetadata, DEFAULT_ACCENT_COLOR, DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, DEFAULT_THEME_PRESET, FolderNode, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isThemePreset, MusicFolder, normalizeHiddenSongColumns, normalizeSongColumnOrder, normalizeThemePreset, orderAlbumTracks, Playlist, PlaylistEntry, Settings, Track } from '../../src/app/core/models/index.js';
+import { Album, Artist, ArtistMetadataSource, ArtistOnlineMetadata, DEFAULT_ACCENT_COLOR, DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, DEFAULT_THEME_PRESET, FolderNode, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isThemePreset, MusicFolder, normalizeHiddenSongColumns, normalizeSongColumnOrder, normalizeThemePreset, orderAlbumTracks, Playlist, PlaylistEntry, PlaybackSession, Settings, Track } from '../../src/app/core/models/index.js';
 import { LibrarySnapshot } from '../../src/app/core/contracts/library.gateway.js';
 import type { TrackPopularity } from '../../src/app/core/contracts/popularity.gateway.js';
 import { pathKey, stableId } from '../utils/path-utils.js';
@@ -324,6 +324,15 @@ export class DatabaseService {
   addPlaylistTracks(id: string, trackIds: string[]): Playlist { const playlist=this.requirePlaylist(id); const insert=this.db.prepare('INSERT INTO playlist_entries(id,playlist_id,track_id,position,added_at) VALUES(?,?,?,?,?)'); this.transaction(()=>trackIds.forEach((trackId,index)=>{ if(!this.db.prepare('SELECT 1 FROM tracks WHERE id=?').get(trackId)) throw new Error('Unknown track'); insert.run(stableId('entry',`${id}\0${Date.now()}\0${index}\0${Math.random()}`),id,trackId,playlist.entries.length+index,Date.now()); })); this.touchPlaylist(id); return this.requirePlaylist(id); }
   removePlaylistEntry(id: string, entryId: string): Playlist { this.requirePlaylist(id); this.db.prepare('DELETE FROM playlist_entries WHERE playlist_id=? AND id=?').run(id,entryId); this.reindexPlaylist(id); return this.requirePlaylist(id); }
   reorderPlaylist(id: string, entryIds: string[]): Playlist { const playlist=this.requirePlaylist(id); if(entryIds.length!==playlist.entries.length || new Set(entryIds).size!==entryIds.length || entryIds.some((entryId)=>!playlist.entries.some((entry)=>entry.id===entryId))) throw new Error('Invalid playlist entry order'); const update=this.db.prepare('UPDATE playlist_entries SET position=? WHERE playlist_id=? AND id=?'); this.transaction(()=>entryIds.forEach((entryId,index)=>update.run(index,id,entryId))); this.touchPlaylist(id); return this.requirePlaylist(id); }
+
+  getSession(): PlaybackSession | null {
+    const row = this.db.prepare("SELECT value FROM settings WHERE key='session'").get() as Row | undefined;
+    try { return row ? JSON.parse(String(row['value'])) as PlaybackSession : null; } catch { return null; }
+  }
+
+  saveSession(session: PlaybackSession): void {
+    this.db.prepare("INSERT INTO settings(key,value) VALUES('session',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(session));
+  }
 
   getSettings(): Settings {
     const row = this.db.prepare("SELECT value FROM settings WHERE key='app'").get() as Row | undefined;
