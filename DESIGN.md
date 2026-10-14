@@ -209,7 +209,7 @@ File truth is the thing every shell shows. Format, bit depth and sample rate, an
 - Manrope Variable for all prose. The system monospace is used only for measurements.
 - Three distinct topologies driven by a single set of per-layout custom properties on `html[data-layout]`.
 - Density spans three steps: 52px rows (Gallery), 44px (Ambient), 30px (Console).
-- Motion character differs by layout: an ease-out glide at 320ms, a linear snap at 100ms, a long ease-out at 460ms. All of it collapses to 0ms under reduced motion.
+- Motion character differs by layout: an ease-out glide at 320ms, a linear snap at 100ms, a long ease-out at 460ms. All of it collapses to 0ms under reduced motion. Covers crossfade to the next track at `--cover-fade-dur`: the layout's motion duration, 0ms (a straight swap) in Console.
 
 ## Colors
 
@@ -274,6 +274,7 @@ All three shells share one Angular shell and one content container. `.main-conte
 | Cover min / gap / radius | 196 / clamp(20, 2.4cqi, 36) / 12 | 136 / 14 / 2 | 172 / 22 / 16 |
 | Control radius | full | 3px | full |
 | Motion | 320ms cubic-bezier(0.16, 1, 0.3, 1) | 100ms linear | 460ms cubic-bezier(0.16, 1, 0.3, 1) |
+| Cover fade | 320ms | 0ms (swap) | 460ms (artwork ground 1.2s) |
 
 Spacing follows a 4px scale (4 to 40). The title bar is a drag region, with every interactive cluster marked as no-drag. Windows controls stay native-styled in every layout.
 
@@ -298,7 +299,7 @@ Dialogs take `--dialog-*` tokens per layout: Gallery lifted r12, Console flat r3
 ### Named Rules
 **The No-Glow Console Rule.** Inside Console's content, `--shadow-*` and `--accent-glow` resolve to none or transparent, and radii collapse to 2-4px. Hairlines carry all structure.
 
-**The Ambient Ground Rule.** In Ambient, the current cover blurred (80px, saturate 1.25, 55% opacity dark and 42% light) is the ground on every page. It fades in for 1.2s on track change. Inside the glass sheet, surfaces map to glass tints derived from the active preset by `color-mix`, so both presets work.
+**The Ambient Ground Rule.** In Ambient, the current cover blurred (80px, saturate 1.25, 55% opacity dark and 42% light) is the ground on every page. It crossfades to the next cover over 1.2s, and fades out when the next track has no cover. Inside the glass sheet, surfaces map to glass tints derived from the active preset by `color-mix`, so both presets work.
 
 **The Solid Fallback Rule.** Under `prefers-reduced-transparency` or forced colours, every glass surface becomes its solid preset surface and the artwork ground is removed. Settings › Layout › Artwork backdrop (`ambientArtwork`, Ambient only) also removes the artwork ground, leaving the glass over the plain theme canvas.
 

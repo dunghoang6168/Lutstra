@@ -7,6 +7,7 @@ import { PlayerService } from '../../../core/player/player.service';
 import { RightPanelService } from '../../../core/layout/right-panel.service';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
+import { CoverArtComponent } from '../cover-art/cover-art.component';
 import { RangeSliderComponent } from '../range-slider/range-slider.component';
 import { TipDirective } from '../../directives/tip.directive';
 import { SignalPathComponent } from '../signal-path/signal-path.component';
@@ -18,7 +19,7 @@ export type PlayerVariant = 'strip' | 'rail' | 'pill';
 @Component({
   selector: 'app-player-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, RangeSliderComponent, SignalPathComponent, TipDirective, MarqueeDirective],
+  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, CoverArtComponent, RangeSliderComponent, SignalPathComponent, TipDirective, MarqueeDirective],
   templateUrl: './player-bar.component.html',
   styleUrl: './player-bar.component.scss'
 })

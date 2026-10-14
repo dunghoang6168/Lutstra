@@ -80,12 +80,7 @@
     @if (hero(); as item) {
       <section class="listening-hero" aria-labelledby="hero-title">
         <div class="hero-artwork">
-          @if (item.artwork) {
-            <!-- impeccable-ignore broken-image Angular artwork binding guarded by @if -->
-            <img [src]="item.artwork" alt="" />
-          } @else {
-            <div class="hero-placeholder" aria-hidden="true"><app-icon name="music" [size]="48" /></div>
-          }
+          <app-cover-art [src]="item.artwork" icon="music" [iconSize]="48" />
         </div>
         <div class="hero-info">
           <p class="hero-status">{{ item.status }}</p>

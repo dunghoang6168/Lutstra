@@ -1,0 +1,19 @@
+:host { position: relative; display: block; width: 100%; height: 100%; }
+
+/* The old cover holds still under the new one, so a host opacity or filter applies to the blend as a whole. */
+.layer { position: absolute; inset: 0; }
+.fade-in { animation: cover-in var(--cover-fade-dur) var(--motion-ease) both; }
+/* Nothing to fade in over: fade the old cover out instead. */
+.layer:has(+ .fade-in.blank) { animation: cover-out var(--cover-fade-dur) var(--motion-ease) both; }
+@keyframes cover-in { from { opacity: 0; } }
+@keyframes cover-out { to { opacity: 0; } }
+
+img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+}

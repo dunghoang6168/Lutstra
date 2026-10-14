@@ -93,11 +93,7 @@
 <ng-template #cover let-size="size">
   @if (player.currentTrack(); as track) {
     <a routerLink="/now-playing" class="cover-link" [appTip]="'Open Now Playing: ' + track.title">
-      @if (track.artwork) {
-        <img [src]="track.artwork" alt="" class="cover-img" />
-      } @else {
-        <span class="cover-placeholder" aria-hidden="true"><app-icon name="disc" [size]="size" /></span>
-      }
+      <app-cover-art [src]="track.artwork" [iconSize]="size" />
       <span class="sr-only">Open Now Playing</span>
     </a>
   } @else {

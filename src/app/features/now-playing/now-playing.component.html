@@ -7,13 +7,7 @@
           <!-- Cover -->
           <div class="artwork-column">
             <div class="large-artwork-card">
-              @if (track.artwork) {
-                <img [src]="track.artwork" [alt]="track.title" class="large-artwork-img" />
-              } @else {
-                <div class="large-artwork-placeholder" aria-hidden="true">
-                  <app-icon name="disc" [size]="80" />
-                </div>
-              }
+              <app-cover-art [src]="track.artwork" [alt]="track.title" [iconSize]="80" />
             </div>
           </div>
 

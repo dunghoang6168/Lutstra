@@ -7,26 +7,24 @@
       [class.rail-hidden]="isSidebarHidden()"
       [style.--rail-width.px]="railWidth()"
       [attr.inert]="showOnboarding() || showShortcuts() ? '' : null">
-      @if (backdropArtwork(); as artwork) {
+      @if (layout() === 'liquid-glass') {
         <div class="now-playing-backdrop" aria-hidden="true">
-          @if (layout() === 'liquid-glass') {
-            @for (art of [artwork]; track art) {
-              <img class="ambient-art" [src]="art" alt="" />
-            }
-          } @else if (artworkGlowPosition.bounds(); as bounds) {
+          <app-cover-art class="ambient-art" [src]="backdropArtwork()" [icon]="null" />
+        </div>
+      } @else if (backdropArtwork(); as artwork) {
+        <div class="now-playing-backdrop" aria-hidden="true">
+          @if (artworkGlowPosition.bounds(); as bounds) {
             @if (panelGlow(); as glow) {
-              @if (glow.source === artwork) {
-                @if (glow.url) {
-                  <img class="panel-edge-glow-img" [src]="glow.url" alt=""
-                    [style.left.px]="bounds.left - bounds.width * edgeGlowSpread"
-                    [style.top.px]="bounds.top - bounds.height * edgeGlowSpread"
-                    [style.width.px]="bounds.width * (1 + edgeGlowSpread * 2)"
-                    [style.height.px]="bounds.height * (1 + edgeGlowSpread * 2)" />
-                } @else {
-                  <img class="panel-glow-img" [src]="artwork" alt=""
-                    [style.left.px]="bounds.left" [style.top.px]="bounds.top"
-                    [style.width.px]="bounds.width" [style.height.px]="bounds.height" />
-                }
+              @if (glow.url) {
+                <app-cover-art class="panel-edge-glow-img" [src]="glow.url" [icon]="null"
+                  [style.left.px]="bounds.left - bounds.width * edgeGlowSpread"
+                  [style.top.px]="bounds.top - bounds.height * edgeGlowSpread"
+                  [style.width.px]="bounds.width * (1 + edgeGlowSpread * 2)"
+                  [style.height.px]="bounds.height * (1 + edgeGlowSpread * 2)" />
+              } @else {
+                <img class="panel-glow-img" [src]="glow.source" alt=""
+                  [style.left.px]="bounds.left" [style.top.px]="bounds.top"
+                  [style.width.px]="bounds.width" [style.height.px]="bounds.height" />
               }
             }
           }

@@ -1,0 +1,11 @@
+@for (layer of swap.layers(); track layer.id; let last = $last) {
+  <div class="layer" [class.fade-in]="layer.fade" [class.blank]="!layer.src && !icon()"
+    (animationend)="onAnimationEnd($event, layer.id)">
+    @if (layer.src) {
+      <!-- impeccable-ignore broken-image Angular artwork binding guarded by @if -->
+      <img [src]="layer.src" [alt]="last ? alt() : ''" />
+    } @else if (icon(); as name) {
+      <span class="placeholder" aria-hidden="true"><app-icon [name]="name" [size]="iconSize()" /></span>
+    }
+  </div>
+}

@@ -267,6 +267,7 @@ html[data-layout='inset'] {
   --card-title-weight: 700;
   --motion-dur: 320ms;
   --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --cover-fade-dur: var(--motion-dur);
   --rail-width: 300px;
   --rail-gap: 6px;
 }
@@ -298,6 +299,7 @@ html[data-layout='classic'] {
   --card-title-weight: 600;
   --motion-dur: 100ms;
   --motion-ease: linear;
+  --cover-fade-dur: 0ms;
   --player-bar-height: 52px;
   --inspector-width: 320px;
 }
@@ -329,6 +331,7 @@ html[data-layout='liquid-glass'] {
   --card-title-weight: 600;
   --motion-dur: 460ms;
   --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --cover-fade-dur: var(--motion-dur);
   --icon-rail-width: 56px;
 
   /* Glass derives from the active light/dark palette so both presets work. */

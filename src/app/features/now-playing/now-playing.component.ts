@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { CoverArtComponent } from '../../shared/components/cover-art/cover-art.component';
 import { SpectrumVisualizerComponent } from '../../shared/components/spectrum-visualizer/spectrum-visualizer.component';
 import { RightPanelService } from '../../core/layout/right-panel.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
@@ -20,7 +21,7 @@ import { TipDirective } from '../../shared/directives/tip.directive';
 @Component({
   selector: 'app-now-playing',
   standalone: true,
-  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, SpectrumVisualizerComponent, InlineVolumeControlComponent, WaveformSeekComponent, SignalPathComponent, TipDirective],
+  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, CoverArtComponent, SpectrumVisualizerComponent, InlineVolumeControlComponent, WaveformSeekComponent, SignalPathComponent, TipDirective],
   templateUrl: './now-playing.component.html',
   styleUrl: './now-playing.component.scss'
 })

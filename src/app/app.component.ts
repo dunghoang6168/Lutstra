@@ -9,6 +9,7 @@ import { PlayerBarComponent } from './shared/components/player-bar/player-bar.co
 import { QueueDrawerComponent } from './shared/components/queue-drawer/queue-drawer.component';
 import { TrackDetailsPanelComponent } from './shared/components/track-details-panel/track-details-panel.component';
 import { IconComponent } from './shared/components/icon/icon.component';
+import { CoverArtComponent } from './shared/components/cover-art/cover-art.component';
 import { RightPanelService } from './core/layout/right-panel.service';
 import { PlayerService } from './core/player/player.service';
 import { QueueActionsService } from './core/player/queue-actions.service';
@@ -44,6 +45,7 @@ const RAIL_RESERVED_WIDTH = 514;
     QueueDrawerComponent,
     TrackDetailsPanelComponent,
     IconComponent,
+    CoverArtComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
@@ -145,7 +147,7 @@ export class AppComponent implements AfterViewChecked {
         this.panelGlow.set(null);
         return;
       }
-      this.panelGlow.set(null);
+      // The previous glow stays lit until this one is ready, then crossfades to it.
       void this.artworkEdgeGlow.getGlow(artwork).then((url) => {
         if (this.backdropArtwork() === artwork && this.layoutPreference.mode() === 'inset') {
           this.panelGlow.set({ source: artwork, url });

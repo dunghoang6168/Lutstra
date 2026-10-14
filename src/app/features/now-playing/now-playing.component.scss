@@ -105,22 +105,6 @@
       box-shadow: var(--shadow-lg);
     }
 
-    .large-artwork-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .large-artwork-placeholder {
-      width: 100%;
-      height: 100%;
-      background: var(--bg-elevated);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-    }
-
     /* Right Details Column */
     .details-column {
       grid-column: 2;
@@ -637,7 +621,6 @@
       color: var(--text-primary);
       opacity: 1;
     }
-    .layout-liquid-glass .large-artwork-placeholder { background: var(--bg-elevated); }
 
     :host-context(html[data-runtime='desktop'][data-layout='liquid-glass']) .layout-liquid-glass .track-heading-card {
       padding: 15px 18px;

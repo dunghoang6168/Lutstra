@@ -73,8 +73,6 @@
   box-shadow: var(--cover-shadow);
   background: var(--bg-elevated);
 }
-.hero-artwork img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.hero-placeholder { display: grid; place-items: center; width: 100%; height: 100%; color: var(--text-muted); }
 .hero-info { min-width: 0; }
 .hero-status { margin: 0 0 var(--space-3); font-size: var(--font-size-sm); color: var(--text-secondary); }
 .hero-info h2 {

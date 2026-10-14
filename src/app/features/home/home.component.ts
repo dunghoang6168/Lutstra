@@ -9,6 +9,7 @@ import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
 import { focusListItem, nextRowIndex } from '../../shared/utils/row-navigation';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { CoverArtComponent } from '../../shared/components/cover-art/cover-art.component';
 import { AlbumCardComponent } from '../../shared/components/album-card/album-card.component';
 import { albumFormatMap, formatCount, formatTrackFormat as trackFormatLabel, summarizeQuality, formatQualityLine } from './library-quality';
 import { RecentPlaysService, findRecentPlayableTrack, recentlyPlayedAlbums, recentTrackCollection } from '../../core/layout/recent-plays.service';
@@ -17,7 +18,7 @@ import { LayoutPreferenceService } from '../../core/layout/layout-preference.ser
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [DecimalPipe, RouterModule, IconComponent, AlbumCardComponent],
+  imports: [DecimalPipe, RouterModule, IconComponent, AlbumCardComponent, CoverArtComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
