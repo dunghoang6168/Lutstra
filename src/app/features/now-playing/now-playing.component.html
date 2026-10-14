@@ -22,8 +22,8 @@
             <!-- Title & Artist -->
             <div class="track-heading-card">
               <div class="track-heading-text">
-                <h1 class="track-title" [title]="track.title">{{ track.title }}</h1>
-                <div class="artist-album-row" [attr.title]="trackMetadataLabel()">
+                <h1 class="track-title" appTipOverflow>{{ track.title }}</h1>
+                <div class="artist-album-row" appTipOverflow>
                   <span class="track-artist">{{ track.artist || 'Unknown Artist' }}</span>
                   @if (track.album) {
                     <span class="dot-separator">•</span>
@@ -48,7 +48,7 @@
                   [attr.aria-expanded]="rightPanels.isQueueOpen()"
                   aria-controls="queue-drawer"
                   aria-label="Toggle playback queue drawer"
-                  title="Toggle queue drawer">
+                  appTip="Toggle queue drawer">
                   <app-icon name="queue" [size]="18" />
                   @if (player.queue().length > 0) {
                     <span class="queue-badge">{{ player.queue().length }}</span>
@@ -73,8 +73,8 @@
                 <app-spectrum-visualizer />
               }
 
-            @if (layoutPreference.mode() !== 'liquid-glass') {
-            <!-- Embedded Timeline & Controls -->
+            <!-- Embedded Timeline & Controls; Ambient keeps only the spectrum timeline (the dock holds transport, the waveform seeks itself) -->
+            @if (layoutPreference.mode() !== 'liquid-glass' || audioVisualization.mode() === 'spectrum') {
             <div class="inline-controls">
               @if (audioVisualization.mode() === 'spectrum') {
               <div class="timeline-group">
@@ -101,18 +101,19 @@
               </div>
               }
 
+              @if (layoutPreference.mode() !== 'liquid-glass') {
               <div class="transport-buttons" [class.panel-transport]="layoutPreference.mode() === 'inset'">
                 @if (layoutPreference.mode() === 'inset') {
                   <button
                     type="button"
                     class="btn-icon playback-mode-button"
-                    [class.active]="playbackMode() !== 'off'"
-                    (click)="cyclePlaybackMode()"
+                    [class.active]="player.playbackMode() !== 'off'"
+                    (click)="player.cyclePlaybackMode()"
                     [style.visibility]="player.modesLocked() ? 'hidden' : null"
-                    [title]="playbackModeLabel()"
-                    [attr.aria-label]="playbackModeLabel()">
-                    <app-icon [name]="playbackMode() === 'repeat-one' ? 'repeat-one' : playbackMode() === 'repeat-all' ? 'repeat' : 'shuffle'" [size]="16" />
-                    @if (playbackMode() === 'combined') {
+                    [appTip]="player.playbackModeLabel()"
+                    [attr.aria-label]="player.playbackModeLabel()">
+                    <app-icon [name]="player.playbackModeIcon()" [size]="16" />
+                    @if (player.playbackMode() === 'combined') {
                       <app-icon name="repeat" [size]="10" class="mode-repeat" />
                     }
                   </button>
@@ -123,7 +124,7 @@
                     [class.active]="player.isShuffle()"
                     (click)="player.toggleShuffle()"
                     [style.visibility]="player.modesLocked() ? 'hidden' : null"
-                    title="Toggle shuffle"
+                    appTip="Toggle shuffle"
                     aria-label="Shuffle" [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
                     <app-icon name="shuffle" [size]="16" />
                   </button>
@@ -134,7 +135,7 @@
                   type="button"
                   class="btn-icon"
                   (click)="player.previous()"
-                  title="Previous track"
+                  appTip="Previous track"
                   aria-label="Previous track" aria-keyshortcuts="P">
                   <app-icon name="skip-back" [size]="18" />
                 </button>
@@ -143,7 +144,7 @@
                   type="button"
                   class="btn-play-large"
                   (click)="player.togglePlayPause()"
-                  [title]="player.isPlaybackActive() ? 'Pause' : 'Play'"
+                  [appTip]="player.isPlaybackActive() ? 'Pause' : 'Play'"
                   [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'" aria-keyshortcuts="Space">
                   @if (player.isPlaybackActive()) {
                     <app-icon name="pause" [size]="20" />
@@ -156,7 +157,7 @@
                   type="button"
                   class="btn-icon"
                   (click)="player.next()"
-                  title="Next track"
+                  appTip="Next track"
                   aria-label="Next track" aria-keyshortcuts="N">
                   <app-icon name="skip-forward" [size]="18" />
                 </button>
@@ -169,7 +170,7 @@
                     [class.active]="player.repeatMode() !== 'off'"
                     (click)="player.cycleRepeatMode()"
                     [style.visibility]="player.modesLocked() ? 'hidden' : null"
-                    [title]="'Repeat Mode: ' + player.repeatMode()"
+                    [appTip]="'Repeat Mode: ' + player.repeatMode()"
                     [attr.aria-label]="'Repeat: ' + player.repeatMode()" aria-keyshortcuts="R">
                     <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="16" />
                   </button>
@@ -177,6 +178,7 @@
                   <app-inline-volume-control class="panel-volume-control" />
                 }
               </div>
+              }
             </div>
             }
             </div>
@@ -228,7 +230,7 @@
 
               <span class="file-path-row">
                 <span class="path-label">Path:</span>
-                <span class="path-value truncate" [title]="track.path">{{ track.path }}</span>
+                <span class="path-value truncate" appTipOverflow>{{ track.path }}</span>
               </span>
             </section>
             }

@@ -4,12 +4,13 @@ import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { AddToPlaylistDialogComponent } from '../add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 /** Row "⋯" button: Play next, Add to queue and Add to playlist in one menu. */
 @Component({
   selector: 'app-track-actions-menu',
   standalone: true,
-  imports: [AddToPlaylistDialogComponent, IconComponent],
+  imports: [AddToPlaylistDialogComponent, IconComponent, TipDirective],
   templateUrl: './track-actions-menu.component.html',
   styleUrl: './track-actions-menu.component.scss',
 })

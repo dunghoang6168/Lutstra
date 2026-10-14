@@ -8,6 +8,7 @@ import { BrowseFilterPopoverComponent } from '../../../shared/components/browse-
 import { SearchableFilterSelectComponent } from '../../../shared/components/searchable-filter-select/searchable-filter-select.component';
 import { artistInitial, compareAlbumsByTitle, compareNames } from '../../library-browse';
 import { matchesQualityFilter } from '../../home/library-quality';
+import { TipDirective } from '../../../shared/directives/tip.directive';
 
 /** Drag payload from this panel: a JSON array of track ids. */
 export const TRACK_DRAG_TYPE = 'application/x-lutstra-tracks';
@@ -37,7 +38,7 @@ interface FolderInfo { trackIds: string[]; artwork: string | null }
 @Component({
   selector: 'app-add-tracks-panel',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent],
+  imports: [FormsModule, NgTemplateOutlet, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, TipDirective],
   templateUrl: './add-tracks-panel.component.html',
   styleUrl: './add-tracks-panel.component.scss',
 })

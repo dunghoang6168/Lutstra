@@ -34,9 +34,9 @@
         </span>
         <span class="song-column-move-controls">
           <button type="button" [attr.aria-disabled]="isLoading() || idx === 0" (click)="moveColumn(column.id, -1, $event)"
-            [attr.aria-label]="'Move ' + column.label + ' column earlier'" title="Move earlier"><app-icon name="arrow-up" [size]="12" /></button>
+            [attr.aria-label]="'Move ' + column.label + ' column earlier'" appTip="Move earlier"><app-icon name="arrow-up" [size]="12" /></button>
           <button type="button" [attr.aria-disabled]="isLoading() || idx === movableColumns().length - 1" (click)="moveColumn(column.id, 1, $event)"
-            [attr.aria-label]="'Move ' + column.label + ' column later'" title="Move later"><app-icon name="arrow-down" [size]="12" /></button>
+            [attr.aria-label]="'Move ' + column.label + ' column later'" appTip="Move later"><app-icon name="arrow-down" [size]="12" /></button>
         </span>
         <input type="checkbox" [checked]="isSongColumnVisible(column.id)" [disabled]="isLoading()"
           (change)="onSongColumnChange(column.id, $any($event.target).checked)"

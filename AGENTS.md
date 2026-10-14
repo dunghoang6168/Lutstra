@@ -21,6 +21,9 @@ Lutstra is a local-first desktop music player for lossless and Hi-Res libraries:
 - **Type floor is 13px** (`--font-size-xs`). Console labels use `--type-label-variant` (small caps), never `text-transform: uppercase`.
 - **Overlays:** text over artwork stays white on `--scrim-soft`, `--scrim-strong` or `--scrim-heavy`. Destructive buttons use `--status-error-fill`, `--status-error-fill-hover` and `--color-on-error`.
 - **Copy:** sentence case everywhere: buttons, headings, aria-labels and tooltips. Page names (Home, Songs, Albums, Now Playing…) and engine names (Native Shared, Chromium Shared) keep their capitals. One item is a **track** ("Songs" only names the page).
+- **Tooltips:** use `appTip` (icon-only controls and explanations; keep the aria-label) or `appTipOverflow` (truncated text, shown only while it overflows) from `src/app/shared/directives/tip.directive.ts`, never `title`. The one exception is the Gallery rail resize handle, where a cursor-anchored native tip suits a full-height strip.
+- **Overflowing single lines in the Ambient dock** ping-pong with `appMarquee` (`shared/directives/marquee.directive.ts`, first child `.marquee-text`) and fall back to an ellipsis under reduced motion.
+- **One playback-mode control:** the Ambient dock and Gallery's Now Playing use one button that cycles Off → Shuffle → Repeat All → Repeat One (`PlayerService.playbackMode`, `playbackModeIcon`, `playbackModeLabel`, `cyclePlaybackMode()`): accent when on, a muted repeat glyph when off. The Console strip and the Gallery rail keep separate shuffle and repeat. S and R still toggle each.
 - **Responsive:** respond to the `.main-content` container (`@container main-content (...)`, `cqi`), not the viewport, so Console's tree and inspector are accounted for.
 
 ## Track lists and keyboard

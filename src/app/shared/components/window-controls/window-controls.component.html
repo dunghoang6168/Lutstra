@@ -1,6 +1,6 @@
 @if (enabled) {
   <div class="window-controls" role="group" aria-label="Window controls">
-    <button type="button" class="window-control minimize" aria-label="Minimize window" title="Minimize" (click)="minimize()">
+    <button type="button" class="window-control minimize" aria-label="Minimize window" appTip="Minimize" tipPlacement="bottom" (click)="minimize()">
       <span class="control-dot">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" /></svg>
       </span>
@@ -18,7 +18,7 @@
         </svg>
       </span>
     </button>
-    <button type="button" class="window-control close" aria-label="Close window" title="Close" (click)="close()">
+    <button type="button" class="window-control close" aria-label="Close window" appTip="Close" tipPlacement="bottom" (click)="close()">
       <span class="control-dot">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5 11.5 11.5M11.5 4.5l-7 7" /></svg>
       </span>

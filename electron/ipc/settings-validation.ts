@@ -23,6 +23,7 @@ export function validSettings(value: unknown): Record<string, unknown> {
   if ('liquidGlassAccentColor' in input) { if (!isAccentColor(input['liquidGlassAccentColor'])) throw new Error('Invalid Liquid Glass accent color'); result['liquidGlassAccentColor'] = input['liquidGlassAccentColor']; }
   if ('layoutMode' in input) { if (!isLayoutMode(input['layoutMode'])) throw new Error('Invalid layout mode'); result['layoutMode'] = input['layoutMode']; }
   if ('audioVisualizationMode' in input) { if (!isAudioVisualizationMode(input['audioVisualizationMode'])) throw new Error('Invalid audio visualization mode'); result['audioVisualizationMode'] = input['audioVisualizationMode']; }
+  if ('ambientArtwork' in input) { if (typeof input['ambientArtwork'] !== 'boolean') throw new Error('Invalid Ambient artwork setting'); result['ambientArtwork'] = input['ambientArtwork']; }
   if ('addTracksTab' in input) { if (!isAddTracksTab(input['addTracksTab'])) throw new Error('Invalid Add tracks tab'); result['addTracksTab'] = input['addTracksTab']; }
   if ('hiddenSongColumns' in input) {
     const columns = input['hiddenSongColumns'];

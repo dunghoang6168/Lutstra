@@ -11,6 +11,7 @@ import { HARD_PITY, MYTHIC_GUARANTEE, RARITY_NAMES, RED_PITY, collectTrackIds, l
 import { formatTrackFormat } from '../home/library-quality';
 import { PopularityFetchService } from '../folders/popularity-fetch.service';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 /** Last opened source folder, as folder ids from a root down (folder ids are stable, derived from paths). */
 const LAST_FOLDER_KEY = 'lutsra.dev.randomFolder.path';
@@ -32,7 +33,7 @@ function readIds(key: string): string[] {
 @Component({
   selector: 'app-random-folder',
   standalone: true,
-  imports: [IconComponent, DurationPipe, RandomOptionsDialogComponent, RandomReelComponent],
+  imports: [IconComponent, DurationPipe, RandomOptionsDialogComponent, RandomReelComponent, TipDirective],
   templateUrl: './random-folder.component.html',
   styleUrl: './random-folder.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

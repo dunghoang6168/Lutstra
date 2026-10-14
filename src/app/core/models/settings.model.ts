@@ -1,6 +1,7 @@
 import { MusicFolder } from './folder.model';
 
 export type RepeatMode = 'off' | 'one' | 'all';
+export type PlaybackMode = 'off' | 'shuffle' | 'repeat-all' | 'repeat-one' | 'combined';
 
 export const DARK_THEME_PRESETS = ['dark'] as const;
 
@@ -104,6 +105,8 @@ export interface Settings {
   liquidGlassAccentColor: AccentColor;
   layoutMode: LayoutMode;
   audioVisualizationMode: AudioVisualizationMode;
+  /** Ambient only: the playing artwork, blurred, under the glass. */
+  ambientArtwork: boolean;
   hiddenSongColumns: SongColumn[];
   songColumnOrder: ReorderableSongColumn[];
   addTracksTab: AddTracksTab;

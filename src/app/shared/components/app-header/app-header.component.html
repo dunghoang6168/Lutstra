@@ -1,9 +1,9 @@
 <ng-template #history>
   <div class="navigation-buttons" role="group" aria-label="Navigation history">
-    <button type="button" class="header-button" [disabled]="!navHistory.canGoBack()" (click)="navHistory.back()" aria-label="Go back" title="Back">
+    <button type="button" class="header-button" [disabled]="!navHistory.canGoBack()" (click)="navHistory.back()" aria-label="Go back" appTip="Back" tipPlacement="bottom">
       <app-icon name="chevron-left" [size]="20" />
     </button>
-    <button type="button" class="header-button" [disabled]="!navHistory.canGoForward()" (click)="navHistory.forward()" aria-label="Go forward" title="Forward">
+    <button type="button" class="header-button" [disabled]="!navHistory.canGoForward()" (click)="navHistory.forward()" aria-label="Go forward" appTip="Forward" tipPlacement="bottom">
       <app-icon name="chevron-right" [size]="20" />
     </button>
   </div>
@@ -12,7 +12,7 @@
 <ng-template #status>
   @if (scanProgress().isScanning || scanProgress().error) {
     <div class="runtime-status" [class.scanning]="scanProgress().isScanning" [class.error]="!!scanProgress().error"
-      role="status" [title]="statusTitle()">
+      role="status" [appTip]="statusTitle()" tipPlacement="bottom">
       <app-icon [name]="scanProgress().isScanning ? 'refresh-cw' : 'alert-triangle'" [size]="14" />
       <span class="status-label">{{ statusLabel() }}</span>
     </div>
@@ -20,7 +20,7 @@
 </ng-template>
 
 <ng-template #compactSearchButton>
-  <button type="button" class="header-button compact-search-button" (click)="toggleCompactSearch()" aria-label="Search" title="Search (Ctrl K)">
+  <button type="button" class="header-button compact-search-button" (click)="toggleCompactSearch()" aria-label="Search" appTip="Search (Ctrl K)" tipPlacement="bottom">
     <app-icon name="search" [size]="18" />
   </button>
 </ng-template>
@@ -28,7 +28,7 @@
 <!-- Developer mode: Music Roulette (the random-folder page) is its own icon, apart from the Folders section. -->
 <ng-template #randomFolder>
   @if (devMode.enabled()) {
-    <a routerLink="/random-folder" routerLinkActive="active" class="header-button" aria-label="Music Roulette" title="Music Roulette">
+    <a routerLink="/random-folder" routerLinkActive="active" class="header-button" aria-label="Music Roulette" appTip="Music Roulette" tipPlacement="bottom">
       <span class="gacha-icon" aria-hidden="true"></span>
     </a>
   }
@@ -63,7 +63,7 @@
           <app-global-search />
           <ng-container *ngTemplateOutlet="status" />
           <ng-container *ngTemplateOutlet="randomFolder" />
-          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
+          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>
           <app-window-controls />
@@ -74,7 +74,7 @@
         <div class="header-left float-cluster">
           <button type="button" class="header-button sidebar-visibility-button"
             [attr.aria-label]="sidebarHidden() ? 'Show navigation rail' : 'Hide navigation rail'"
-            [attr.title]="sidebarHidden() ? 'Show navigation rail' : 'Hide navigation rail'"
+            [appTip]="sidebarHidden() ? 'Show navigation rail' : 'Hide navigation rail'" tipPlacement="bottom"
             [attr.aria-expanded]="!sidebarHidden()" (click)="toggleSidebarVisibility.emit()">
             <app-icon name="panel-left" [size]="18" />
           </button>
@@ -86,7 +86,7 @@
         <div class="header-right float-cluster">
           <ng-container *ngTemplateOutlet="status" />
           <ng-container *ngTemplateOutlet="randomFolder" />
-          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
+          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>
           <app-window-controls />
@@ -97,7 +97,7 @@
         <div class="header-left">
           <button type="button" class="header-button sidebar-visibility-button"
             [attr.aria-label]="sidebarHidden() ? 'Show sidebar' : 'Hide sidebar'"
-            [attr.title]="sidebarHidden() ? 'Show sidebar' : 'Hide sidebar'"
+            [appTip]="sidebarHidden() ? 'Show sidebar' : 'Hide sidebar'" tipPlacement="bottom"
             [attr.aria-expanded]="!sidebarHidden()" (click)="toggleSidebarVisibility.emit()">
             <app-icon name="panel-left" [size]="18" />
           </button>
@@ -108,7 +108,7 @@
         <div class="header-right">
           <ng-container *ngTemplateOutlet="status" />
           <ng-container *ngTemplateOutlet="randomFolder" />
-          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" title="Settings">
+          <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>
           <app-window-controls />

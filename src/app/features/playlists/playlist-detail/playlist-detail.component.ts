@@ -15,6 +15,7 @@ import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { TrackActionsMenuComponent } from '../../../shared/components/track-actions-menu/track-actions-menu.component';
 import { AddTracksPanelComponent, isTrackDrag, readTrackDrag } from '../add-tracks-panel/add-tracks-panel.component';
+import { TipDirective } from '../../../shared/directives/tip.directive';
 
 /** Entry order after `addTracks` appended new entries: moves them next to `targetId` (null keeps them at the end). */
 export function insertOrder(before: readonly string[], after: readonly string[], targetId: string | null, placement: 'before' | 'after'): string[] {
@@ -35,7 +36,7 @@ interface PlaylistTrackRow {
 @Component({
   selector: 'app-playlist-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, TrackSelectionBarComponent, TrackActionsMenuComponent, AddTracksPanelComponent],
+  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, TrackSelectionBarComponent, TrackActionsMenuComponent, AddTracksPanelComponent, TipDirective],
   templateUrl: './playlist-detail.component.html',
   styleUrl: './playlist-detail.component.scss'
 })

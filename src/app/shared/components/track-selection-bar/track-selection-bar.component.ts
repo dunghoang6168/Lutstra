@@ -4,11 +4,12 @@ import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { AddToPlaylistDialogComponent } from '../add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 @Component({
   selector: 'app-track-selection-bar',
   standalone: true,
-  imports: [AddToPlaylistDialogComponent, IconComponent],
+  imports: [AddToPlaylistDialogComponent, IconComponent, TipDirective],
   templateUrl: './track-selection-bar.component.html',
   styleUrl: './track-selection-bar.component.scss',
 })

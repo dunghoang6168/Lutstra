@@ -1,7 +1,7 @@
 <aside class="add-panel" aria-labelledby="addTracksTitle" (keydown)="onPanelKeydown($event)">
   <header class="panel-header">
     <h2 id="addTracksTitle">Add tracks</h2>
-    <button type="button" class="icon-btn" (click)="close.emit()" title="Close" aria-label="Close add tracks">
+    <button type="button" class="icon-btn" (click)="close.emit()" appTip="Close" aria-label="Close add tracks">
       <app-icon name="x" [size]="16" />
     </button>
   </header>
@@ -22,7 +22,7 @@
         [placeholder]="tab() === 'songs' || isDrilled() ? 'Search songs' : 'Search ' + tabLabels[tab()].toLowerCase()"
         aria-label="Search library" />
       @if (query()) {
-        <button type="button" class="clear-search-btn" (click)="query.set('')" title="Clear search" aria-label="Clear search">
+        <button type="button" class="clear-search-btn" (click)="query.set('')" appTip="Clear search" aria-label="Clear search">
           <app-icon name="x" [size]="14" />
         </button>
       }
@@ -61,11 +61,11 @@
 
   @if (isDrilled()) {
     <div class="group-header" draggable="true" (dragstart)="onDragStart($event, groupMissingIds())"
-      title="Drag into the playlist to add every track not in it yet">
+      appTip="Drag into the playlist to add every track not in it yet">
       <button type="button" class="icon-btn" (click)="back()" aria-label="Back">
         <app-icon name="chevron-left" [size]="16" />
       </button>
-      <span class="group-title truncate" [title]="groupTitle()">{{ groupTitle() }}</span>
+      <span class="group-title truncate" appTipOverflow>{{ groupTitle() }}</span>
       <button type="button" class="btn-add-all" (click)="addGroup()" [disabled]="groupMissingIds().length === 0">
         @if (groupMissingIds().length === 0) { <app-icon name="check" [size]="14" /> All added }
         @else { <app-icon name="plus" [size]="14" /> Add all ({{ groupMissingIds().length }}) }
@@ -146,7 +146,7 @@
     @if (t.artwork) { <img [src]="t.artwork" alt="" class="row-cover" loading="lazy" /> }
     @else { <span class="row-cover placeholder"><app-icon name="music" [size]="16" /></span> }
     <span class="row-info">
-      <span class="row-title truncate" [title]="t.title">{{ t.title }}</span>
+      <span class="row-title truncate" appTipOverflow>{{ t.title }}</span>
       <span class="row-sub truncate">{{ t.artist || 'Unknown Artist' }}</span>
     </span>
     <span class="row-status" aria-hidden="true">

@@ -1,7 +1,6 @@
 
     <div class="spectrum-panel" [class.bare]="bare()" aria-hidden="true">
       @if (!bare()) {
-        <span class="spectrum-label">Spectrum</span>
         @if (!player.isPlaying()) {
           <span class="spectrum-status">Paused</span>
         }

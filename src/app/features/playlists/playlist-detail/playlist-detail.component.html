@@ -60,13 +60,13 @@
                 class="btn-action action-compact"
                 (click)="onShufflePlay()"
                 [disabled]="trackRows().length === 0"
-                aria-label="Shuffle playlist" title="Shuffle playlist">
+                aria-label="Shuffle playlist" appTip="Shuffle playlist">
                 <app-icon name="shuffle" [size]="16" />
                 <span class="action-label">Shuffle</span>
               </button>
 
               <button type="button" class="btn-action action-compact" (click)="onAddAllToQueue()"
-                [disabled]="trackRows().length === 0" aria-label="Add playlist to queue" title="Add playlist to queue">
+                [disabled]="trackRows().length === 0" aria-label="Add playlist to queue" appTip="Add playlist to queue">
                 <app-icon name="plus" [size]="16" />
                 <span class="action-label">Add to queue</span>
               </button>
@@ -142,7 +142,7 @@
                         (dragend)="onDragEnd()"
                         (keydown)="onHandleKeydown($event, row.entry.id)"
                         [attr.aria-label]="'Reorder ' + row.track.title + ', position ' + (i + 1) + '. Use up and down arrow keys.'"
-                        title="Drag to reorder"
+                        appTip="Drag to reorder"
                         [attr.tabindex]="activeId() === row.entry.id ? 0 : -1">
                         <app-icon name="grip-vertical" [size]="16" />
                       </button>
@@ -169,7 +169,7 @@
                             <app-icon name="music" [size]="16" />
                           </div>
                         }
-                        <span class="track-title truncate" [title]="row.track.title">
+                        <span class="track-title truncate" appTipOverflow>
                           {{ row.track.title }}
                         </span>
                         @if (!row.track.isAvailable) {
@@ -179,7 +179,7 @@
                     </td>
 
                     <!-- Artist -->
-                    <td class="col-artist truncate" [title]="row.track.artist || 'Unknown Artist'">
+                    <td class="col-artist truncate" appTipOverflow>
                       {{ row.track.artist || 'Unknown Artist' }}
                     </td>
 
@@ -196,7 +196,7 @@
                           type="button"
                           class="btn-remove-entry"
                           (click)="onRemoveEntry(row.entry.id)"
-                          title="Remove from playlist"
+                          appTip="Remove from playlist"
                           aria-label="Remove from playlist"
                           [attr.tabindex]="activeId() === row.entry.id ? 0 : -1">
                           <app-icon name="trash" [size]="14" />

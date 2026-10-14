@@ -2,11 +2,12 @@ import { Component, computed, ElementRef, HostListener, inject, signal } from '@
 import { PlayerService } from '../../core/player/player.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { RangeSliderComponent } from '../../shared/components/range-slider/range-slider.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 @Component({
   selector: 'app-inline-volume-control',
   standalone: true,
-  imports: [IconComponent, RangeSliderComponent],
+  imports: [IconComponent, RangeSliderComponent, TipDirective],
   templateUrl: './inline-volume-control.component.html',
   styleUrl: './inline-volume-control.component.scss',
 })

@@ -1,29 +1,41 @@
+<!-- Ambient: shuffle and repeat as one button cycling Off → Shuffle → Repeat All → Repeat One; accent when on,
+     a muted repeat glyph when off. -->
+<ng-template #playbackModeButton>
+  @if (!player.modesLocked()) {
+    <button type="button" class="ctrl-btn playback-mode-btn" [class.active]="player.playbackMode() !== 'off'"
+      (click)="player.cyclePlaybackMode()" [appTip]="player.playbackModeLabel()" [attr.aria-label]="player.playbackModeLabel()">
+      <app-icon [name]="player.playbackModeIcon()" [size]="16" />
+      @if (player.playbackMode() === 'combined') { <app-icon name="repeat" [size]="10" class="mode-repeat" /> }
+    </button>
+  }
+</ng-template>
+
 <ng-template #transport let-size="size" let-modes="modes">
   @if (modes && !player.modesLocked()) {
     <button type="button" class="ctrl-btn" [class.active]="player.isShuffle()" (click)="player.toggleShuffle()"
       [disabled]="player.queue().length === 0"
-      title="Shuffle (S)" aria-label="Shuffle"
+      appTip="Shuffle (S)" aria-label="Shuffle"
       [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
       <app-icon name="shuffle" [size]="16" />
     </button>
   }
   <button type="button" class="ctrl-btn" (click)="player.previous()" [disabled]="!player.currentTrack()"
-    title="Previous (P)" aria-label="Previous track" aria-keyshortcuts="P">
+    appTip="Previous (P)" aria-label="Previous track" aria-keyshortcuts="P">
     <app-icon name="skip-back" [size]="18" />
   </button>
   <button type="button" class="play-pause-btn" (click)="player.togglePlayPause()"
     [disabled]="!player.currentTrack() && player.queue().length === 0"
-    [title]="player.isPlaybackActive() ? 'Pause (Space)' : 'Play (Space)'"
+    [appTip]="player.isPlaybackActive() ? 'Pause (Space)' : 'Play (Space)'"
     [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'" aria-keyshortcuts="Space">
     <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="size" />
   </button>
   <button type="button" class="ctrl-btn" (click)="player.next()" [disabled]="!player.currentTrack()"
-    title="Next (N)" aria-label="Next track" aria-keyshortcuts="N">
+    appTip="Next (N)" aria-label="Next track" aria-keyshortcuts="N">
     <app-icon name="skip-forward" [size]="18" />
   </button>
   @if (modes && !player.modesLocked()) {
     <button type="button" class="ctrl-btn" [class.active]="player.repeatMode() !== 'off'"
-      (click)="player.cycleRepeatMode()" [title]="'Repeat: ' + player.repeatMode() + ' (R)'"
+      (click)="player.cycleRepeatMode()" [appTip]="'Repeat: ' + player.repeatMode() + ' (R)'"
       [attr.aria-label]="'Repeat: ' + player.repeatMode()" [attr.aria-pressed]="player.repeatMode() !== 'off'"
       aria-keyshortcuts="R">
       <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="16" />
@@ -49,15 +61,15 @@
   </div>
 </ng-template>
 
-<ng-template #volume>
+<ng-template #volume let-dock="dock">
   <div class="volume-container">
     <button type="button" class="ctrl-btn" (click)="player.toggleMute()"
-      [title]="player.isMuted() ? 'Unmute (M)' : 'Mute (M)'" aria-label="Mute"
+      [appTip]="player.isMuted() ? 'Unmute (M)' : 'Mute (M)'" aria-label="Mute"
       [attr.aria-pressed]="player.isMuted()" aria-keyshortcuts="M">
       <app-icon [name]="player.isMuted() || player.volume() === 0 ? 'volume-x' : 'volume-2'" [size]="18" />
     </button>
     <div class="volume-slider-shell" [class.adjusting]="isVolumeAdjusting() || isVolumeFlashing()" [style.--volume-position]="volumePosition()">
-      <app-range-slider class="volume-slider" [min]="0" [max]="100" [step]="1"
+      <app-range-slider class="volume-slider" [class.dock-responsive-vertical]="dock" [min]="0" [max]="100" [step]="1"
         [value]="volumePercent()" [muted]="player.isMuted()"
         ariaLabel="Volume" [ariaValueText]="volumeAriaText()"
         (valueChange)="player.setVolume($event / 100)"
@@ -71,7 +83,7 @@
 <ng-template #queueButton>
   @if (!rightPanels.queueHidden()) {
     <button type="button" class="queue-btn" [class.active]="isQueueOpen()" (click)="toggleQueue.emit()"
-      title="Queue (Q)" aria-label="Toggle playback queue" [attr.aria-pressed]="isQueueOpen()" aria-keyshortcuts="Q">
+      appTip="Queue (Q)" aria-label="Toggle playback queue" [attr.aria-pressed]="isQueueOpen()" aria-keyshortcuts="Q">
       <app-icon name="queue" [size]="18" />
       @if (player.queue().length > 0) { <span class="queue-badge">{{ player.queue().length }}</span> }
     </button>
@@ -80,7 +92,7 @@
 
 <ng-template #cover let-size="size">
   @if (player.currentTrack(); as track) {
-    <a routerLink="/now-playing" class="cover-link" [title]="'Open Now Playing: ' + track.title">
+    <a routerLink="/now-playing" class="cover-link" [appTip]="'Open Now Playing: ' + track.title">
       @if (track.artwork) {
         <img [src]="track.artwork" alt="" class="cover-img" />
       } @else {
@@ -144,14 +156,21 @@
     </section>
   }
   @case ('pill') {
-    <!-- Ambient: one floating dock. -->
-    <section class="player-pill" tabindex="-1" aria-label="Audio player">
+    <!-- Ambient: one floating dock with title and a short resolution (the full signal path lives on Now Playing);
+         long lines ping-pong. The playback-mode button sits beside volume. When narrow the dock becomes three zones
+         (identity | transport | mode, volume and queue); on Now Playing the page carries title, source and timeline,
+         so the dock drops them. -->
+    <section class="player-pill" tabindex="-1" aria-label="Audio player" routerLinkActive="on-now-playing">
       <div class="pill-identity">
         <div class="pill-cover"><ng-container *ngTemplateOutlet="cover; context: { size: 18 }" /></div>
         <div class="pill-meta">
           @if (player.currentTrack(); as track) {
-            <a routerLink="/now-playing" class="pill-title">{{ track.title }}</a>
-            <app-signal-path />
+            <a routerLink="/now-playing" class="pill-title" appMarquee><span class="marquee-text">{{ track.title }}</span></a>
+            @if (outputDisconnected()) {
+              <span class="pill-format disconnected">Output disconnected</span>
+            } @else if (pillFormat(); as format) {
+              <span class="pill-format" [class.hires]="format.hires" appMarquee><span class="marquee-text">{{ format.label }}</span></span>
+            }
           } @else {
             <span class="pill-title idle">Queue ready</span>
           }
@@ -160,7 +179,8 @@
       <div class="pill-transport"><ng-container *ngTemplateOutlet="transport; context: { size: 18, modes: false }" /></div>
       <div class="pill-timeline"><ng-container *ngTemplateOutlet="timeline" /></div>
       <div class="pill-extras">
-        <ng-container *ngTemplateOutlet="volume" />
+        <ng-container *ngTemplateOutlet="playbackModeButton" />
+        <ng-container *ngTemplateOutlet="volume; context: { dock: true }" />
         <ng-container *ngTemplateOutlet="queueButton" />
       </div>
     </section>
@@ -172,7 +192,7 @@
         <div class="strip-cover"><ng-container *ngTemplateOutlet="cover; context: { size: 16 }" /></div>
         @if (player.currentTrack(); as track) {
           <div class="strip-meta">
-            <a routerLink="/now-playing" class="strip-title" [title]="track.title">{{ track.title }}</a>
+            <a routerLink="/now-playing" class="strip-title" appTipOverflow>{{ track.title }}</a>
             <span class="strip-artist">{{ track.artist || 'Unknown Artist' }}</span>
           </div>
         } @else {

@@ -6,7 +6,7 @@
     [attr.aria-expanded]="expanded()"
     aria-controls="now-playing-volume-slider"
     aria-label="Adjust volume"
-    title="Adjust volume">
+    appTip="Adjust volume">
     <app-icon [name]="player.isMuted() || player.volume() === 0 ? 'volume-x' : 'volume-2'" [size]="18" />
   </button>
   <div class="volume-reveal" [class.open]="expanded()">

@@ -15,6 +15,7 @@ import { artistInitial, compareNames } from '../library-browse';
 import { BrowseFilterPopoverComponent } from '../../shared/components/browse-filter-popover/browse-filter-popover.component';
 import { orderArtistTracks } from './artist-play-order';
 import { AlbumCardComponent } from '../../shared/components/album-card/album-card.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 type ArtistSort = 'name' | 'albums' | 'tracks';
 type SortDirection = 'asc' | 'desc';
@@ -22,7 +23,7 @@ type SortDirection = 'asc' | 'desc';
 @Component({
   selector: 'app-artists',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, AlbumCardComponent],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, AlbumCardComponent, TipDirective],
   templateUrl: './artists.component.html',
   styleUrl: './artists.component.scss'
 })

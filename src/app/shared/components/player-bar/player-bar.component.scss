@@ -234,15 +234,90 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .pill-identity { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .pill-cover { width: 48px; height: 48px; flex: 0 0 auto; overflow: hidden; border-radius: 50%; }
 .pill-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-.pill-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-sm); font-weight: 600; }
+.pill-title { overflow: hidden; white-space: nowrap; font-size: var(--font-size-sm); font-weight: 600; }
+.pill-format {
+  color: var(--text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.pill-format.hires { color: var(--text-accent); }
+.pill-format.disconnected { color: var(--status-warning-text); }
 .pill-transport { display: flex; align-items: center; gap: 2px; }
 .pill-transport .play-pause-btn { width: 42px; height: 42px; margin: 0 4px; }
 .pill-extras { display: flex; align-items: center; gap: var(--space-1); }
 .pill-extras .volume-container { width: 112px; }
+.playback-mode-btn { position: relative; }
+/* Shuffle with repeat (only from the S and R shortcuts): a small repeat badge on the shuffle glyph. */
+.mode-repeat { position: absolute; right: 2px; bottom: 2px; border-radius: 50%; background: var(--glass-elevated); }
 
+/* Now Playing carries title and source itself. */
+.player-pill.on-now-playing .pill-meta { display: none; }
+
+/* Now Playing, wide: cover, transport, timeline, then mode, volume and queue. */
+@media (min-width: 901px) {
+  .player-pill.on-now-playing { grid-template-columns: auto auto minmax(140px, 1fr) auto; gap: var(--space-5); }
+  .player-pill.on-now-playing .pill-extras { gap: var(--space-2); }
+}
+
+/* Narrow: three zones, transport centred between identity and mode + volume + queue; the timeline moves out
+   (on Now Playing, into the spectrum card at the same 900px). */
 @media (max-width: 900px) {
-  .player-pill { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .pill-timeline, .pill-extras .volume-container { display: none; }
+  .player-pill { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); }
+  .pill-timeline { display: none; }
+  .pill-extras { justify-self: end; }
+  .pill-extras .volume-container { width: 120px; }
+}
+
+/* Very narrow: volume is an icon; hover or focus floats a vertical slider above it with the % on top.
+   Same 600px as the range slider's dock-responsive-vertical. */
+@media (max-width: 600px) {
+  /* The title needs the room more than the transport needs centring; Now Playing has no title, so it stays centred. */
+  .player-pill:not(.on-now-playing) { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .player-pill .pill-extras .volume-container { position: relative; width: auto; }
+  .player-pill .volume-slider-shell {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: calc(100% + var(--space-2));
+    width: 40px;
+    height: 148px;
+    padding: 30px 0 12px;
+    flex-direction: column;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 4px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+  }
+  /* Bridges the gap so the pointer can travel from the icon to the slider. */
+  .player-pill .volume-slider-shell::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: var(--space-2);
+  }
+  .player-pill .volume-container:is(:hover, :focus-within) .volume-slider-shell,
+  .player-pill .volume-slider-shell.adjusting { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+  .player-pill .volume-slider { flex: 1; min-height: 0; }
+  .player-pill .volume-tooltip {
+    top: 8px;
+    bottom: auto;
+    left: 50%;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%);
+  }
 }
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {

@@ -66,7 +66,7 @@
                   @for (row of section.rows; track row.name) {
                     <div class="property-row">
                       <dt>{{ row.name }}</dt>
-                      <dd [class.path-value]="row.path" [class.measure]="measureRows.has(row.name)" [title]="row.path ? row.value : null">{{ row.value }}</dd>
+                      <dd [class.path-value]="row.path" [class.measure]="measureRows.has(row.name)" [appTipOverflow]="!!row.path">{{ row.value }}</dd>
                     </div>
                   }
                 </dl>

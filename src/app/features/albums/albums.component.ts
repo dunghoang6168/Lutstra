@@ -13,6 +13,7 @@ import { AlbumCardComponent } from '../../shared/components/album-card/album-car
 import { compareAlbumsByTitle, compareNames } from '../library-browse';
 import { BrowseFilterPopoverComponent } from '../../shared/components/browse-filter-popover/browse-filter-popover.component';
 import { SearchableFilterSelectComponent } from '../../shared/components/searchable-filter-select/searchable-filter-select.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 type AlbumSort = 'title' | 'artist' | 'year' | 'tracks';
 type SortDirection = 'asc' | 'desc';
@@ -22,7 +23,7 @@ const UNKNOWN_YEAR = 'unknown';
 @Component({
   selector: 'app-albums',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, AlbumCardComponent],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, AlbumCardComponent, TipDirective],
   templateUrl: './albums.component.html',
   styleUrl: './albums.component.scss'
 })

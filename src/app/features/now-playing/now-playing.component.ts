@@ -15,11 +15,12 @@ import { SignalPathComponent } from '../../shared/components/signal-path/signal-
 import { WaveformSeekComponent } from './waveform-seek.component';
 import { TimelineScrub, timelineFraction } from '../../shared/utils/timeline-scrub';
 import { AudioVisualizationPreferenceService } from '../../core/layout/audio-visualization-preference.service';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 @Component({
   selector: 'app-now-playing',
   standalone: true,
-  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, SpectrumVisualizerComponent, InlineVolumeControlComponent, WaveformSeekComponent, SignalPathComponent],
+  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, SpectrumVisualizerComponent, InlineVolumeControlComponent, WaveformSeekComponent, SignalPathComponent, TipDirective],
   templateUrl: './now-playing.component.html',
   styleUrl: './now-playing.component.scss'
 })
@@ -40,29 +41,6 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     return [track.artist || 'Unknown Artist', track.album, track.year?.toString(), track.genre]
       .filter((value): value is string => Boolean(value))
       .join(' • ');
-  });
-  readonly playbackMode = computed<'off' | 'shuffle' | 'repeat-all' | 'repeat-one' | 'combined'>(() => {
-    const shuffle = this.player.isShuffle();
-    const repeat = this.player.repeatMode();
-    if (shuffle && repeat !== 'off') return 'combined';
-    if (shuffle) return 'shuffle';
-    if (repeat === 'all') return 'repeat-all';
-    if (repeat === 'one') return 'repeat-one';
-    return 'off';
-  });
-  readonly playbackModeLabel = computed(() => {
-    const current = this.playbackMode();
-    const names = {
-      off: 'Off',
-      shuffle: 'Shuffle',
-      'repeat-all': 'Repeat All',
-      'repeat-one': 'Repeat One',
-      combined: `Shuffle and ${this.player.repeatMode() === 'one' ? 'Repeat One' : 'Repeat All'}`,
-    };
-    const next = current === 'off' ? 'Shuffle'
-      : current === 'shuffle' ? 'Repeat All'
-      : current === 'repeat-all' ? 'Repeat One' : 'Off';
-    return `Playback mode: ${names[current]}. Click for ${next}`;
   });
   private readonly scrub = new TimelineScrub();
   readonly displayTime = computed(() => this.scrub.time() ?? this.player.currentTime());
@@ -161,16 +139,6 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
   }
 
   seekToLyric(line: LyricLine): void { this.lyrics.seek(line); }
-
-  cyclePlaybackMode(): void {
-    const current = this.playbackMode();
-    const next = current === 'off' ? { shuffle: true, repeat: 'off' as const }
-      : current === 'shuffle' ? { shuffle: false, repeat: 'all' as const }
-      : current === 'repeat-all' ? { shuffle: false, repeat: 'one' as const }
-      : { shuffle: false, repeat: 'off' as const };
-    if (this.player.isShuffle() !== next.shuffle) this.player.setShuffle(next.shuffle);
-    if (this.player.repeatMode() !== next.repeat) this.player.setRepeatMode(next.repeat);
-  }
 
   onTimelinePointerDown(event: PointerEvent): void {
     if (!this.canSeek()) return;

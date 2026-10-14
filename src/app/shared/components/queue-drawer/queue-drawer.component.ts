@@ -5,11 +5,12 @@ import { QueueActionsService } from '../../../core/player/queue-actions.service'
 import { focusListItem, nextRowIndex } from '../../utils/row-navigation';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 @Component({
   selector: 'app-queue-drawer',
   standalone: true,
-  imports: [CommonModule, DurationPipe, IconComponent],
+  imports: [CommonModule, DurationPipe, IconComponent, TipDirective],
   templateUrl: './queue-drawer.component.html',
   styleUrl: './queue-drawer.component.scss'
 })

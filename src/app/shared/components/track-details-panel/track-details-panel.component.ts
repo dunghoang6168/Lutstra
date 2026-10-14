@@ -10,6 +10,7 @@ import { PlayerService } from '../../../core/player/player.service';
 import { IconComponent } from '../icon/icon.component';
 import { SignalPathComponent } from '../signal-path/signal-path.component';
 import { formatTrackFormat } from '../../../features/home/library-quality';
+import { TipDirective } from '../../directives/tip.directive';
 
 interface PropertyRow { name: string; value: string; path?: boolean; }
 interface PropertySection { title: string; rows: PropertyRow[]; }
@@ -22,7 +23,7 @@ const MIN_MAIN_WIDTH = 280;
 @Component({
   selector: 'app-track-details-panel',
   standalone: true,
-  imports: [IconComponent, SignalPathComponent],
+  imports: [IconComponent, SignalPathComponent, TipDirective],
   host: {
     '[class.open]': 'visible()',
     '[class.docked]': 'docked()',

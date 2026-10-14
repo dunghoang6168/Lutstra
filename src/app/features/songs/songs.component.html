@@ -15,7 +15,7 @@
             class="action-btn primary"
             (click)="onPlayAll()"
             [disabled]="!hasAvailableFilteredTracks()"
-            title="Play all tracks in current view"
+            appTip="Play all tracks in current view"
             aria-label="Play all tracks">
             <app-icon name="play" [size]="16" />
             Play all
@@ -26,7 +26,7 @@
             class="action-btn secondary"
             (click)="onShuffleAll()"
             [disabled]="filteredTracks().length === 0"
-            title="Shuffle all tracks in current view"
+            appTip="Shuffle all tracks in current view"
             aria-label="Shuffle all tracks">
             <app-icon name="shuffle" [size]="16" />
             Shuffle
@@ -37,7 +37,7 @@
             class="action-btn secondary"
             (click)="onAddAllToQueue()"
             [disabled]="!hasAvailableFilteredTracks()"
-            title="Add tracks in the current view to queue"
+            appTip="Add tracks in the current view to queue"
             aria-label="Add tracks in the current view to queue">
             <app-icon name="plus" [size]="16" />
             Add to queue
@@ -53,7 +53,7 @@
               placeholder="Search by title, artist, album..."
               aria-label="Search tracks" />
             @if (searchQuery()) {
-              <button type="button" class="clear-search-btn" (click)="searchQuery.set('')" title="Clear search" aria-label="Clear search">
+              <button type="button" class="clear-search-btn" (click)="searchQuery.set('')" appTip="Clear search" aria-label="Clear search">
                 <app-icon name="x" [size]="14" />
               </button>
             }
@@ -237,7 +237,7 @@
                   <!-- # Index / Playing Indicator -->
                   <td class="col-index" [class.user-hidden]="isSongColumnHidden('index')">
                     @if (player.currentTrack()?.id === track.id) {
-                      <div class="playing-indicator" title="Currently Playing">
+                      <div class="playing-indicator" appTip="Currently Playing">
                         @if (player.isPlaying()) {
                           <span class="bar bar-1"></span>
                           <span class="bar bar-2"></span>
@@ -263,11 +263,11 @@
                       }
                       <div class="title-text-group">
                         <div class="track-title-line">
-                          <span class="track-name truncate" [title]="track.title">
+                          <span class="track-name truncate" appTipOverflow>
                             {{ track.title }}
                           </span>
                           @if (!track.isAvailable) {
-                            <span class="badge-unavailable" title="File not found or missing from disk">
+                            <span class="badge-unavailable" appTip="File not found or missing from disk">
                               Unavailable
                             </span>
                           }
@@ -284,12 +284,12 @@
                   @for (column of songColumns.songColumnOrder(); track column) {
                     @switch (column) {
                       @case ('artist') {
-                        <td class="col-artist truncate" [class.user-hidden]="isSongColumnHidden('artist')" [title]="track.artist || 'Unknown Artist'">
+                        <td class="col-artist truncate" [class.user-hidden]="isSongColumnHidden('artist')" appTipOverflow>
                           {{ track.artist || 'Unknown Artist' }}
                         </td>
                       }
                       @case ('album') {
-                        <td class="col-album truncate" [class.user-hidden]="isSongColumnHidden('album')" [title]="track.album || 'Unknown Album'">
+                        <td class="col-album truncate" [class.user-hidden]="isSongColumnHidden('album')" appTipOverflow>
                           {{ track.album || 'Unknown Album' }}
                         </td>
                       }
@@ -305,7 +305,7 @@
                       }
                       @case ('sampleRate') {
                         <td class="col-quality" [class.user-hidden]="isSongColumnHidden('sampleRate')"
-                          [title]="resolutionLabel(track)" [attr.aria-label]="resolutionLabel(track)">
+                          [appTip]="resolutionLabel(track)" [attr.aria-label]="resolutionLabel(track)">
                           <span class="quality-spec" [class.hires]="isHiRes(track)">{{ formatResolution(track) }}</span>
                         </td>
                       }

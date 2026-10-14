@@ -14,6 +14,7 @@ import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { TrackActionsMenuComponent } from '../../shared/components/track-actions-menu/track-actions-menu.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 interface FolderSummary {
   trackCount: number;
@@ -27,7 +28,7 @@ const VIEWS_FORMAT = new Intl.NumberFormat('en', { notation: 'compact', maximumF
 @Component({
   selector: 'app-folders',
   standalone: true,
-  imports: [CommonModule, FormsModule, DurationPipe, IconComponent, ConfirmRemoveFolderDialogComponent, TrackActionsMenuComponent],
+  imports: [CommonModule, FormsModule, DurationPipe, IconComponent, ConfirmRemoveFolderDialogComponent, TrackActionsMenuComponent, TipDirective],
   templateUrl: './folders.component.html',
   styleUrl: './folders.component.scss'
 })

@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { LIBRARY_GATEWAY } from '../../../core/contracts';
 import { formatCount, QualityStats, summarizeQuality } from '../../../features/home/library-quality';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 export type SidebarPhase = 'expanded' | 'collapsing' | 'collapsed' | 'expanding';
 
@@ -16,7 +17,7 @@ const TRANSITION_FALLBACK_PADDING_MS = 50;
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterModule, IconComponent],
+  imports: [RouterModule, IconComponent, TipDirective],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
@@ -25,13 +26,6 @@ export class SidebarComponent implements OnDestroy {
   readonly variant = input<'tree' | 'rail'>('tree');
   readonly isCollapsed = input<boolean>(false);
   readonly toggleCollapse = output<void>();
-
-  showRailTip(link: HTMLElement, tip: HTMLElement): void {
-    const rect = link.getBoundingClientRect();
-    tip.style.left = `${rect.right + 12}px`;
-    tip.style.top = `${rect.top + rect.height / 2}px`;
-    if (!tip.matches(':popover-open')) tip.showPopover();
-  }
 
   readonly navItems = computed((): { path: string; label: string; icon: IconName }[] => [
     { path: '/home', label: 'Home', icon: 'home' },

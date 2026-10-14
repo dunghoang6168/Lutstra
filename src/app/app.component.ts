@@ -90,10 +90,12 @@ export class AppComponent implements AfterViewChecked {
   readonly layout = this.layoutPreference.mode;
   readonly hasTrackOrQueue = computed(() => this.player.currentTrack() !== null || this.player.queue().length > 0);
   private readonly onNowPlaying = computed(() => this.currentUrl().split(/[?#]/, 1)[0] === '/now-playing');
-  /** Ambient lays the playing artwork under every page, Gallery only on Now Playing, Console never (no glow). */
+  /** Ambient lays the playing artwork under every page (unless turned off in Settings), Gallery only on Now Playing,
+   *  Console never (no glow). */
   readonly backdropArtwork = computed(() => {
     const artwork = this.player.currentTrack()?.artwork ?? null;
     if (this.layout() === 'classic') return null;
+    if (this.layout() === 'liquid-glass' && !this.layoutPreference.ambientArtwork()) return null;
     return this.layout() === 'liquid-glass' || this.onNowPlaying() ? artwork : null;
   });
   /** Console's strip is permanent; Gallery's rail and Ambient's dock appear once there is music. */

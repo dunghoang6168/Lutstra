@@ -1,5 +1,5 @@
 <button #trigger type="button" class="row-menu-btn" (click)="toggle()" [attr.tabindex]="tabIndex()"
-  aria-haspopup="menu" [attr.aria-expanded]="open()" [attr.aria-label]="'More actions: ' + track().title" title="More actions">
+  aria-haspopup="menu" [attr.aria-expanded]="open()" [attr.aria-label]="'More actions: ' + track().title" appTip="More actions">
   <app-icon name="more-horizontal" [size]="16" />
 </button>
 @if (open()) {

@@ -13,7 +13,7 @@
             <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
               placeholder="Search albums by title or artist..." aria-label="Search albums" />
             @if (searchQuery()) {
-              <button type="button" class="clear-btn" (click)="searchQuery.set('')" title="Clear search" aria-label="Clear search">
+              <button type="button" class="clear-btn" (click)="searchQuery.set('')" appTip="Clear search" aria-label="Clear search">
                 <app-icon name="x" [size]="14" />
               </button>
             }

@@ -5,13 +5,14 @@ import { Playlist, Track } from '../../../core/models';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { selectPlaylistArtwork, splitDuplicates } from '../../utils/list-media';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 interface PendingAdd { playlist: Playlist; duplicates: string[]; fresh: string[]; }
 
 @Component({
   selector: 'app-add-to-playlist-dialog',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, TipDirective],
   templateUrl: './add-to-playlist-dialog.component.html',
   styleUrl: './add-to-playlist-dialog.component.scss',
 })

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { LIBRARY_GATEWAY, PLAYBACK_ENGINE, SETTINGS_GATEWAY } from '../contracts';
-import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackState, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track } from '../models';
+import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackState, PlaybackMode, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track } from '../models';
 import { getDesktopApi } from '../desktop/desktop-api';
 import { logPlaybackDiagnostic } from './playback-diagnostics';
 import { nextPlayableQueueIndex } from './playback-policy';
@@ -121,6 +121,35 @@ export class PlayerService implements OnDestroy {
    * changing the saved modes.
    */
   readonly modesLocked = computed(() => this.external() !== null);
+  /** Shuffle and repeat as one control's state; `combined` only arises from the separate S and R shortcuts. */
+  readonly playbackMode = computed<PlaybackMode>(() => {
+    const shuffle = this.isShuffle();
+    const repeat = this.repeatMode();
+    if (shuffle && repeat !== 'off') return 'combined';
+    if (shuffle) return 'shuffle';
+    if (repeat === 'all') return 'repeat-all';
+    if (repeat === 'one') return 'repeat-one';
+    return 'off';
+  });
+  /** Off shows the plain repeat glyph (muted by the caller); the active modes show their own. */
+  readonly playbackModeIcon = computed(() => {
+    const mode = this.playbackMode();
+    return mode === 'repeat-one' ? 'repeat-one' as const : mode === 'shuffle' || mode === 'combined' ? 'shuffle' as const : 'repeat' as const;
+  });
+  readonly playbackModeLabel = computed(() => {
+    const current = this.playbackMode();
+    const names: Record<PlaybackMode, string> = {
+      off: 'Off',
+      shuffle: 'Shuffle',
+      'repeat-all': 'Repeat All',
+      'repeat-one': 'Repeat One',
+      combined: `Shuffle and ${this.repeatMode() === 'one' ? 'Repeat One' : 'Repeat All'}`,
+    };
+    const next = current === 'off' ? 'Shuffle'
+      : current === 'shuffle' ? 'Repeat All'
+      : current === 'repeat-all' ? 'Repeat One' : 'Off';
+    return `Playback mode: ${names[current]}. Click for ${next}`;
+  });
   private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() ? 'off' : this.repeatMode());
   readonly crossfadeEnabled = signal<boolean>(true);
   readonly crossfadeSeconds = signal<number>(5);
@@ -539,6 +568,17 @@ export class PlayerService implements OnDestroy {
     } else {
       this.setRepeatMode('off');
     }
+  }
+
+  /** Off → Shuffle → Repeat All → Repeat One → Off. */
+  cyclePlaybackMode(): void {
+    const current = this.playbackMode();
+    const next = current === 'off' ? { shuffle: true, repeat: 'off' as const }
+      : current === 'shuffle' ? { shuffle: false, repeat: 'all' as const }
+      : current === 'repeat-all' ? { shuffle: false, repeat: 'one' as const }
+      : { shuffle: false, repeat: 'off' as const };
+    if (this.isShuffle() !== next.shuffle) this.setShuffle(next.shuffle);
+    if (this.repeatMode() !== next.repeat) this.setRepeatMode(next.repeat);
   }
 
   setShuffle(enabled: boolean): void {

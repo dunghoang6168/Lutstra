@@ -20,7 +20,7 @@
             class="clear-btn"
             (click)="queueActions.clearWithUndo()"
             [disabled]="player.queue().length === 0"
-            title="Clear all tracks from queue"
+            appTip="Clear all tracks from queue"
             aria-label="Clear queue">
             Clear
           </button>
@@ -29,7 +29,7 @@
             type="button"
             class="close-btn"
             (click)="close.emit()"
-            title="Close queue (Esc)"
+            appTip="Close queue (Esc)"
             aria-label="Close queue">
             <app-icon name="x" [size]="18" />
           </button>
@@ -80,12 +80,12 @@
                 <div class="queue-item-index">
                   <span class="queue-index-display">
                     @if (player.currentIndex() === i && player.externalSource()) {
-                      <span class="resume-indicator" title="Resumes here">
+                      <span class="resume-indicator" appTip="Resumes here">
                         <app-icon name="play" [size]="10" aria-hidden="true" />
                         <span class="sr-only">Resumes here</span>
                       </span>
                     } @else if (player.currentIndex() === i) {
-                      <span class="playing-indicator" title="Current track">
+                      <span class="playing-indicator" appTip="Current track">
                         @if (player.isPlaying()) {
                           <span class="bar bar-1"></span>
                           <span class="bar bar-2"></span>
@@ -108,7 +108,7 @@
                     (keydown)="onHandleKeydown($event, entry.id)"
                     (click)="$event.stopPropagation()"
                     [attr.aria-label]="'Reorder ' + entry.track.title + ', position ' + (i + 1) + '. Use up and down arrow keys.'"
-                    title="Drag to reorder">
+                    appTip="Drag to reorder">
                     <app-icon name="grip-vertical" [size]="16" />
                   </button>
                 </div>
@@ -124,10 +124,10 @@
 
                 <!-- Track Info -->
                 <div class="queue-item-meta">
-                  <span class="track-title truncate" [title]="entry.track.title">
+                  <span class="track-title truncate" appTipOverflow>
                     {{ entry.track.title }}
                   </span>
-                  <span class="track-artist truncate" [title]="entry.track.artist || 'Unknown Artist'">
+                  <span class="track-artist truncate" appTipOverflow>
                     {{ entry.track.artist || 'Unknown Artist' }}
                   </span>
                 </div>
@@ -143,7 +143,7 @@
                   class="remove-btn"
                   [attr.tabindex]="activeId() === entry.id ? 0 : -1"
                   (click)="onRemove($event, entry.id)"
-                  title="Remove from queue"
+                  appTip="Remove from queue"
                   [attr.aria-label]="'Remove from queue: ' + entry.track.title">
                   <app-icon name="x" [size]="14" />
                 </button>

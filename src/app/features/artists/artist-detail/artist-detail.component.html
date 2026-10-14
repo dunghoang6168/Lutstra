@@ -53,7 +53,7 @@
                 }
               }
               <button type="button" class="btn btn-secondary action-compact" (click)="onAddAllToQueue()"
-                [disabled]="artistTracks().length === 0" aria-label="Add artist tracks to queue" title="Add artist tracks to queue">
+                [disabled]="artistTracks().length === 0" aria-label="Add artist tracks to queue" appTip="Add artist tracks to queue">
                 <app-icon name="plus" [size]="16" />
                 <span class="action-label">Add to queue</span>
               </button>
@@ -163,12 +163,12 @@
                       }
                     </td>
                     <td class="col-title">
-                      <span class="track-title truncate" [title]="track.title">{{ track.title }}</span>
+                      <span class="track-title truncate" appTipOverflow>{{ track.title }}</span>
                       @if (!track.isAvailable) {
                         <span class="badge-unavailable">Unavailable</span>
                       }
                     </td>
-                    <td class="col-album truncate" [title]="track.album || 'Unknown'">
+                    <td class="col-album truncate" appTipOverflow>
                       {{ track.album || '—' }}
                     </td>
                     <td class="col-duration">

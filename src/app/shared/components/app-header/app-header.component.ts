@@ -13,12 +13,13 @@ import { DevModeService } from '../../../core/settings/dev-mode.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { GlobalSearchComponent } from '../global-search/global-search.component';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 import { WindowControlsComponent } from '../window-controls/window-controls.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, GlobalSearchComponent, IconComponent, WindowControlsComponent],
+  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, GlobalSearchComponent, IconComponent, WindowControlsComponent, TipDirective],
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

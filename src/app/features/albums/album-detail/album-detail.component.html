@@ -58,7 +58,7 @@
                 class="btn-shuffle action-compact"
                 (click)="onShufflePlay()"
                 [disabled]="albumTracks().length === 0"
-                aria-label="Shuffle album" title="Shuffle album">
+                aria-label="Shuffle album" appTip="Shuffle album">
                 <app-icon name="shuffle" [size]="16" />
                 <span class="action-label">Shuffle</span>
               </button>
@@ -67,7 +67,7 @@
                 class="btn-shuffle action-compact"
                 (click)="onAddAllToQueue()"
                 [disabled]="albumTracks().length === 0"
-                aria-label="Add album to queue" title="Add album to queue">
+                aria-label="Add album to queue" appTip="Add album to queue">
                 <app-icon name="plus" [size]="16" />
                 <span class="action-label">Add to queue</span>
               </button>
@@ -128,7 +128,7 @@
                       </td>
 
                       <td class="col-title">
-                        <span class="track-title" [title]="track.title">{{ track.title }}</span>
+                        <span class="track-title" appTipOverflow>{{ track.title }}</span>
                         @if (!track.isAvailable) {
                           <span class="badge-unavailable">Unavailable</span>
                         }

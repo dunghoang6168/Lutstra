@@ -2,11 +2,12 @@ import { Component, Injector, OnInit, afterNextRender, computed, inject } from '
 import { ReorderableSongColumn, SongColumn } from '../../core/models';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { SongColumnPreferencesService } from '../../core/settings/song-column-preferences.service';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 @Component({
   selector: 'app-song-columns-settings',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, TipDirective],
   templateUrl: './song-columns-settings.component.html',
   styleUrl: './song-columns-settings.component.scss',
 })

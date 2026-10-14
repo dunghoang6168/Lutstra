@@ -172,9 +172,35 @@ app-window-controls { flex: 0 0 auto; }
     transform: translateY(-50%);
   }
   .runtime-status { display: none; }
+
+  /* Ambient: the search slides out of the icon inside the floating cluster instead of covering the header. */
+  [data-variant='liquid-glass'] .titlebar-content { grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto; }
+  [data-variant='liquid-glass'] app-global-search {
+    display: block;
+    width: 280px;
+    min-width: 0;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: max-width var(--transition-normal), opacity var(--transition-fast), visibility var(--transition-normal);
+  }
+  [data-variant='liquid-glass'] .compact-search-open app-global-search {
+    position: static;
+    max-width: 280px;
+    overflow: visible;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  [data-variant='liquid-glass'] .compact-search-open .compact-search-button { display: none; }
+  [data-variant='liquid-glass'] .navigation-buttons { flex-shrink: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) { .runtime-status.scanning app-icon { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .runtime-status.scanning app-icon { animation: none; }
+  [data-variant='liquid-glass'] app-global-search { transition: none; }
+}
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   .float-cluster { background: var(--glass-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }

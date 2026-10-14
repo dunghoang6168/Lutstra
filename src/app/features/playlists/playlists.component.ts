@@ -10,13 +10,14 @@ import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { AlbumCardComponent } from '../../shared/components/album-card/album-card.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 const UNDO_DELETE_MS = 6000;
 
 @Component({
   selector: 'app-playlists',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, IconComponent, AlbumCardComponent],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent, AlbumCardComponent, TipDirective],
   templateUrl: './playlists.component.html',
   styleUrl: './playlists.component.scss'
 })

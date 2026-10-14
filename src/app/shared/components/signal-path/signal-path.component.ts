@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { formatKhz, formatTrackFormat } from '../../../features/home/library-quality';
+import { TipDirective } from '../../directives/tip.directive';
 
 type PathState = 'bit-perfect' | 'converted' | 'exclusive' | 'shared' | 'disconnected';
 
@@ -16,6 +17,7 @@ const STATE_HELP: Record<PathState, string> = {
 @Component({
   selector: 'app-signal-path',
   standalone: true,
+  imports: [TipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './signal-path.component.html',
   styleUrl: './signal-path.component.scss',

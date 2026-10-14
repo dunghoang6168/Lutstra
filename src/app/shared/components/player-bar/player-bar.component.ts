@@ -8,14 +8,17 @@ import { RightPanelService } from '../../../core/layout/right-panel.service';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { RangeSliderComponent } from '../range-slider/range-slider.component';
+import { TipDirective } from '../../directives/tip.directive';
 import { SignalPathComponent } from '../signal-path/signal-path.component';
+import { MarqueeDirective } from '../../directives/marquee.directive';
+import { formatKhz, trackQuality } from '../../../features/home/library-quality';
 
 export type PlayerVariant = 'strip' | 'rail' | 'pill';
 
 @Component({
   selector: 'app-player-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, RangeSliderComponent, SignalPathComponent],
+  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, RangeSliderComponent, SignalPathComponent, TipDirective, MarqueeDirective],
   templateUrl: './player-bar.component.html',
   styleUrl: './player-bar.component.scss'
 })
@@ -46,6 +49,20 @@ export class PlayerBarComponent {
   });
   readonly timelineValueText = computed(() =>
     `${formatClock(this.displayTime())} of ${formatClock(this.player.duration())}`);
+
+  /** Ambient's dock: resolution only ("24bit/96kHz", lossy "320 kbps"); accent still marks Hi-Res. */
+  readonly pillFormat = computed(() => {
+    const track = this.player.currentTrack();
+    const quality = track ? trackQuality(track) : null;
+    if (!track || !quality) return null;
+    const hires = quality === 'hires';
+    if (quality === 'lossy') return track.bitrate ? { label: `${Math.round(track.bitrate / 1000)} kbps`, hires } : null;
+    if (!track.sampleRate) return null;
+    const khz = `${formatKhz(track.sampleRate)}kHz`;
+    return { label: track.bitDepth ? `${track.bitDepth}bit/${khz}` : khz, hires };
+  });
+  /** Amber absence stays visible in the dock even though the rest of the signal path moved to Now Playing. */
+  readonly outputDisconnected = computed(() => this.player.audioPathStatus()?.isConnected === false);
 
   /** Gallery's rail shows the current track's lyrics between the signal path and the timeline. */
   readonly lyrics = inject(CurrentLyricsService);

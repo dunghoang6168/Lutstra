@@ -1,9 +1,11 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { TipDirective } from '../../directives/tip.directive';
 import { getDesktopApi } from '../../../core/desktop/desktop-api';
 
 @Component({
   selector: 'app-window-controls',
   standalone: true,
+  imports: [TipDirective],
   templateUrl: './window-controls.component.html',
   styleUrl: './window-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

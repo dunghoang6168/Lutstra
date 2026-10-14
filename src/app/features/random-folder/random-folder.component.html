@@ -15,7 +15,7 @@
         <span class="pity measurement" [class.pending]="isRandomizing()" [attr.aria-hidden]="isRandomizing()">
           Gold pity {{ session.pity().gold }}/{{ hardPity }} · Red {{ session.pity().red }}/{{ redPity }} · Mythical {{ session.pity().mythic }}/{{ mythicGuarantee }}
         </span>
-        <button type="button" class="options-button" aria-label="Roulette options" title="Roulette options" (click)="options.open()">
+        <button type="button" class="options-button" aria-label="Roulette options" appTip="Roulette options" (click)="options.open()">
           <app-icon name="settings" [size]="18" aria-hidden="true" />
         </button>
       </div>
@@ -55,7 +55,7 @@
           }
         </nav>
         <div class="random-actions">
-          <button type="button" class="options-button" aria-label="Roulette options" title="Roulette options" (click)="options.open()">
+          <button type="button" class="options-button" aria-label="Roulette options" appTip="Roulette options" (click)="options.open()">
             <app-icon name="settings" [size]="20" aria-hidden="true" />
           </button>
           <button type="button" class="random-button" [disabled]="isRandomizing()" (click)="randomize()">
@@ -126,10 +126,10 @@
         <div class="folder-item">
           <!-- Beside the row, not inside it: the row is a button that opens the folder. -->
           <input type="checkbox" class="folder-check" [checked]="checkedIds().has(row.node.id)" (change)="toggleChecked(row.node)"
-            [attr.aria-label]="'Roll with ' + row.node.name" [title]="'Roll with ' + row.node.name" />
+            [attr.aria-label]="'Roll with ' + row.node.name" [appTip]="'Roll with ' + row.node.name" />
           <button type="button" class="folder-row" (click)="openFolder(row.node)" [attr.aria-label]="'Open ' + row.node.name">
             <app-icon name="folder" [size]="20" class="folder-row-icon" aria-hidden="true" />
-            <span class="folder-row-name" [title]="row.node.path">{{ row.node.name }}</span>
+            <span class="folder-row-name" [appTip]="row.node.path">{{ row.node.name }}</span>
             <span class="folder-row-stats measurement">{{ row.trackCount }} tracks</span>
           </button>
         </div>

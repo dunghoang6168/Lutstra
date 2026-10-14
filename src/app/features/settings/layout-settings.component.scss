@@ -102,3 +102,24 @@
 .d-strong { fill: var(--text-secondary); }
 .d-accent { fill: var(--accent-primary); }
 .layout-option.active .layout-diagram { box-shadow: 0 0 0 1px var(--accent-primary); }
+
+/* Ambient-only: the artwork backdrop switch, styled like the On/Off toggles in the Playback and Output cards. */
+.ambient-setting { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) 0; border-top: 1px solid var(--border-subtle); }
+.ambient-setting-label { min-width: 0; }
+.ambient-setting h3 { font-size: var(--font-size-sm); font-weight: 700; }
+.ambient-setting p { color: var(--text-secondary); font-size: var(--font-size-sm); }
+.btn-toggle {
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+.btn-toggle.active {
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+  color: var(--color-text-accent);
+}

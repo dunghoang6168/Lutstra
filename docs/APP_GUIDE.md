@@ -103,7 +103,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 | | Gallery (`inset`) | Console (`classic`) | Ambient (`liquid-glass`) |
 |---|---|---|---|
 | Điều hướng | tab chữ trên header | cây thư viện kèm nhóm Quality | rail icon bằng kính |
-| Player | rail Now Playing 300px (kéo mép trái để đổi 240–560px, kéo dưới 160px thì gập thành cột 76px; cửa sổ ≤1100px mặc định gập, lưu `lutsra.gallery.railWidth`, cách sheet 6px), có Lyrics | thanh strip 52px kèm signal path | dock dạng viên thuốc, nổi giữa màn hình |
+| Player | rail Now Playing 300px (kéo mép trái để đổi 240–560px, kéo dưới 160px thì gập thành cột 76px; cửa sổ ≤1100px mặc định gập, lưu `lutsra.gallery.railWidth`, cách sheet 6px), có Lyrics | thanh strip 52px kèm signal path | dock dạng viên thuốc, nổi giữa màn hình: tên bài, độ phân giải ngắn (`24bit/96kHz`), transport, timeline, nút chế độ phát, volume, queue. Dưới 900px chia 3 vùng và bỏ timeline; dưới 600px volume thành icon có thanh dọc nổi. Trên Now Playing, dock bỏ tên bài và độ phân giải, và dưới 900px timeline chuyển vào card spectrum |
 | Mật độ | hàng 52px | hàng 30px, inspector dock ở cạnh | hàng 44px |
 | Source file (trang Now Playing) | card thông số dưới khối chính | card thông số dưới khối chính | chip signal path trên thẻ tên, bấm mở All properties |
 
@@ -129,7 +129,7 @@ Responsive tính theo **container** `.main-content` (`@container main-content`, 
   - `trackQuality`: trả về `lossy` / `lossless` / `hires`. Hi-Res nghĩa là lossless và 24-bit trở lên hoặc trên 48 kHz.
   - `formatTrackFormat`: dạng "FLAC 24/96".
   - `formatResolution`: dạng "24/96" hoặc "256k".
-- **Signal path** (`shared/components/signal-path`): dòng mono `nguồn → đường ra`, có tooltip giải thích trạng thái. Settings › Audio output giải thích engine và shared mixer ngay tại chỗ.
+- **Signal path** (`shared/components/signal-path`): dòng mono `nguồn → đường ra`, có tooltip giải thích trạng thái. Settings › Audio output giải thích engine và shared mixer ngay tại chỗ. Dock Ambient chỉ hiện độ phân giải (`pillFormat` trong player-bar), hoặc "Output disconnected" màu amber khi mất output.
 - **Câu chữ:**
   - Mọi nhãn viết sentence case: nút, tiêu đề, aria-label, tooltip.
   - Tên trang và tên engine giữ chữ hoa.
@@ -141,13 +141,18 @@ Responsive tính theo **container** `.main-content` (`@container main-content`, 
 - **`shared/utils/list-media.ts`:**
   - `selectPlaylistArtwork`: chọn 4 ảnh khác nhau làm bìa playlist.
 - **`player-bar`:** gồm cả ba dạng player. Rail Gallery hiện lyrics của bài đang phát (lấy từ `CurrentLyricsService`, dùng chung với Now Playing), và ẩn khối này khi cửa sổ nhỏ hơn 1101×701.
+- **Tooltip** (`shared/directives/tip.directive.ts`): `appTip="…"` cho nút chỉ có icon và cho lời giải thích (giữ `aria-label`), `appTipOverflow` cho chữ bị cắt (chỉ hiện khi tràn, trễ 450ms). Cả app dùng chung một popover. Không dùng `title`, trừ tay nắm resize rail Gallery. Độ bo theo `--control-radius`.
+- **`appMarquee`** (`shared/directives/marquee.directive.ts`): chữ một dòng quá dài trượt qua lại; con đầu tiên là `.marquee-text`. Khi reduced motion thì hiện `…`. Dùng cho tên bài và độ phân giải trong dock Ambient.
+- **Nút chế độ phát gộp:** dock Ambient và Now Playing của Gallery dùng một nút xoay vòng Off → Shuffle → Repeat All → Repeat One (`PlayerService.playbackMode` / `cyclePlaybackMode()`). Bật thì màu accent, tắt thì icon repeat màu xám. Strip Console và rail Gallery vẫn tách 2 nút.
+- **Artwork backdrop:** công tắc trong Settings › Layout, chỉ hiện ở Ambient (setting `ambientArtwork`, mặc định bật), để tắt lớp cover mờ dưới kính.
+- **Ô search khi hẹp:** dưới 900px chữ gợi ý chỉ còn "Search"; dưới 650px thành icon, và ở Ambient ô trượt ra ngay trong cụm nút.
 - **`track-details-panel`:** inspector của Console. Hiển thị khối chất lượng file trước, rồi mới đến tag.
 - **Xóa có hoàn tác:** xóa playlist không còn hộp xác nhận. Playlist ẩn ngay, toast "Deleted … · Undo" hiện 6 giây. Gateway chỉ xóa thật khi hết giờ, khi xóa playlist khác, hoặc khi rời trang. Xóa queue cũng có Undo (`QueueActionsService.clearWithUndo`).
 - **Modal theo layout:** bộ token `--dialog-*` điều khiển bán kính, nền, viền, bóng, blur và bán kính control: Gallery r12, Console r3, Ambient glass r22 (nền đặc và bỏ blur khi giảm trong suốt). Create/Rename playlist, Remove folder và editor nghệ sĩ dùng native `<dialog>` + `showModal()` để phủ cả header và player; Onboarding/Shortcuts nằm ở app root với lớp phủ riêng.
 - **Menu ⋯ trên mỗi dòng track** (`TrackActionsMenuComponent`, dùng ở Songs, Folders, chi tiết album/artist/playlist): một nút thay cho các nút lẻ, mở menu Play next / Add to queue / Add to playlist…. Nút hiện khi hover hoặc focus dòng, luôn hiện trên màn cảm ứng. Menu dùng Popover API, ↑/↓/Home/End di chuyển, Esc đóng, cuộn hoặc resize thì đóng.
 - **Dialog Add to playlist** (`AddToPlaylistDialogComponent`, mở từ menu ⋯ và từ selection bar): ô search theo tên; mỗi playlist là một hàng gồm bìa (`selectPlaylistArtwork`), tên, số bài, nút Add. Playlist đã chứa bài đang thêm có dấu ✓ (`splitDuplicates` trong `list-media.ts`, có test). Thêm bài đã có thì dialog chuyển sang bước xác nhận: Cancel / Add anyway, hoặc khi chỉ một phần trùng: Cancel / Skip duplicates / Add all. Search không khớp playlist nào thì hiện hàng Create “tên” để tạo playlist mới và thêm luôn. Thêm xong đóng dialog và báo toast.
 - **Sidebar Add tracks (playlist detail):** `AddTracksPanelComponent` (`features/playlists/add-tracks-panel/`) là cột bên phải, **không modal**, để kéo bài sang bảng playlist; container hẹp (≤ 600px) thì panel phủ cả trang. 4 tab Songs / Albums / Artists / Folders; tab dùng gần nhất lưu trong setting `addTracksTab`. Songs có search và popover Filter (Artist, Album, Year, Quality). Album/Artist/Folder bấm vào để xem bài bên trong (Back, Esc lùi một cấp), nút "Add all" chỉ thêm bài chưa có; folder duyệt theo cây thư mục con. Mỗi bài có cover, bài đã trong playlist hiện dấu ✓ (bấm không thêm trùng). Kéo một bài, một nhóm (album/artist/folder) hoặc header nhóm vào bảng: thả lên một dòng để chèn trước/sau dòng đó, thả chỗ trống để thêm vào cuối (`addTracks` rồi `reorderEntries`, thứ tự tính bằng `insertOrder`). Kéo vẫn cho thêm bản trùng nếu là bài đơn đã ✓; kéo nhóm chỉ mang bài chưa có.
-- **`spectrum-visualizer`:** khi tạm dừng, vẽ đường phẳng kèm chữ "Paused", và giữ nguyên chiều cao khung.
+- **`spectrum-visualizer`:** khi tạm dừng, vẽ đường phẳng kèm chữ "Paused", và giữ nguyên chiều cao khung. Không còn nhãn "Spectrum".
 
 ## 7. Bảng track và bàn phím
 Mọi bảng track (Songs, chi tiết album/artist/playlist, Home của Console, queue) đi theo một mẫu:

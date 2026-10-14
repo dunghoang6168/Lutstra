@@ -23,7 +23,7 @@
         <div class="toolbar">
           @if (devMode() && nodeStack().length > 0) {
             @if (viewsError(); as error) {
-              <span class="views-error truncate" role="status" [title]="error">{{ error }}</span>
+              <span class="views-error truncate" role="status" appTipOverflow>{{ error }}</span>
             }
             @if (showNoMatchFilter()) {
               <button type="button" class="btn-action secondary" [attr.aria-pressed]="noMatchActive()"
@@ -44,7 +44,7 @@
               class="btn-action secondary"
               (click)="onScanCurrentFolder()"
               [disabled]="scanProgress().isScanning"
-              title="Scan this folder and its subfolders only"
+              appTip="Scan this folder and its subfolders only"
               aria-label="Scan this folder and its subfolders only">
               <app-icon name="refresh-cw" [size]="16" class="scan-icon" [class.spinning]="scanProgress().isScanning" />
               Scan this folder
@@ -55,7 +55,6 @@
             class="btn-action primary"
             (click)="onStartScan()"
             [disabled]="scanProgress().isScanning"
-            title="Scan library folders"
             aria-label="Scan library folders">
             <app-icon name="refresh-cw" [size]="16" class="scan-icon" [class.spinning]="scanProgress().isScanning" />
             {{ scanProgress().isScanning ? 'Scanning...' : 'Scan library' }}
@@ -65,7 +64,6 @@
             type="button"
             class="btn-action secondary"
             (click)="onAddFolder()"
-            title="Add music folder"
             aria-label="Add music folder">
             <app-icon name="plus" [size]="16" />
             Add folder
@@ -88,7 +86,7 @@
             </div>
 
             @if (scanProgress().currentPath) {
-              <div class="scan-current-path truncate" [title]="scanProgress().currentPath">
+              <div class="scan-current-path truncate" appTipOverflow>
                 {{ scanProgress().currentPath }}
               </div>
             }
@@ -142,12 +140,12 @@
               <img class="folder-hero-artwork" [src]="artwork" alt="" (error)="onArtworkError(artwork)" />
             }
             <div class="folder-hero-content">
-              <h2 [title]="node.name">{{ node.name }}</h2>
+              <h2 appTipOverflow>{{ node.name }}</h2>
               <p>{{ summary.trackCount }} tracks <span aria-hidden="true">·</span> {{ summary.duration | duration }}</p>
             </div>
             <button type="button" class="btn-remove-root" (click)="showRemoveDialog.set(true)"
               [disabled]="removingFolder()"
-              title="Remove folder from library">Remove root</button>
+              appTip="Remove folder from library">Remove root</button>
           </section>
         } @else {
           @let artworks = overviewArtworks();
@@ -198,8 +196,8 @@
                     }
                   </span>
                   <span class="folder-row-info">
-                    <strong class="folder-row-name" [title]="root.name">{{ root.name }}</strong>
-                    <span class="folder-row-parent" [title]="root.path">{{ rootParentName(root) }}</span>
+                    <strong class="folder-row-name" appTipOverflow>{{ root.name }}</strong>
+                    <span class="folder-row-parent" [appTip]="root.path">{{ rootParentName(root) }}</span>
                     <span class="folder-row-stats">
                       @if (unavailableRootIds().has(root.id)) {
                         Folder unavailable
@@ -233,7 +231,7 @@
                     }
                   </span>
                   <span class="folder-row-info">
-                    <strong class="folder-row-name" [title]="folder.name">{{ folder.name }}</strong>
+                    <strong class="folder-row-name" appTipOverflow>{{ folder.name }}</strong>
                     <span class="folder-row-parent">{{ currentNode()?.name }}</span>
                     <span class="folder-row-stats">{{ summary.trackCount }} tracks <span aria-hidden="true">·</span> {{ summary.duration | duration }}</span>
                   </span>
@@ -295,11 +293,11 @@
                           <app-icon name="file-audio" [size]="16" class="music-icon" />
                           @if (noMatchActive()) {
                             <span class="file-title-stack">
-                              <span class="file-title truncate" [title]="track?.title || file.name">{{ track?.title || file.name }}</span>
-                              <span class="file-folder truncate" [title]="relativeFolder(file)">{{ relativeFolder(file) }}</span>
+                              <span class="file-title truncate" appTipOverflow>{{ track?.title || file.name }}</span>
+                              <span class="file-folder truncate" appTipOverflow>{{ relativeFolder(file) }}</span>
                             </span>
                           } @else {
-                            <span class="file-title truncate" [title]="track?.title || file.name">{{ track?.title || file.name }}</span>
+                            <span class="file-title truncate" appTipOverflow>{{ track?.title || file.name }}</span>
                           }
                         </div>
                       </td>
@@ -309,9 +307,9 @@
                           @if (!views) {
                             <span class="views-muted" aria-label="Views not fetched">—</span>
                           } @else if (views.status === 'unmatched') {
-                            <span class="views-muted" [title]="viewsTooltip(views)">No match</span>
+                            <span class="views-muted" [appTip]="viewsTooltip(views)">No match</span>
                           } @else {
-                            <span [title]="viewsTooltip(views)">{{ formatViews(views.views) }}</span>
+                            <span [appTip]="viewsTooltip(views)">{{ formatViews(views.views) }}</span>
                           }
                         </td>
                       }

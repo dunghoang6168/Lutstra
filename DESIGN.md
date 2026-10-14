@@ -267,7 +267,7 @@ All three shells share one Angular shell and one content container. `.main-conte
 |---|---|---|---|
 | Navigation | text tabs in a 60px header (folding into a menu under 900px) | 212px tree with Library and Quality groups (52px collapsed, forced under 650px) | 56px glass icon rail plus floating header clusters (52px high) |
 | Content | inset sheet, r20, 14px gap from the room | flush pane, r0, hairline-divided | glass sheet, r22, 10px gap, over blurred artwork |
-| Player | now-playing rail, 300px default, resizable 240–560px from its left edge, 6px from the sheet (snaps to a 76px slim column when dragged under 160px, or when the window leaves no room; small windows start slim) | 52px strip; signal path hidden under 1180px | single 64px pill dock, max 860px, centred |
+| Player | now-playing rail, 300px default, resizable 240–560px from its left edge, 6px from the sheet (snaps to a 76px slim column when dragged under 160px, or when the window leaves no room; small windows start slim) | 52px strip; signal path hidden under 1180px | single 64px pill dock, max 860px, centred: title, a short resolution (`24bit/96kHz`), transport, timeline, playback mode, volume, queue. Under 900px it splits into three zones (identity · transport · mode, volume, queue) and the timeline leaves; under 600px volume becomes an icon that floats a vertical slider with the % on top. On Now Playing the dock drops title and resolution (the page has them), and under 900px the timeline moves into the spectrum card |
 | Side pane | none | docked 320px inspector (selected track, fallback playing) | floating details sheet |
 | Page padding | clamp(24, 4cqi, 64) × clamp(28, 4cqi, 52) | 20 × 18 | clamp(20, 3cqi, 44) × 76 (clears the floating header) |
 | Row height | 52px | 30px | 44px |
@@ -300,7 +300,7 @@ Dialogs take `--dialog-*` tokens per layout: Gallery lifted r12, Console flat r3
 
 **The Ambient Ground Rule.** In Ambient, the current cover blurred (80px, saturate 1.25, 55% opacity dark and 42% light) is the ground on every page. It fades in for 1.2s on track change. Inside the glass sheet, surfaces map to glass tints derived from the active preset by `color-mix`, so both presets work.
 
-**The Solid Fallback Rule.** Under `prefers-reduced-transparency` or forced colours, every glass surface becomes its solid preset surface and the artwork ground is removed.
+**The Solid Fallback Rule.** Under `prefers-reduced-transparency` or forced colours, every glass surface becomes its solid preset surface and the artwork ground is removed. Settings › Layout › Artwork backdrop (`ambientArtwork`, Ambient only) also removes the artwork ground, leaving the glass over the plain theme canvas.
 
 ## Shapes
 
@@ -321,8 +321,11 @@ Radius belongs to the layout, not the component. Gallery uses soft sheets (r20) 
 - **Ambient icon rail:** 40px round items. The active item gets accent-muted fill with accent icon, and pill tooltips appear on hover and focus.
 
 ### Inputs / Fields
-- **Search:** pill (36px in Gallery and Ambient), or a 30px field at 3px radius on canvas in Console. Ambient has a transparent border on `glass-clear`.
+- **Search:** pill (36px in Gallery and Ambient), or a 30px field at 3px radius on canvas in Console. Ambient has a transparent border on `glass-clear`. The placeholder shortens to "Search" under 900px. Under 650px the field becomes an icon: Gallery and Console open it over the header, Ambient slides it out of the icon inside the floating cluster.
 - **Focus:** accent border plus a 3px accent-muted ring (16% accent ring in Ambient). The global focus-visible style is a 2px accent outline with 2px offset.
+
+### Tooltips
+One shared top-layer tip (`appTip`, `appTipOverflow`): xs/600 text on `--glass-solid` (fallback `--bg-elevated`) with `--glass-border` and `--shadow-md`. Its radius is `min(--control-radius, --radius-xl)`, so Console tips have 3px corners while Gallery and Ambient tips are pills that become rounded boxes when they wrap. Icon tips show at once; truncated-text tips wait 450ms and show only while the text overflows.
 
 ### Album Card
 A chrome-free tile: the cover is the object and the text sits beneath it. Title, artist and a mono format line follow the cover, with the format line in accent only for Hi-Res. "Mixed · up to FLAC 24/88.2" marks mixed-codec albums. Hover scales the cover 1.03, and quick play and queue buttons rise from the cover's bottom-right corner on hover or focus. Playlists reuse the card: `imageUrls` takes the first four distinct track artworks (`selectPlaylistArtwork`, `shared/utils/list-media.ts`) and shows a 2×2 mosaic for four, the first image for one to three, and the placeholder for none. Extra actions (edit, delete) project into `[card-actions]` on the count row, never below the card.
@@ -338,7 +341,7 @@ Gallery and Ambient share one listening-first Home; Console keeps its table Home
 Between the signal path and the timeline, the rail shows the current track's timed lyrics from `CurrentLyricsService` (`features/now-playing`, shared with Now Playing). Lines are real buttons that seek, the active line is accent and kept centred, and the list fades at both edges. A track without lyrics shows "No lyrics for this track." The block is hidden below 1101 × 701. Upcoming tracks live in the queue drawer.
 
 ### Signal Path (signature)
-A mono line reading `source → path`, for example `FLAC 24/96 → bit-perfect` or `M4A 256k → shared mixer`. The source is set in the text colour (accent if Hi-Res). The path is accent when bit-perfect, amber when the output is disconnected, and secondary otherwise. It states only what the engine reports. It appears in the Console strip, the Gallery rail and the Ambient dock. Its tooltip names the device and explains the current state in one sentence; Settings › Audio output explains the engines and the Windows shared mixer in place.
+A mono line reading `source → path`, for example `FLAC 24/96 → bit-perfect` or `M4A 256k → shared mixer`. The source is set in the text colour (accent if Hi-Res). The path is accent when bit-perfect, amber when the output is disconnected, and secondary otherwise. It states only what the engine reports. It appears in the Console strip, the Gallery rail and the chip on Ambient's Now Playing; the Ambient dock shows only the resolution (accent for Hi-Res), or "Output disconnected" in amber. Its tooltip names the device and explains the current state in one sentence; Settings › Audio output explains the engines and the Windows shared mixer in place.
 
 ### Console Table and Inspector
 30px rows separated by subtle hairlines, with small-caps headers. Hover uses surface-hover, and the playing row uses surface-active. Missing rows go muted, with the state cell in amber. The inspector opens with the file-truth block (18px mono format plus the on-disk state) before the tag sections.

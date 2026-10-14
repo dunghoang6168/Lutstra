@@ -128,30 +128,8 @@
 .rail-item.active { color: var(--text-accent); background: var(--accent-muted); }
 .rail-item:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 
-/* A manual popover so the tip paints in the top layer, above the floating header clusters. */
-.rail-tip {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  padding: 5px 10px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-full);
-  color: var(--text-primary);
-  background: var(--glass-solid);
-  box-shadow: var(--shadow-md);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  white-space: nowrap;
-  pointer-events: none;
-  transform: translate(0, -50%);
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-}
-@starting-style {
-  .rail-tip:popover-open { opacity: 0; transform: translate(-4px, -50%); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .sidebar, .nav-label, .rail-tip { transition: none; }
+  .sidebar, .nav-label { transition: none; }
 }
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {

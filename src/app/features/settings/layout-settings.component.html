@@ -93,6 +93,19 @@
   @if (layoutPreference.saveState() === 'error') {
     <p class="layout-save-error" role="alert">{{ layoutPreference.errorMessage() }}</p>
   }
+  @if (layoutPreference.mode() === 'liquid-glass') {
+    <div class="ambient-setting">
+      <div class="ambient-setting-label">
+        <h3>Artwork backdrop</h3>
+        <p>Blur the playing cover behind the glass. Off keeps the glass over the plain theme color.</p>
+      </div>
+      <button type="button" class="btn-toggle" [class.active]="layoutPreference.ambientArtwork()"
+        aria-label="Artwork backdrop" [attr.aria-pressed]="layoutPreference.ambientArtwork()"
+        (click)="layoutPreference.setAmbientArtwork(!layoutPreference.ambientArtwork())">
+        {{ layoutPreference.ambientArtwork() ? 'On' : 'Off' }}
+      </button>
+    </div>
+  }
   <div class="visualization-setting">
     <div class="visualization-heading">
       <h3>Audio visualization</h3>

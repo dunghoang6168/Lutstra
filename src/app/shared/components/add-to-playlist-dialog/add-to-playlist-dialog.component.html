@@ -28,7 +28,7 @@
       <input type="text" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Search or name a new playlist"
         aria-label="Search playlists" autocomplete="off" (keydown.enter)="!filtered().length && create()" />
       @if (query()) {
-        <button type="button" class="clear-search-btn" (click)="query.set('')" title="Clear search" aria-label="Clear search">
+        <button type="button" class="clear-search-btn" (click)="query.set('')" appTip="Clear search" aria-label="Clear search">
           <app-icon name="x" [size]="14" />
         </button>
       }
@@ -56,7 +56,7 @@
             <span class="count">{{ playlist.entries.length }} {{ playlist.entries.length === 1 ? 'track' : 'tracks' }}</span>
           </div>
           @if (contains(playlist)) {
-            <app-icon name="check" [size]="16" [strokeWidth]="2.5" class="added" title="Already in this playlist" />
+            <app-icon name="check" [size]="16" [strokeWidth]="2.5" class="added" appTip="Already in this playlist" />
             <span class="sr-only">Already in this playlist</span>
           }
           <button type="button" class="btn-add" [disabled]="busy()" (click)="choose(playlist)"

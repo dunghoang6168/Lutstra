@@ -20,6 +20,7 @@ import { SongColumnsSettingsComponent } from './song-columns-settings.component'
 import { LayoutSettingsComponent } from './layout-settings.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
 import { DevModeDialogComponent } from './dev-mode-dialog/dev-mode-dialog.component';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 export const AUDIO_HOST_LABELS: Record<AudioHostState, string> = {
   unavailable: 'Unavailable',
@@ -50,7 +51,7 @@ export interface ThemePresetOption {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, DevModeDialogComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, DevModeDialogComponent, TipDirective],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })

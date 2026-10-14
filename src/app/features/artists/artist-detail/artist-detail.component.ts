@@ -18,11 +18,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { artistAvatarCandidates } from '../artist-avatar';
 import { orderArtistTracks } from '../artist-play-order';
 import { AlbumCardComponent } from '../../../shared/components/album-card/album-card.component';
+import { TipDirective } from '../../../shared/directives/tip.directive';
 
 @Component({
   selector: 'app-artist-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DurationPipe, IconComponent, AlbumCardComponent, TrackSelectionBarComponent, TrackActionsMenuComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DurationPipe, IconComponent, AlbumCardComponent, TrackSelectionBarComponent, TrackActionsMenuComponent, TipDirective],
   templateUrl: './artist-detail.component.html',
   styleUrl: './artist-detail.component.scss'
 })

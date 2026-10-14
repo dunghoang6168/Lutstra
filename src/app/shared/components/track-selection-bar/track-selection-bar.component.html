@@ -1,15 +1,15 @@
 <div class="selection-toolbar" role="toolbar" aria-label="Selection actions">
   <span class="selection-count"><span class="measurement">{{ tracks().length }}</span> selected</span>
-  <button type="button" (click)="playNext()" aria-label="Play next" title="Play next">
+  <button type="button" (click)="playNext()" aria-label="Play next" appTip="Play next">
     <app-icon name="skip-forward" [size]="14" /><span class="action-label">Play next</span>
   </button>
-  <button type="button" (click)="addToQueue()" aria-label="Add to queue" title="Add to queue">
+  <button type="button" (click)="addToQueue()" aria-label="Add to queue" appTip="Add to queue">
     <app-icon name="plus" [size]="14" /><span class="action-label">Add to queue</span>
   </button>
-  <button type="button" (click)="dialogOpen.set(true)" aria-label="Add to playlist" title="Add to playlist" aria-haspopup="dialog">
+  <button type="button" (click)="dialogOpen.set(true)" aria-label="Add to playlist" appTip="Add to playlist" aria-haspopup="dialog">
     <app-icon name="list-music" [size]="14" /><span class="action-label">Add to playlist</span>
   </button>
-  <button type="button" (click)="clear.emit()" aria-label="Clear" title="Clear">
+  <button type="button" (click)="clear.emit()" aria-label="Clear" appTip="Clear">
     <app-icon name="x" [size]="14" /><span class="action-label">Clear</span>
   </button>
 </div>

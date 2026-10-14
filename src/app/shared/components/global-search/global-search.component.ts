@@ -8,6 +8,7 @@ import type { Album, Artist, Track } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { IconComponent } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 type SearchKind = 'song' | 'album' | 'artist';
 
@@ -29,7 +30,7 @@ interface SearchGroup {
 @Component({
   selector: 'app-global-search',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, TipDirective],
   templateUrl: './global-search.component.html',
   styleUrl: './global-search.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,11 +51,18 @@ export class GlobalSearchComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly activeKey = signal<string | null>(null);
+  /** Below 900px (where the Ctrl K hint also goes) the field is too short for the full placeholder. */
+  readonly compact = signal(false);
   readonly hasQuery = computed(() => this.query().trim().length > 0);
   readonly groups = computed<SearchGroup[]>(() => buildGroups(this.snapshot(), this.query()));
   readonly flatResults = computed(() => this.groups().flatMap((group) => group.results));
 
   constructor() {
+    const narrow = window.matchMedia('(max-width: 900px)');
+    const updateCompact = () => this.compact.set(narrow.matches);
+    updateCompact();
+    narrow.addEventListener('change', updateCompact);
+    this.destroyRef.onDestroy(() => narrow.removeEventListener('change', updateCompact));
     let wasScanning = false;
     this.gateway.scanProgress$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((progress) => {
       const justFinished = wasScanning && !progress.isScanning;

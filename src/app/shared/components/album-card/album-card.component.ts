@@ -2,11 +2,12 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { TipDirective } from '../../directives/tip.directive';
 
 @Component({
   selector: 'app-album-card',
   standalone: true,
-  imports: [RouterModule, IconComponent],
+  imports: [RouterModule, IconComponent, TipDirective],
   template: `
     <div class="album-card">
       <div class="cover-wrapper" [class.is-circle]="isCircle">
@@ -29,7 +30,7 @@ import { IconComponent, IconName } from '../icon/icon.component';
           class="quick-play-btn"
           (click)="play.emit()"
           [disabled]="disableActions"
-          [title]="'Play ' + title"
+          [appTip]="'Play ' + title"
           [attr.aria-label]="'Play ' + title">
           <app-icon name="play" [size]="18" />
         </button>
@@ -38,17 +39,17 @@ import { IconComponent, IconName } from '../icon/icon.component';
           class="quick-queue-btn"
           (click)="queue.emit()"
           [disabled]="disableActions"
-          [title]="'Add ' + title + ' to Queue'"
+          [appTip]="'Add ' + title + ' to Queue'"
           [attr.aria-label]="'Add ' + title + ' to Queue'">
           <app-icon name="plus" [size]="17" />
         </button>
       </div>
       
-      <h3 class="album-title truncate" >
+      <h3 class="album-title truncate" appTipOverflow>
         <a [routerLink]="link">{{ title }}</a>
       </h3>
       @if (subtitle) {
-        <p class="album-artist truncate">{{ subtitle }}</p>
+        <p class="album-artist truncate" appTipOverflow>{{ subtitle }}</p>
       }
       
       @if (format) {

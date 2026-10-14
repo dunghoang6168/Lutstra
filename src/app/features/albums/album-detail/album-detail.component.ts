@@ -14,6 +14,7 @@ import { TrackSelectionBarComponent } from '../../../shared/components/track-sel
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { TrackActionsMenuComponent } from '../../../shared/components/track-actions-menu/track-actions-menu.component';
+import { TipDirective } from '../../../shared/directives/tip.directive';
 
 interface DiscGroup {
   discNumber: number;
@@ -23,7 +24,7 @@ interface DiscGroup {
 @Component({
   selector: 'app-album-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, TrackSelectionBarComponent, TrackActionsMenuComponent],
+  imports: [CommonModule, RouterModule, DurationPipe, IconComponent, TrackSelectionBarComponent, TrackActionsMenuComponent, TipDirective],
   templateUrl: './album-detail.component.html',
   styleUrl: './album-detail.component.scss'
 })

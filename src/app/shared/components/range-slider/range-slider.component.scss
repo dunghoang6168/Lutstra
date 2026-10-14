@@ -126,7 +126,7 @@ input:focus-visible::-moz-range-thumb {
 :host(.vertical) input::-webkit-slider-runnable-track { width: 4px; height: 100%; }
 :host(.vertical) input::-webkit-slider-thumb { margin-top: 0; margin-left: -5px; }
 
-@media (max-width: 1024px) {
+@media (max-width: 600px) {
   :host(.dock-responsive-vertical) { width: 20px; height: 100%; }
 
   :host(.dock-responsive-vertical) .range-slider,

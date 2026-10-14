@@ -135,7 +135,7 @@
                     role="radio"
                     [attr.aria-checked]="themeService.accentColor() === color.id"
                     (click)="themeService.setAccentColor(color.id)"
-                    [title]="color.label"
+                    [appTip]="color.label"
                     [attr.aria-label]="color.label + ' accent color'">
                     <span class="accent-circle">
                       @if (themeService.accentColor() === color.id) {
@@ -165,7 +165,7 @@
               <div class="folder-row">
                 <div class="folder-info">
                   <span class="folder-name">{{ folder.name }}</span>
-                  <span class="folder-path truncate" [title]="folder.path">{{ folder.path }}</span>
+                  <span class="folder-path truncate" appTipOverflow>{{ folder.path }}</span>
                 </div>
                 <button
                   type="button"

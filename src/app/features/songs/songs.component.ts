@@ -26,11 +26,12 @@ const UNKNOWN_ALBUM = '__unknown_album__';
 const UNKNOWN_YEAR = 'unknown';
 
 import { ActivatedRoute, Router } from '@angular/router';
+import { TipDirective } from '../../shared/directives/tip.directive';
 
 @Component({
   selector: 'app-songs',
   standalone: true,
-  imports: [CommonModule, FormsModule, DurationPipe, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, TrackSelectionBarComponent, TrackActionsMenuComponent],
+  imports: [CommonModule, FormsModule, DurationPipe, IconComponent, BrowseFilterPopoverComponent, SearchableFilterSelectComponent, TrackSelectionBarComponent, TrackActionsMenuComponent, TipDirective],
   templateUrl: './songs.component.html',
   styleUrl: './songs.component.scss'
 })

@@ -562,6 +562,11 @@
       min-height: 0;
       margin-bottom: 0;
     }
+    .layout-liquid-glass .inline-controls { margin-top: var(--space-3); padding: var(--space-2) var(--space-3); }
+    /* The Ambient dock drops its timeline at 900px; only then does the spectrum card carry one. */
+    @media (min-width: 901px) { .layout-liquid-glass .inline-controls { display: none; } }
+    .layout-liquid-glass .timeline-group { margin-bottom: 0; }
+    .layout-liquid-glass .timeline-track { background: var(--color-border); }
     .layout-liquid-glass .visualization-controls app-waveform-seek {
       flex: 1 1 auto;
       min-height: 0;
