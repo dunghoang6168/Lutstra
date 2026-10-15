@@ -15,6 +15,7 @@
     "prepare:audio-host": "node scripts/prepare-audio-host-deps.mjs",
     "build:native:required": "node scripts/build-window-snap.mjs --required",
     "build:android": "ng build --configuration android && cap sync android",
+    "build:android:diagnostics": "ng build --configuration android-diagnostics && cap sync android",
     "dev": "concurrently -k -n WEB,ELECTRON -c cyan,magenta \"ng serve\" \"npm run dev:electron\"",
     "dev:electron": "npm run build:electron && npm run build:audio-host && wait-on http://localhost:4200 && node scripts/run-electron.mjs --dev",
     "electron": "npm run build && npm run build:audio-host && node scripts/run-electron.mjs",

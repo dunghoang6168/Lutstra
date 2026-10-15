@@ -39,6 +39,7 @@ Every track table follows the same pattern: `role="grid"` with roving tabindex (
 3. Look at the real UI. With a dev server running, `env -u ELECTRON_RUN_AS_NODE npx electron scripts/ui-sweep.cjs` covers every route × 3 layouts × 2 themes × 1440/560 and must report 0 flagged pages. It does not measure text over images, so check those screenshots by eye.
 4. In your own probes, inject a no-transition style before measuring. Hidden windows freeze CSS transitions and give false results.
 5. Stop any dev server you started.
+6. Android changes (`android/`, `src/app/core/android/`): `npm run build:android`, then `android\gradlew.bat assembleDebug`, install on the Motorola (the only test device) and check there. `docs/ANDROID_DEVELOPMENT.md` has the status and how checks are driven over DevTools.
 
 ## Working alongside other agents
 - Several agents may work at once. Work only in the folder and branch you were given (a git worktree for parallel work) and on the port you were given. Touch only the files the task names.

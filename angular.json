@@ -67,6 +67,18 @@
           },
           "configurations": {
             "android": {
+              "outputPath": "dist/android",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
+              },
+              "sourceMap": true
+            },
+            "android-diagnostics": {
               "browser": "src/main.android.ts",
               "index": {
                 "input": "src/index.android.html",

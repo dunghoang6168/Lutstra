@@ -6,7 +6,7 @@ This is a separate Android development branch, **not Phase 5**. The first produc
 
 - Branch: `android/spike`, created from desktop commit `1bc32fa`. Uncommitted desktop changes remain in the `main` worktree.
 - On the desktop working tree with uncommitted changes, 184 Angular tests and 33 backend tests passed; its Angular and Electron production build passed on 2026-09-27. On this Android branch, 177 Angular tests and 33 backend tests passed, and both the Android spike web build/sync and default Angular/Electron production build passed. The Angular tests used Edge as `CHROME_BIN` because Chrome is absent.
-- Capacitor 8 Android project and a dedicated Angular spike entry have been generated. `npm run build:android` is the web build and Capacitor sync command.
+- Capacitor 8 Android project and a dedicated Angular spike entry have been generated. `npm run build:android:spike` was the web build and Capacitor sync command.
 - The current debug APK is in the workspace's ignored `release/Android-Spike-debug.apk` (SHA-256 `CAC3B73E29372AA650B21ED7F6C04D9756F2FCAA116003E3DA00DCEFDCF9004B`). It installed and launched on a Motorola moto g stylus 5G (2024), Android 15/API 35, WebView 153.0.8010.36. The first build showed a blank screen because the Angular index retained the desktop root selector; a dedicated spike index fixed it. The WebView baseline played a selected FLAC file with advancing time, but lock-screen/headset controls did not work. A separate Media3 1.11.1 `MediaSessionService` and Capacitor bridge now own a native queue. On the locked device, ADB media key events changed PLAYING to PAUSED, resumed PLAYING, and moved between queue items; Android registered a foreground media notification. The user's final device test confirms audible MP3, FLAC, and WAV plus play/pause and track change through Bluetooth and wired headset controls. Android Studio's bundled JDK 25 is incompatible with this project's Gradle 8.14.3, so builds use a separately installed JDK 21. Gradle installed SDK Platform 36 and Build Tools 35 automatically.
 - The same APK installed and launched on a second device, Nothing A065 with Android 16/API 36 and WebView 153.0.8010.36. Its native test queue reached PLAYING, registered a foreground media notification, and responded to ADB media-next/pause while locked. The user's final device test confirms audible MP3, FLAC, and WAV plus play/pause and track change through Bluetooth and wired headset controls.
 
@@ -37,7 +37,7 @@ Android Studio is not required. Install JDK 21 (`winget install Microsoft.OpenJD
 
 ```powershell
 npm ci
-npm run build:android:spike
+npm run build:android:diagnostics
 cd android
 .\gradlew.bat assembleDebug
 ```

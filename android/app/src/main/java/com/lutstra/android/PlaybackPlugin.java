@@ -11,6 +11,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
@@ -25,6 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -43,6 +45,22 @@ public final class PlaybackPlugin extends Plugin {
         @Override
         public void onEvents(Player player, Player.Events events) {
             notifyListeners("state", stateOf(player));
+        }
+
+        @Override
+        public void onMediaItemTransition(MediaItem mediaItem, int reason) {
+            JSObject event = new JSObject();
+            event.put("mediaId", mediaItem == null ? null : mediaItem.mediaId);
+            event.put("auto", reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO);
+            notifyListeners("advanced", event);
+        }
+
+        @Override
+        public void onPlayerError(PlaybackException error) {
+            JSObject event = new JSObject();
+            event.put("code", error.getErrorCodeName());
+            event.put("message", error.getMessage());
+            notifyListeners("error", event);
         }
     };
 
@@ -107,17 +125,7 @@ public final class PlaybackPlugin extends Plugin {
         List<MediaItem> items = new ArrayList<>();
         try {
             for (int i = 0; i < input.length(); i++) {
-                JSONObject item = input.getJSONObject(i);
-                Uri uri = Uri.parse(item.getString("uri"));
-                items.add(new MediaItem.Builder()
-                    .setMediaId(uri.toString())
-                    .setUri(uri)
-                    .setMediaMetadata(new MediaMetadata.Builder()
-                        .setTitle(text(item, "title") != null ? text(item, "title") : displayName(uri))
-                        .setArtist(text(item, "artist"))
-                        .setAlbumTitle(text(item, "album"))
-                        .build())
-                    .build());
+                items.add(itemOf(input.getJSONObject(i)));
             }
         } catch (JSONException error) { call.reject("Invalid queue item", error); return; }
         if (startIndex < 0 || startIndex >= items.size()) { call.reject("Invalid startIndex"); return; }
@@ -127,6 +135,66 @@ public final class PlaybackPlugin extends Plugin {
             mediaController.play();
             call.resolve(stateOf(mediaController));
         });
+    }
+
+    /** { uri, id?, title?, artist?, album? }; the media ID is the library track ID when given. */
+    private MediaItem itemOf(JSONObject item) throws JSONException {
+        Uri uri = Uri.parse(item.getString("uri"));
+        String id = text(item, "id");
+        return new MediaItem.Builder()
+            .setMediaId(id != null ? id : uri.toString())
+            .setUri(uri)
+            .setMediaMetadata(new MediaMetadata.Builder()
+                .setTitle(text(item, "title") != null ? text(item, "title") : displayName(uri))
+                .setArtist(text(item, "artist"))
+                .setAlbumTitle(text(item, "album"))
+                .build())
+            .build();
+    }
+
+    /** Engine entry: one track, paused, replacing the queue. */
+    @PluginMethod
+    public void load(PluginCall call) {
+        MediaItem item;
+        try { item = itemOf(call.getData()); } catch (JSONException error) { call.reject("Invalid track", error); return; }
+        withController(call, mediaController -> {
+            mediaController.setMediaItems(Collections.singletonList(item));
+            mediaController.setPlayWhenReady(false);
+            mediaController.prepare();
+            call.resolve(stateOf(mediaController));
+        });
+    }
+
+    /** Engine entry: the track Media3 continues into, gaplessly, when the current one ends. */
+    @PluginMethod
+    public void prepareNext(PluginCall call) {
+        MediaItem item;
+        try { item = itemOf(call.getData()); } catch (JSONException error) { call.reject("Invalid track", error); return; }
+        withController(call, mediaController -> {
+            dropAfterCurrent(mediaController);
+            mediaController.addMediaItem(item);
+            call.resolve();
+        });
+    }
+
+    @PluginMethod
+    public void cancelPreparedNext(PluginCall call) {
+        withController(call, mediaController -> { dropAfterCurrent(mediaController); call.resolve(); });
+    }
+
+    @PluginMethod
+    public void setVolume(PluginCall call) {
+        Double volume = call.getDouble("volume");
+        if (volume == null || !Double.isFinite(volume)) { call.reject("Invalid volume"); return; }
+        withController(call, mediaController -> {
+            mediaController.setVolume((float) Math.max(0, Math.min(1, volume)));
+            call.resolve();
+        });
+    }
+
+    private static void dropAfterCurrent(Player player) {
+        int from = player.getCurrentMediaItemIndex() + 1;
+        if (from < player.getMediaItemCount()) player.removeMediaItems(from, player.getMediaItemCount());
     }
 
     // optString turns a JSON null into "null".
@@ -280,6 +348,7 @@ public final class PlaybackPlugin extends Plugin {
         state.put("index", player.getCurrentMediaItemIndex());
         state.put("count", player.getMediaItemCount());
         MediaItem item = player.getCurrentMediaItem();
+        state.put("mediaId", item == null ? null : item.mediaId);
         state.put("title", item == null || item.mediaMetadata.title == null ? "" : item.mediaMetadata.title.toString());
         return state;
     }
