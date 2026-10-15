@@ -1,6 +1,7 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, signal } from '@angular/core';
+import { AfterViewInit, Component, computed, ElementRef, OnDestroy, ViewChild, signal } from '@angular/core';
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { AndroidLibraryGateway } from '../core/android/android-library.gateway';
+import { AndroidFolderNode, FolderRule, androidFolders, childrenOf, folderCheckState, selectedBranches, toggleFolder } from '../core/android/android-folder-selection';
 
 interface NativePlaybackState {
   playing: boolean;
@@ -37,10 +38,44 @@ const nativePlayback = registerPlugin<NativePlaybackPlugin>('SpikePlayback');
       @if (nativeAvailable) {
         <section>
           <h2>Thư viện theo thư mục</h2>
-          <button type="button" (click)="chooseFolder()">Chọn thư mục nhạc</button>
-          <button type="button" (click)="scanLibrary()">Quét lại thư mục đã chọn</button>
-          <p>Android sẽ hỏi quyền truy cập thư mục bạn chọn. Ứng dụng ghi nhớ quyền đó để quét lại sau này.</p>
+          <button type="button" (click)="openFolderSelection()">Chọn thư mục quét</button>
+          <button type="button" (click)="scanLibrary()" [disabled]="folderBusy()">Quét lại</button>
           <p>{{ libraryStatus() }}</p>
+          @if (folderError()) { <p class="error" role="alert">{{ folderError() }}</p> }
+          @if (folderSelectionOpen()) {
+            <div class="folder-picker">
+              <h3>Chọn thư mục</h3>
+              <p>Đánh dấu các nhánh cần quét. Thư mục cha bao gồm thư mục con; bạn có thể bỏ chọn riêng từng nhánh.</p>
+              @if (!folderNodes().length) { <p>Chưa có quyền thư mục. Bấm “Thêm thư mục hoặc ổ lưu trữ”.</p> }
+              <div class="folder-tree" role="tree" aria-label="Thư mục nhạc">
+                @for (item of visibleFolders(); track item.node.key) {
+                  <div class="folder-row" role="treeitem" [attr.aria-level]="item.depth + 1"
+                       [attr.aria-expanded]="item.hasChildren ? item.expanded : null"
+                       [style.padding-left.rem]="item.depth * 1.1">
+                    @if (item.hasChildren) {
+                      <button class="expand" type="button" (click)="toggleExpanded(item.node.key)"
+                              [attr.aria-label]="item.expanded ? 'Thu gọn ' + item.node.name : 'Mở ' + item.node.name">
+                        {{ item.expanded ? '▾' : '▸' }}
+                      </button>
+                    } @else { <span class="expand-spacer"></span> }
+                    <label>
+                      <input type="checkbox" [checked]="item.state === 'checked'"
+                             [indeterminate]="item.state === 'mixed'" [disabled]="!item.node.available"
+                             (change)="toggleFolderCheck(item.node.key, $event)">
+                      <span>📁 {{ item.node.name }}</span>
+                    </label>
+                    @if (!item.node.available) { <span class="unavailable">Không truy cập được</span> }
+                  </div>
+                }
+              </div>
+              <p>{{ draftBranches().length }} nhánh quét được chọn</p>
+              <button type="button" (click)="addFolderGrant()" [disabled]="folderBusy()">Thêm thư mục hoặc ổ lưu trữ</button>
+              <div class="controls">
+                <button type="button" (click)="saveFolderSelection()" [disabled]="folderBusy()">Lưu và quét</button>
+                <button type="button" (click)="cancelFolderSelection()" [disabled]="folderBusy()">Hủy</button>
+              </div>
+            </div>
+          }
         </section>
         <section>
           <h2>Media3 native</h2>
@@ -88,6 +123,16 @@ const nativePlayback = registerPlugin<NativePlaybackPlugin>('SpikePlayback');
     label { display: block; margin: 1.5rem 0 .5rem; }
     input, audio { display: block; width: 100%; margin-bottom: 1rem; }
     li { margin: .4rem 0; overflow-wrap: anywhere; }
+    .folder-picker { border-top: 1px solid #636a80; margin-top: 1rem; padding-top: .5rem; }
+    .folder-tree { max-height: 45vh; overflow: auto; margin: .8rem 0; }
+    .folder-row { display: flex; align-items: center; min-height: 2.7rem; gap: .2rem; white-space: nowrap; }
+    .folder-row label { display: flex; align-items: center; gap: .5rem; margin: 0; min-width: 0; }
+    .folder-row label span { overflow: hidden; text-overflow: ellipsis; }
+    .folder-row input { width: 1.2rem; height: 1.2rem; margin: 0; flex: none; }
+    .expand { padding: .2rem; margin: 0; width: 1.5rem; background: transparent; }
+    .expand-spacer { width: 1.5rem; flex: none; }
+    .error, .unavailable { color: #ffb4a9; }
+    .unavailable { font-size: .75rem; }
   `],
 })
 export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
@@ -100,6 +145,28 @@ export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
   readonly status = signal('Sẵn sàng');
   readonly log = signal<string[]>([]);
   readonly libraryStatus = signal('Chưa quét');
+  readonly folderError = signal('');
+  readonly folderBusy = signal(false);
+  readonly folderSelectionOpen = signal(false);
+  readonly folderNodes = signal<AndroidFolderNode[]>([]);
+  readonly folderRules = signal<FolderRule[]>([]);
+  readonly expandedFolders = signal<Set<string>>(new Set());
+  readonly draftBranches = computed(() => selectedBranches(this.folderNodes(), this.folderRules()));
+  readonly visibleFolders = computed(() => {
+    const nodes = this.folderNodes();
+    const rules = this.folderRules();
+    const expanded = this.expandedFolders();
+    const visible: Array<{ node: AndroidFolderNode; depth: number; state: 'checked' | 'mixed' | 'unchecked'; hasChildren: boolean; expanded: boolean }> = [];
+    const walk = (parentKey: string | null, depth: number): void => {
+      for (const node of childrenOf(nodes, parentKey)) {
+        const hasChildren = childrenOf(nodes, node.key).length > 0;
+        visible.push({ node, depth, state: folderCheckState(nodes, rules, node.key), hasChildren, expanded: expanded.has(node.key) });
+        if (hasChildren && expanded.has(node.key)) walk(node.key, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return visible;
+  });
   readonly codecs: string;
 
   private objectUrl: string | null = null;
@@ -118,6 +185,7 @@ export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (this.nativeAvailable) {
+      void this.refreshFolderSelection().catch(error => this.folderError.set(String(error)));
       void nativePlayback.addListener('state', state => this.nativeState.set(state))
         .then(handle => { this.nativeListener = handle; })
         .catch(error => this.nativeError.set(String(error)));
@@ -179,22 +247,91 @@ export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
   }
 
   async scanLibrary(): Promise<void> {
+    this.folderBusy.set(true);
+    this.folderError.set('');
     this.libraryStatus.set('Đang quét...');
     try {
+      await this.library.requestScan();
       const snapshot = await this.library.getLibrary();
-      this.libraryStatus.set(`${snapshot.folders.length} thư mục · ${snapshot.tracks.length} bài hát · ${snapshot.albums.length} album · ${snapshot.artists.length} nghệ sĩ`);
+      this.libraryStatus.set(`${snapshot.folders.length} nhánh quét · ${snapshot.tracks.length} bài hát · ${snapshot.albums.length} album · ${snapshot.artists.length} nghệ sĩ`);
     } catch (error) {
-      this.libraryStatus.set(`Không thể quét: ${String(error)}`);
+      this.folderError.set(`Không thể quét: ${String(error)}`);
+      this.libraryStatus.set('Phạm vi quét đã lưu vẫn được giữ');
+    } finally {
+      this.folderBusy.set(false);
     }
   }
 
-  async chooseFolder(): Promise<void> {
+  async openFolderSelection(): Promise<void> {
     try {
-      await this.library.selectAndAddMusicFolders();
-      await this.scanLibrary();
+      await this.refreshFolderSelection();
+      this.folderSelectionOpen.set(true);
     } catch (error) {
-      this.libraryStatus.set(`Không thể thêm thư mục: ${String(error)}`);
+      this.folderError.set(String(error));
     }
+  }
+
+  async addFolderGrant(): Promise<void> {
+    this.folderBusy.set(true);
+    try {
+      this.folderError.set('');
+      const chosen = await androidFolders.choose();
+      const previousRules = this.folderRules();
+      const { folders } = await androidFolders.listTree();
+      this.folderNodes.set(folders);
+      this.folderRules.set(toggleFolder(folders, previousRules, chosen.key, true));
+      this.expandedFolders.update(current => new Set([...current, chosen.key]));
+    } catch (error) {
+      if (!String(error).includes('FOLDER_SELECTION_CANCELLED')) this.folderError.set(`Không thể thêm thư mục: ${String(error)}`);
+    } finally {
+      this.folderBusy.set(false);
+    }
+  }
+
+  toggleExpanded(key: string): void {
+    this.expandedFolders.update(current => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  toggleFolderCheck(key: string, event: Event): void {
+    const selected = (event.target as HTMLInputElement).checked;
+    this.folderRules.update(rules => toggleFolder(this.folderNodes(), rules, key, selected));
+  }
+
+  async saveFolderSelection(): Promise<void> {
+    this.folderBusy.set(true);
+    try {
+      this.folderError.set('');
+      await androidFolders.saveSelection({ rules: this.folderRules() });
+      this.folderSelectionOpen.set(false);
+    } catch (error) {
+      this.folderError.set(`Không thể lưu: ${String(error)}`);
+      this.folderBusy.set(false);
+      return;
+    }
+    this.folderBusy.set(false);
+    await this.scanLibrary();
+  }
+
+  async cancelFolderSelection(): Promise<void> {
+    try {
+      await this.refreshFolderSelection();
+      this.folderSelectionOpen.set(false);
+      this.folderError.set('');
+    } catch (error) {
+      this.folderError.set(String(error));
+    }
+  }
+
+  private async refreshFolderSelection(): Promise<void> {
+    const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
+    this.folderNodes.set(tree.folders);
+    this.folderRules.set(selection.rules);
+    this.expandedFolders.set(new Set(childrenOf(tree.folders, null).map(node => node.key)));
+    if (!selection.rules.some(rule => rule.selected)) this.folderSelectionOpen.set(true);
   }
 
   async playNativeTestQueue(): Promise<void> {

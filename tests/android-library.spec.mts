@@ -26,4 +26,14 @@ describe('Android MediaStore snapshot', () => {
     expect(first.tracks.length).toBe(2);
     expect(rescanned.tracks.map(track => track.id)).toEqual(['content://media/external/audio/media/2']);
   });
+
+  it('groups featured-artist tracks under the album artist', () => {
+    const snapshot = snapshotFrom([
+      row('a', { artist: 'RPT MCK', albumArtist: 'RPT MCK', album: '99%' }),
+      row('b', { artist: 'Trung Trần', albumArtist: 'RPT MCK', album: '99%' }),
+    ]);
+    expect(snapshot.artists.map(artist => artist.name)).toEqual(['RPT MCK']);
+    expect(snapshot.albums).toHaveLength(1);
+    expect(snapshot.tracks[1].artist).toBe('Trung Trần');
+  });
 });

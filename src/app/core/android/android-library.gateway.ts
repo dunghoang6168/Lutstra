@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { registerPlugin } from '@capacitor/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LibraryGateway, LibrarySnapshot } from '../contracts/library.gateway';
 import { Album, Artist, FolderNode, MusicFolder, ScanProgress, Track, TrackDetails } from '../models';
+import { AndroidFolderNode, androidFolders, selectedBranches, toggleFolder } from './android-folder-selection';
 
 export interface MediaStoreTrack {
   id: string;
@@ -10,6 +10,7 @@ export interface MediaStoreTrack {
   fileName: string | null;
   title: string | null;
   artist: string | null;
+  albumArtist?: string | null;
   album: string | null;
   durationMs: number | null;
   mimeType: string | null;
@@ -18,18 +19,8 @@ export interface MediaStoreTrack {
   trackNumber: number | null;
   year: number | null;
   relativePath: string | null;
+  folderKey?: string;
 }
-
-interface AndroidFolder extends MusicFolder { available: boolean }
-
-interface NativeFoldersPlugin {
-  choose(): Promise<{ folders: AndroidFolder[] }>;
-  list(): Promise<{ folders: AndroidFolder[] }>;
-  remove(options: { id: string }): Promise<void>;
-  scan(): Promise<{ tracks: MediaStoreTrack[] }>;
-}
-
-const nativeFolders = registerPlugin<NativeFoldersPlugin>('AndroidFolders');
 
 function known(value: string | null): string | null {
   const trimmed = value?.trim();
@@ -52,7 +43,7 @@ function toTrack(row: MediaStoreTrack): Track {
   const discNumber = packedTrack >= 1000 ? Math.floor(packedTrack / 1000) : null;
   return {
     id: row.id, path: row.uri, fileName, title,
-    artist: known(row.artist), albumArtist: null, album: known(row.album),
+    artist: known(row.artist), albumArtist: known(row.albumArtist ?? null), album: known(row.album),
     genre: null, year: row.year && row.year > 0 ? row.year : null,
     trackNumber, discNumber, duration: Math.max(0, (row.durationMs || 0) / 1000),
     codec: codecFor(row.mimeType, fileName), bitrate: null, sampleRate: null,
@@ -66,7 +57,8 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
   const albumMap = new Map<string, Album>();
   const artistMap = new Map<string, Artist>();
   for (const track of tracks) {
-    const artistName = track.artist || 'Unknown Artist';
+    // Same grouping as the desktop library: album artist first.
+    const artistName = track.albumArtist || track.artist || 'Unknown Artist';
     const artistId = `android:artist:${artistName.toLocaleLowerCase()}`;
     let artist = artistMap.get(artistId);
     if (!artist) {
@@ -78,7 +70,7 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
       const albumId = `android:album:${artistId}:${track.album.toLocaleLowerCase()}`;
       let album = albumMap.get(albumId);
       if (!album) {
-        album = { id: albumId, title: track.album, artist: track.artist, year: track.year, artwork: null, trackIds: [] };
+        album = { id: albumId, title: track.album, artist: artistName, year: track.year, artwork: null, trackIds: [] };
         albumMap.set(albumId, album);
         artist.albumIds.push(albumId);
       }
@@ -92,6 +84,7 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
 export class AndroidLibraryGateway implements LibraryGateway {
   private snapshot: LibrarySnapshot = snapshotFrom([]);
   private rows: MediaStoreTrack[] = [];
+  private folderNodes: AndroidFolderNode[] = [];
   private loaded = false;
   private readonly progress = new BehaviorSubject<ScanProgress>({
     isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null,
@@ -109,21 +102,23 @@ export class AndroidLibraryGateway implements LibraryGateway {
     return this.snapshot.tracks.find(track => track.id === trackId) ?? null;
   }
 
-  // The SAF scan always walks every selected tree, so a single-folder scan is a full rescan.
+  // The native scan always covers every selected branch, so a single-folder scan is a full rescan.
   async requestFolderScan(folderId: string): Promise<void> {
     await this.requestScan([folderId]);
   }
 
   async requestScan(folderIds?: string[]): Promise<void> {
     if (this.progress.value.isScanning) return;
-    const folders = (await nativeFolders.list()).folders;
+    const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
+    const folders = selectedBranches(tree.folders, selection.rules);
     if (folderIds?.length && folderIds.some(id => !folders.some(folder => folder.id === id))) {
       throw new Error('Unknown Android folder');
     }
     this.progress.next({ isScanning: true, scannedFiles: 0, audioFiles: 0, currentPath: folders[0]?.path || null });
     try {
-      const result = await nativeFolders.scan();
+      const result = await androidFolders.scan();
       this.rows = result.tracks;
+      this.folderNodes = tree.folders;
       this.snapshot = snapshotFrom(result.tracks, folders);
       this.loaded = true;
       const count = this.snapshot.tracks.length;
@@ -143,16 +138,32 @@ export class AndroidLibraryGateway implements LibraryGateway {
       id: folderId, name: folder.name, path: folder.path, isFolder: true,
       children: [],
     };
-    const rootDocumentId = decodeURIComponent(folderId.split('/tree/')[1] || '');
+    const byKey = new Map(this.folderNodes.map(node => [node.key, node]));
+    const belongsTo = (key: string | undefined): boolean => {
+      const seen = new Set<string>();
+      while (key && !seen.has(key)) {
+        if (key === folderId) return true;
+        seen.add(key);
+        key = byKey.get(key)?.parentKey || undefined;
+      }
+      return false;
+    };
     for (const row of this.rows) {
-      if (!row.uri.startsWith(`${folderId}/document/`)) continue;
+      if (!belongsTo(row.folderKey)) continue;
       const track = this.snapshot.tracks.find(item => item.id === row.id);
       if (!track) continue;
       let node = root;
-      const relative = row.relativePath?.startsWith(rootDocumentId)
-        ? row.relativePath.slice(rootDocumentId.length).replace(/^\//, '') : '';
-      const parts = relative.split('/').filter(Boolean);
-      for (const part of parts.slice(0, -1)) {
+      const parts: string[] = [];
+      let parent = row.folderKey;
+      const seen = new Set<string>();
+      while (parent && parent !== folderId && !seen.has(parent)) {
+        seen.add(parent);
+        const folderNode = byKey.get(parent);
+        if (!folderNode) break;
+        parts.unshift(folderNode.name);
+        parent = folderNode.parentKey || undefined;
+      }
+      for (const part of parts) {
         let child = node.children?.find(item => item.isFolder && item.name === part);
         if (!child) {
           child = { id: `${node.id}/${part}`, name: part, path: `${node.path}/${part}`, isFolder: true, children: [] };
@@ -172,7 +183,7 @@ export class AndroidLibraryGateway implements LibraryGateway {
       trackId,
       metadata: {
         title: track.title, artists: track.artist ? [track.artist] : [], album: track.album,
-        albumArtists: [], date: track.year ? String(track.year) : null, year: track.year,
+        albumArtists: track.albumArtist ? [track.albumArtist] : [], date: track.year ? String(track.year) : null, year: track.year,
         composers: [], genres: [], trackNumber: track.trackNumber, totalTracks: null,
         discNumber: track.discNumber, totalDiscs: null,
       },
@@ -189,14 +200,14 @@ export class AndroidLibraryGateway implements LibraryGateway {
   }
 
   async selectAndAddMusicFolders(): Promise<MusicFolder[]> {
-    const before = new Set((await nativeFolders.list()).folders.map(folder => folder.id));
-    const { folders } = await nativeFolders.choose();
-    await this.requestScan();
-    return folders.filter(folder => !before.has(folder.id));
+    // Granting access does not change the active scan selection until Save & Scan.
+    await androidFolders.choose();
+    return [];
   }
 
   async removeMusicFolder(folderId: string): Promise<void> {
-    await nativeFolders.remove({ id: folderId });
+    const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
+    await androidFolders.saveSelection({ rules: toggleFolder(tree.folders, selection.rules, folderId, false) });
     await this.requestScan();
   }
 }
