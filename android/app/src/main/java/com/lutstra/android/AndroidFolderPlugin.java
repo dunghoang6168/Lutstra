@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.util.AtomicFile;
 import androidx.activity.result.ActivityResult;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -17,6 +18,10 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +42,8 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final String PREFS = "android-music-folders";
     private static final String KEY_URIS = "uris";
     private static final String KEY_RULES = "rules";
+    private static final String CACHE_FILE = "library-metadata.json";
+    private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year" };
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private static final class Node {
@@ -128,6 +135,8 @@ public final class AndroidFolderPlugin extends Plugin {
                 Map<String, Boolean> folderSelected = new HashMap<>();
                 Set<String> seen = new HashSet<>();
                 JSONArray tracks = new JSONArray();
+                JSONObject cache = readCache();
+                JSONObject nextCache = new JSONObject();
                 for (FileRow file : files) {
                     Boolean selected = folderSelected.get(file.folderKey);
                     if (selected == null) { selected = isSelected(file.folderKey, nodes, rules); folderSelected.put(file.folderKey, selected); }
@@ -139,9 +148,17 @@ public final class AndroidFolderPlugin extends Plugin {
                     row.put("folderKey", file.folderKey); row.put("fileName", file.name);
                     row.put("mimeType", file.mime); row.put("fileSize", file.size);
                     row.put("lastModified", file.modified); row.put("relativePath", file.documentId);
-                    readMetadata(uri, row);
+                    JSONObject meta = cache.optJSONObject(key);
+                    if (meta == null || meta.optLong("size", -1) != orMinus(file.size) || meta.optLong("modified", -1) != orMinus(file.modified)) {
+                        meta = new JSONObject();
+                        readMetadata(uri, meta);
+                        meta.put("size", orMinus(file.size)); meta.put("modified", orMinus(file.modified));
+                    }
+                    nextCache.put(key, meta);
+                    for (String field : METADATA_FIELDS) if (meta.has(field)) row.put(field, meta.get(field));
                     tracks.put(row);
                 }
+                writeCache(nextCache);
                 JSObject response = new JSObject(); response.put("tracks", tracks); call.resolve(response);
             } catch (SecurityException error) {
                 call.reject("FOLDER_PERMISSION_REVOKED", "FOLDER_PERMISSION_REVOKED", error);
@@ -226,11 +243,37 @@ public final class AndroidFolderPlugin extends Plugin {
         return false;
     }
 
+    /**
+     * Tag reads cost ~90 ms per file over SAF, so unchanged files (same size and modified time)
+     * reuse the last result. Rewritten after every scan, so removed files drop out.
+     * ponytail: one JSON file read whole; move to SQLite if libraries reach tens of thousands of tracks.
+     */
+    private JSONObject readCache() {
+        AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), CACHE_FILE));
+        try { return new JSONObject(new String(file.readFully(), StandardCharsets.UTF_8)); }
+        catch (IOException | JSONException error) { return new JSONObject(); }
+    }
+
+    private void writeCache(JSONObject cache) {
+        AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), CACHE_FILE));
+        FileOutputStream output = null;
+        try {
+            output = file.startWrite();
+            output.write(cache.toString().getBytes(StandardCharsets.UTF_8));
+            file.finishWrite(output);
+        } catch (IOException error) {
+            // The cache only saves time; the next scan reads the tags again.
+            if (output != null) file.failWrite(output);
+        }
+    }
+
+    private static long orMinus(Long value) { return value == null ? -1 : value; }
+
     private static String keyOf(String authority, String documentId) {
         return authority.length() + ":" + authority + documentId;
     }
 
-    private void readMetadata(Uri uri, JSObject row) {
+    private void readMetadata(Uri uri, JSONObject row) throws JSONException {
         MediaMetadataRetriever reader = new MediaMetadataRetriever();
         try {
             reader.setDataSource(getContext(), uri);
