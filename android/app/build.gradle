@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.audiolutstra.spike"
+    namespace = "com.lutstra.android"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.audiolutstra.spike"
+        applicationId "com.lutstra.android"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

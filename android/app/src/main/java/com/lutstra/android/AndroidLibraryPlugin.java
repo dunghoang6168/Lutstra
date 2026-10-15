@@ -1,4 +1,4 @@
-package com.audiolutstra.spike;
+package com.lutstra.android;
 
 import android.Manifest;
 import android.content.ContentUris;

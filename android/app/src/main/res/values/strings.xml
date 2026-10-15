@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Audio Lutstra Spike</string>
-    <string name="title_activity_main">Audio Lutstra Spike</string>
-    <string name="package_name">com.audiolutstra.spike</string>
-    <string name="custom_url_scheme">com.audiolutstra.spike</string>
+    <string name="app_name">Lutstra</string>
+    <string name="title_activity_main">Lutstra</string>
+    <string name="package_name">com.lutstra.android</string>
+    <string name="custom_url_scheme">com.lutstra.android</string>
 </resources>

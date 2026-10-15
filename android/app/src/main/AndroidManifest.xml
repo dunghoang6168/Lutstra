@@ -25,7 +25,7 @@
         </activity>
 
         <service
-            android:name=".SpikePlaybackService"
+            android:name=".PlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>

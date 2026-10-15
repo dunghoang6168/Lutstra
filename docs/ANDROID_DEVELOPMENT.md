@@ -1,6 +1,6 @@
 # Android development status
 
-The Android app lives in `main` beside the desktop app (merged from `android/development`, itself forked from the passed `android/spike` checkpoint `e34254e`). It is not a numbered roadmap phase. Build it with `npm run build:android:spike`, then `android\gradlew.bat assembleDebug`; see `docs/ANDROID_SPIKE.md` for the toolchain.
+The Android app lives in `main` beside the desktop app (merged from `android/development`, itself forked from the passed `android/spike` checkpoint `e34254e`). It is not a numbered roadmap phase. The app ID is `com.lutstra.android` and the diagnostic screen is `src/app/android-diagnostics/`; the spike naming was dropped on 2026-10-15. Build it with `npm run build:android`, then `android\gradlew.bat assembleDebug`; see `docs/ANDROID_SPIKE.md` for the toolchain.
 
 ## Gate B
 
@@ -29,7 +29,6 @@ Passed on two physical devices: Motorola moto g stylus 5G (2024), Android 15, an
 
 The checks were driven through the debug WebView with Chrome DevTools Protocol, which only answers while the app is in the foreground.
 
-## Next checks
+## Test devices
 
-1. Repeat the library and playlist checks on the Nothing device.
-2. Drop the `spike` naming (application ID, app name, Angular entry) before the mobile shell work.
+From 2026-10-15 only the Motorola moto g stylus 5G (2024) is used for device testing. The Nothing A065 passed Gate B but is no longer in the test set, so later stages are verified on the Motorola alone.

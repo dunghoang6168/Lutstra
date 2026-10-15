@@ -216,7 +216,7 @@ Lyrics cục bộ được đọc từ file `.lrc` có cùng tên gốc và nằ
 
 ASIO, DSD/DoP, điều khiển USB DAC và custom audio driver nằm ngoài phạm vi. WASAPI Exclusive với tự đổi sample rate, bit-perfect, EQ/DSP và ReplayGain đang theo [lộ trình Audio Engine](docs/AUDIO_ENGINE_PLAN.md).
 
-Dự án chưa có Android, account, cloud sync, remote backend hoặc lyrics online. `PlaybackEngine` là ranh giới giữa UI và các backend Native/Chromium.
+Bản Android (Capacitor + Media3) đang phát triển trong cùng repo, xem [docs/ANDROID_DEVELOPMENT.md](docs/ANDROID_DEVELOPMENT.md). Dự án chưa có account, cloud sync, remote backend hoặc lyrics online. `PlaybackEngine` là ranh giới giữa UI và các backend Native/Chromium.
 
 ## Tài liệu liên quan
 

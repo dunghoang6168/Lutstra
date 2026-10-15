@@ -26,14 +26,14 @@ interface NativePlaybackPlugin {
   addListener(eventName: 'state', listener: (state: NativePlaybackState) => void): Promise<PluginListenerHandle>;
 }
 
-const nativePlayback = registerPlugin<NativePlaybackPlugin>('SpikePlayback');
+const nativePlayback = registerPlugin<NativePlaybackPlugin>('AndroidPlayback');
 
 @Component({
-  selector: 'app-android-spike',
+  selector: 'app-android-diagnostics',
   standalone: true,
   template: `
     <main>
-      <h1>Audio Lutstra · Android spike</h1>
+      <h1>Lutstra · Android diagnostics</h1>
       <p>Thiết bị: {{ platform }}</p>
       @if (nativeAvailable) {
         <section>
@@ -135,7 +135,7 @@ const nativePlayback = registerPlugin<NativePlaybackPlugin>('SpikePlayback');
     .unavailable { font-size: .75rem; }
   `],
 })
-export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
+export class AndroidDiagnosticsComponent implements AfterViewInit, OnDestroy {
   @ViewChild('player') private player!: ElementRef<HTMLAudioElement>;
   readonly platform = Capacitor.getPlatform();
   readonly nativeAvailable = Capacitor.isNativePlatform();
@@ -215,7 +215,7 @@ export class AndroidSpikeComponent implements AfterViewInit, OnDestroy {
     this.status.set('Đã nạp file');
     this.writeLog(`selected ${file.name}`);
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: file.name, artist: 'Android spike' });
+      navigator.mediaSession.metadata = new MediaMetadata({ title: file.name, artist: 'Lutstra' });
     }
   }
 

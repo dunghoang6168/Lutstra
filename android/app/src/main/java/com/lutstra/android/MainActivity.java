@@ -1,4 +1,4 @@
-package com.audiolutstra.spike;
+package com.lutstra.android;
 
 import com.getcapacitor.BridgeActivity;
 import android.os.Bundle;
@@ -6,7 +6,7 @@ import android.os.Bundle;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        registerPlugin(SpikePlaybackPlugin.class);
+        registerPlugin(PlaybackPlugin.class);
         registerPlugin(AndroidLibraryPlugin.class);
         registerPlugin(AndroidFolderPlugin.class);
         registerPlugin(AndroidPlaylistPlugin.class);

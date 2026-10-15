@@ -1,11 +1,11 @@
-package com.audiolutstra.spike;
+package com.lutstra.android;
 
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 
-public final class SpikePlaybackService extends MediaSessionService {
+public final class PlaybackService extends MediaSessionService {
     private MediaSession mediaSession;
 
     @Override

@@ -1,4 +1,4 @@
-package com.audiolutstra.spike;
+package com.lutstra.android;
 
 import android.app.Activity;
 import android.content.ClipData;
@@ -32,8 +32,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
-@CapacitorPlugin(name = "SpikePlayback")
-public final class SpikePlaybackPlugin extends Plugin {
+@CapacitorPlugin(name = "AndroidPlayback")
+public final class PlaybackPlugin extends Plugin {
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController controller;
     private final Player.Listener listener = new Player.Listener() {
@@ -78,7 +78,7 @@ public final class SpikePlaybackPlugin extends Plugin {
             try {
                 getContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } catch (SecurityException ignored) {
-                // Playback can still use the temporary picker grant; the spike records persistence separately.
+                // Playback can still use the temporary picker grant; persistence is recorded separately.
             }
             String title = displayName(uri);
             items.add(new MediaItem.Builder()
@@ -169,7 +169,7 @@ public final class SpikePlaybackPlugin extends Plugin {
                 return;
             }
             if (controllerFuture == null) {
-                SessionToken token = new SessionToken(getContext(), new ComponentName(getContext(), SpikePlaybackService.class));
+                SessionToken token = new SessionToken(getContext(), new ComponentName(getContext(), PlaybackService.class));
                 controllerFuture = new MediaController.Builder(getContext(), token).buildAsync();
             }
             controllerFuture.addListener(() -> {
@@ -199,7 +199,7 @@ public final class SpikePlaybackPlugin extends Plugin {
     }
 
     private MediaItem testItem(int frequencyHz) throws IOException {
-        File file = new File(getContext().getCacheDir(), "spike-" + frequencyHz + "hz.wav");
+        File file = new File(getContext().getCacheDir(), "tone-" + frequencyHz + "hz.wav");
         if (!file.exists()) {
             int sampleRate = 44100;
             int sampleCount = sampleRate * 30;
