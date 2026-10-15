@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, computed, ElementRef, OnDestroy, ViewChild, signal } from '@angular/core';
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
-import { AndroidLibraryGateway } from '../core/android/android-library.gateway';
+import { AndroidLibraryGateway, libraryQueue } from '../core/android/android-library.gateway';
 import { AndroidFolderNode, FolderRule, androidFolders, childrenOf, folderCheckState, selectedBranches, toggleFolder } from '../core/android/android-folder-selection';
 
 interface NativePlaybackState {
@@ -17,6 +17,7 @@ interface NativePlaybackState {
 interface NativePlaybackPlugin {
   pickAndPlay(): Promise<NativePlaybackState>;
   playTestQueue(): Promise<NativePlaybackState>;
+  playQueue(options: { items: Array<{ uri: string; title: string; artist: string | null; album: string | null }>; startIndex?: number }): Promise<NativePlaybackState>;
   getState(): Promise<NativePlaybackState>;
   play(): Promise<NativePlaybackState>;
   pause(): Promise<NativePlaybackState>;
@@ -82,6 +83,7 @@ const nativePlayback = registerPlugin<NativePlaybackPlugin>('AndroidPlayback');
           <p>Chọn nhiều bài để thử next/previous từ màn hình khóa và tai nghe. Hàng chờ nằm trong dịch vụ Android.</p>
           <button type="button" (click)="chooseNativeFiles()">Chọn nhạc cho Media3</button>
           <button type="button" (click)="playNativeTestQueue()">Phát 2 âm mẫu</button>
+          <button type="button" (click)="playLibrary()">Phát thư viện đã quét</button>
           <p>Bài: {{ nativeState()?.title || 'Chưa chọn' }}
             @if (nativeState()?.count) { ({{ (nativeState()?.index || 0) + 1 }}/{{ nativeState()?.count }}) }
           </p>
@@ -332,6 +334,19 @@ export class AndroidDiagnosticsComponent implements AfterViewInit, OnDestroy {
     this.folderRules.set(selection.rules);
     this.expandedFolders.set(new Set(childrenOf(tree.folders, null).map(node => node.key)));
     if (!selection.rules.some(rule => rule.selected)) this.folderSelectionOpen.set(true);
+  }
+
+  async playLibrary(): Promise<void> {
+    try {
+      this.nativeError.set('');
+      const tracks = libraryQueue((await this.library.getLibrary()).tracks);
+      if (!tracks.length) { this.nativeError.set('Thư viện trống. Hãy chọn thư mục và quét trước.'); return; }
+      this.nativeState.set(await nativePlayback.playQueue({
+        items: tracks.map(track => ({ uri: track.path, title: track.title, artist: track.artist, album: track.album })),
+      }));
+    } catch (error) {
+      this.nativeError.set(String(error));
+    }
   }
 
   async playNativeTestQueue(): Promise<void> {

@@ -1,6 +1,6 @@
 import '@angular/compiler';
 import { describe, expect, it } from 'vitest';
-import { MediaStoreTrack, snapshotFrom } from '../src/app/core/android/android-library.gateway';
+import { MediaStoreTrack, libraryQueue, snapshotFrom } from '../src/app/core/android/android-library.gateway';
 
 const row = (id: string, changes: Partial<MediaStoreTrack> = {}): MediaStoreTrack => ({
   id, uri: id, fileName: null, title: null, artist: null, album: null,
@@ -35,5 +35,13 @@ describe('Android MediaStore snapshot', () => {
     expect(snapshot.artists.map(artist => artist.name)).toEqual(['RPT MCK']);
     expect(snapshot.albums).toHaveLength(1);
     expect(snapshot.tracks[1].artist).toBe('Trung Trần');
+  });
+
+  it('queues the library album by album in track order', () => {
+    const { tracks } = snapshotFrom([
+      row('b2', { album: 'HVL', trackNumber: 2 }), row('a10', { album: '99%', trackNumber: 10 }),
+      row('b1', { album: 'HVL', trackNumber: 1 }), row('a2', { album: '99%', trackNumber: 2 }),
+    ]);
+    expect(libraryQueue(tracks).map(track => track.id)).toEqual(['a2', 'a10', 'b1', 'b2']);
   });
 });

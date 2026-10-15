@@ -14,6 +14,7 @@ import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -21,6 +22,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -93,6 +96,42 @@ public final class PlaybackPlugin extends Plugin {
             mediaController.play();
             call.resolve(stateOf(mediaController));
         });
+    }
+
+    /** Replaces the service queue with library tracks: items = [{ uri, title?, artist?, album? }]. */
+    @PluginMethod
+    public void playQueue(PluginCall call) {
+        JSArray input = call.getArray("items");
+        int startIndex = call.getInt("startIndex", 0);
+        if (input == null || input.length() == 0) { call.reject("Items required"); return; }
+        List<MediaItem> items = new ArrayList<>();
+        try {
+            for (int i = 0; i < input.length(); i++) {
+                JSONObject item = input.getJSONObject(i);
+                Uri uri = Uri.parse(item.getString("uri"));
+                items.add(new MediaItem.Builder()
+                    .setMediaId(uri.toString())
+                    .setUri(uri)
+                    .setMediaMetadata(new MediaMetadata.Builder()
+                        .setTitle(text(item, "title") != null ? text(item, "title") : displayName(uri))
+                        .setArtist(text(item, "artist"))
+                        .setAlbumTitle(text(item, "album"))
+                        .build())
+                    .build());
+            }
+        } catch (JSONException error) { call.reject("Invalid queue item", error); return; }
+        if (startIndex < 0 || startIndex >= items.size()) { call.reject("Invalid startIndex"); return; }
+        withController(call, mediaController -> {
+            mediaController.setMediaItems(items, startIndex, 0);
+            mediaController.prepare();
+            mediaController.play();
+            call.resolve(stateOf(mediaController));
+        });
+    }
+
+    // optString turns a JSON null into "null".
+    private static String text(JSONObject item, String key) {
+        return item.isNull(key) ? null : item.optString(key);
     }
 
     @PluginMethod

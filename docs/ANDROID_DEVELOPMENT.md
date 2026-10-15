@@ -29,6 +29,14 @@ Passed on two physical devices: Motorola moto g stylus 5G (2024), Android 15, an
 
 The checks were driven through the debug WebView with Chrome DevTools Protocol, which only answers while the app is in the foreground.
 
+### Re-check after the rename (`com.lutstra.android`, 2026-10-15)
+
+Fresh install, `Music` granted, `Music/VN/MCK` ticked: 65 folders listed, 46 tracks and 1 artist on five rescans with identical IDs, a copied FLAC added then removed (47, then 46), unticking `HVL` left the 16 tracks of `99%`, and the selection and a test playlist survived a force-stop. Listing the tree takes about 0.9 s; a scan takes 4–6 s because metadata is read at roughly 90 ms per file on every scan. A large library needs a metadata cache keyed by document ID, size and last-modified time.
+
+## Library playback (start of stage D)
+
+`AndroidPlayback.playQueue({ items, startIndex })` replaces the Media3 service queue with library document URIs and their title, artist and album. The diagnostic screen's **Phát thư viện đã quét** button queues the scanned library album by album in disc/track order (`libraryQueue`). On the Motorola the 46 MCK tracks played from the SD card through the tree grant; next, seek and previous worked; the media notification and foreground service appeared; playback kept going on the home screen and the play/pause media key paused it there. The notification shows the track's own ARTIST tag (one of several, see above). Queue state still lives only in the service: the Angular player is not wired to it yet.
+
 ## Test devices
 
 From 2026-10-15 only the Motorola moto g stylus 5G (2024) is used for device testing. The Nothing A065 passed Gate B but is no longer in the test set, so later stages are verified on the Motorola alone.

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LibraryGateway, LibrarySnapshot } from '../contracts/library.gateway';
 import { Album, Artist, FolderNode, MusicFolder, ScanProgress, Track, TrackDetails } from '../models';
+import { compareAlbumTracks } from '../models/album-track-order';
 import { AndroidFolderNode, androidFolders, selectedBranches, toggleFolder } from './android-folder-selection';
 
 export interface MediaStoreTrack {
@@ -78,6 +79,12 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
     }
   }
   return { tracks, albums: [...albumMap.values()], artists: [...artistMap.values()], folders };
+}
+
+/** Native queue order for a whole library: album by album, each in disc/track order. */
+export function libraryQueue(tracks: readonly Track[]): Track[] {
+  return [...tracks].sort((a, b) => (a.album ?? '').localeCompare(b.album ?? '', undefined, { sensitivity: 'base', numeric: true })
+    || compareAlbumTracks(a, b));
 }
 
 @Injectable({ providedIn: 'root' })
