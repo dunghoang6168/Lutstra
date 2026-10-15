@@ -17,8 +17,12 @@ import { ThemeService } from './core/theme/theme.service';
 import { MediaSessionService } from './core/media/media-session.service';
 import { LayoutPreferenceService } from './core/layout/layout-preference.service';
 import { AudioVisualizationPreferenceService } from './core/layout/audio-visualization-preference.service';
+import { Capacitor } from '@capacitor/core';
+import { AndroidLibraryGateway } from './core/android/android-library.gateway';
+import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway';
 
 const isDesktop = () => Boolean(getDesktopApi());
+const isAndroid = () => Capacitor.getPlatform() === 'android';
 const ACTIVE_AUDIO_ENGINE = new InjectionToken<PlaybackEngine & AudioAnalysisEngine>('ACTIVE_AUDIO_ENGINE');
 
 export const appConfig: ApplicationConfig = {
@@ -26,8 +30,8 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
 
-    { provide: LIBRARY_GATEWAY, useFactory: () => isDesktop() ? new ElectronLibraryGateway() : new MockLibraryGateway() },
-    { provide: PLAYLIST_GATEWAY, useFactory: () => isDesktop() ? new ElectronPlaylistGateway() : new MockPlaylistGateway() },
+    { provide: LIBRARY_GATEWAY, useFactory: () => isDesktop() ? new ElectronLibraryGateway() : isAndroid() ? new AndroidLibraryGateway() : new MockLibraryGateway() },
+    { provide: PLAYLIST_GATEWAY, useFactory: () => isDesktop() ? new ElectronPlaylistGateway() : isAndroid() ? new AndroidPlaylistGateway() : new MockPlaylistGateway() },
     { provide: SETTINGS_GATEWAY, useFactory: () => isDesktop() ? new ElectronSettingsGateway() : new MockSettingsGateway() },
     { provide: ARTIST_METADATA_GATEWAY, useFactory: () => isDesktop() ? new ElectronArtistMetadataGateway() : new MockArtistMetadataGateway() },
     { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : new MockLyricsGateway() },
