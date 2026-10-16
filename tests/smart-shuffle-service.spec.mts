@@ -69,6 +69,19 @@ describe('SmartShuffleService', () => {
     expect(new Set(player.queue().map((entry) => entry.track.id)).size).toBe(10);
   });
 
+  it('previews its picks without touching the queue, then plays exactly those', async () => {
+    const { player, service, tracks } = await setup();
+    await player.playCollection(tracks.slice(0, 3), 0);
+    const before = player.queue();
+    const picks = await service.previewSuggestions();
+    expect(picks.length).toBe(10);
+    expect(player.queue()).toBe(before);
+    expect(player.smartShuffle()).toBe(false);
+    await service.playSuggestions(picks);
+    expect(player.queue().map((entry) => entry.track.id)).toEqual(picks.map((track) => track.id));
+    expect(player.queue().every((entry) => entry.suggested)).toBe(true);
+  });
+
   it('plays its own picks in place of the queue from the phone Home', async () => {
     const { player, service, tracks } = await setup();
     await player.playCollection(tracks.slice(0, 3), 1);

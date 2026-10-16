@@ -10,6 +10,16 @@ const row = (id: string, changes: Partial<MediaStoreTrack> = {}): MediaStoreTrac
 });
 
 describe('Android MediaStore snapshot', () => {
+  it('gives tracks their scanned cover and albums the first cover among their tracks', () => {
+    const { tracks, albums } = snapshotFrom([
+      row('a', { fileName: 'a.flac', album: 'X', artist: 'Y' }),
+      row('b', { fileName: 'b.flac', album: 'X', artist: 'Y', artwork: '/data/files/artwork/1.jpg' }),
+    ]);
+    expect(tracks[0].artwork).toBeNull();
+    expect(tracks[1].artwork).toContain('artwork/1.jpg');
+    expect(albums[0].artwork).toBe(tracks[1].artwork);
+  });
+
   it('carries the scanned bitrate, sample rate and bit depth', () => {
     const [track] = snapshotFrom([row('a', { fileName: 'a.flac', bitrate: 2605000, sampleRate: 96000, bitDepth: 24 })]).tracks;
     expect([track.codec, track.bitrate, track.sampleRate, track.bitDepth]).toEqual(['FLAC', 2605000, 96000, 24]);

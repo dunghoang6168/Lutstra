@@ -75,12 +75,20 @@ export class SmartShuffleService {
     await this.startIfEmpty();
   }
 
-  /** The phone Home's quick start: Smart Shuffle plays its own picks in place of the queue. */
-  async playSuggestions(): Promise<void> {
+  /** What a cold start would play now, without touching the queue (the phone Home shows it). */
+  async previewSuggestions(): Promise<Track[]> {
+    await this.ensureLoaded();
+    return this.coldPlan();
+  }
+
+  /** The phone Home's quick start: Smart Shuffle plays its own picks (the shown preview, if given) in place of the queue. */
+  async playSuggestions(picks?: readonly Track[]): Promise<void> {
     if (this.player.modesLocked()) return;
     await this.ensureLoaded();
     this.player.setSmartShuffle(true);
-    await this.start(true);
+    if (!picks?.length) { await this.start(true); return; }
+    this.reorderNext = false;
+    await this.player.startSuggestions(picks.map((track) => this.player.createSuggestedEntry(track)));
   }
 
   /** Only a user's turn starts playback; a setting restored at launch never does. */
@@ -91,12 +99,16 @@ export class SmartShuffleService {
   private async start(replaceQueue = false): Promise<void> {
     await this.ensureLoaded();
     if (!this.player.smartShuffle() || (!replaceQueue && this.player.queue().length)) return;
-    const plan = planUpcoming({
+    const plan = this.coldPlan();
+    this.reorderNext = false;
+    await this.player.startSuggestions(plan.map((track) => this.player.createSuggestedEntry(track)));
+  }
+
+  private coldPlan(): Track[] {
+    return planUpcoming({
       upcoming: [], recent: [], userRun: 0, every: suggestionSpacing(this.events), window: SUGGESTION_WINDOW,
       refresh: false, reorder: false, exclude: this.sessionExclude,
-    }, this.context());
-    this.reorderNext = false;
-    await this.player.startSuggestions(plan.map((item) => this.player.createSuggestedEntry(this.tracks.get(item.trackId)!)));
+    }, this.context()).map((item) => this.tracks.get(item.trackId)!);
   }
 
   private schedule(): void {

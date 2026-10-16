@@ -240,11 +240,17 @@ On the Motorola (2026-10-17): the five tabs listed 459 tracks, 64 albums and one
 
 ## Phone Home and Search (P2)
 
-- **Home** (`phone/pages/home`): a continue-listening card (the playing track, or the last one in `RecentPlaysService` still on the phone, resumed with its album as `recentTrackCollection` does on desktop), a Smart Shuffle card, then Recently played and Recently added album strips. The shell injects `RecentPlaysService` so plays are recorded on the phone too.
-- **Smart Shuffle quick start:** `SmartShuffleService.playSuggestions()` turns Smart Shuffle on and plays its own picks in place of the queue (the cold start the shuffle cycle uses when nothing is queued).
+- **Home** (`phone/pages/home`), laid out after PixelPlayer's (`plan/reports/android-ui-design-references.md` §9): "Your mix" in display type with one big ink button; a collage of recently played covers (topped up with recently added) cut into circle, pill, tile and blob shapes, each a link to its album, hidden below three covers; the Smart Shuffle card; then Recently played and Recently added album strips. The shell injects `RecentPlaysService` so plays are recorded on the phone too.
+- **Smart Shuffle card:** while Smart Shuffle plays it lists the current entry and the next four from the queue (✦ on suggestions; a tap jumps there). Otherwise it shows `SmartShuffleService.previewSuggestions()`, the cold start's picks without touching the queue, with a New picks button; the big button or a row plays them through `playSuggestions(picks)` (from that row on).
 - **Search** (`phone/pages/search`): one field over tracks, albums, artists and playlists, ranked by `rankMatches` / `normalizeSearch` (`shared/utils/search-rank.ts`, shared with the desktop global search), so case and Vietnamese accents, `đ` included, are optional. The query is `?q=` (`replaceUrl` per keystroke), so Back from a result returns to the same results. A song result plays that track alone, as on desktop.
 
 On the Motorola (2026-10-17): Home showed the paused track, the Smart Shuffle card and both strips; "cuộc gọi" and "cuoc goi" both found "100 Cuộc Gọi Nhỡ", "duong" found "đường về" and "Slippery (feat. Tùng Dương)", "mck" listed RPT MCK's tracks, two albums and the artist, and "zzqx" said no matches; Back from an album opened from the results kept "hours" and its results; Smart Shuffle (volume turned down) played a suggestion with 11 suggested entries queued. Typing through Gboard's Vietnamese Telex turns "af" into "à", as in any app.
+
+## Covers on Android
+
+`readMetadata` keeps the file's embedded picture (`getEmbeddedPicture`); a track without one takes its folder's `cover.jpg`, `folder.jpg` or `front.jpg` (found during the walk). Each image is scaled once to at most `ARTWORK_SIZE` (1024 px) and written as `files/artwork/<sha1>-1024.jpg`; embedded pictures are named by their bytes, so an album's tracks share one file, and folder covers by their key and modified time. The cache keeps the embedded file name (`art`); `METADATA_VERSION` 4 makes older entries read again once. Rows carry the absolute path as `artwork`, which the gateway turns into a WebView URL with `Capacitor.convertFileSrc` (same origin, so the CSP's `img-src 'self'` allows it); an album takes the first cover among its tracks. Unused cover files are not pruned yet.
+
+On the Motorola (2026-10-17): the one-time re-read of 459 tracks with covers took about 35–40 s and wrote 64 covers (13 MB with the earlier 512 px set); Library, album pages, the mini player, Now Playing and the new Home all showed them. The Smart Shuffle card showed the live queue ("In your queue" while paused), and with Smart Shuffle off a five-track preview that New picks replaced, without starting playback.
 
 ## Test devices
 

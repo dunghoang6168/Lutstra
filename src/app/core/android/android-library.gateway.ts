@@ -1,4 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LibraryGateway, LibrarySnapshot } from '../contracts/library.gateway';
 import { Album, Artist, FolderNode, MusicFolder, ScanProgress, Track, TrackDetails } from '../models';
@@ -23,6 +24,8 @@ export interface MediaStoreTrack {
   bitrate?: number | null;
   sampleRate?: number | null;
   bitDepth?: number | null;
+  /** Absolute path of the scaled cover in the app's files (embedded picture, else the folder's cover.jpg). */
+  artwork?: string | null;
   relativePath: string | null;
   folderKey?: string;
 }
@@ -52,7 +55,7 @@ function toTrack(row: MediaStoreTrack): Track {
     genre: null, year: row.year && row.year > 0 ? row.year : null,
     trackNumber, discNumber, duration: Math.max(0, (row.durationMs || 0) / 1000),
     codec: codecFor(row.mimeType, fileName), bitrate: row.bitrate || null, sampleRate: row.sampleRate || null,
-    bitDepth: row.bitDepth || null, channels: null, artwork: null, fileSize: row.fileSize,
+    bitDepth: row.bitDepth || null, channels: null, artwork: row.artwork ? Capacitor.convertFileSrc(row.artwork) : null, fileSize: row.fileSize,
     lastModified: row.lastModified, isAvailable: true,
   };
 }
@@ -80,6 +83,7 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
         artist.albumIds.push(albumId);
       }
       album.trackIds.push(track.id);
+      album.artwork ??= track.artwork;
     }
   }
   return { tracks, albums: [...albumMap.values()], artists: [...artistMap.values()], folders };

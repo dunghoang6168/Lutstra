@@ -3,6 +3,8 @@ package com.lutstra.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.storage.StorageManager;
@@ -23,6 +25,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,7 +57,14 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final int READ_THREADS = 4;
     private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year", "bitrate", "sampleRate", "bitDepth" };
     // Bumped when readMetadata gains fields, so older cache entries are read again.
-    private static final int METADATA_VERSION = 2;
+    private static final int METADATA_VERSION = 4;
+    private static final String ARTWORK_DIR = "artwork";
+    // Covers are shown at most a phone width wide (about 1000 px), so larger pictures are scaled down once.
+    private static final int ARTWORK_SIZE = 1024;
+    private static final Set<String> FOLDER_COVERS = new HashSet<>(java.util.Arrays.asList(
+        "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.png"));
+    /** Folder key → its cover image, found while a scan walks the folders. */
+    private final Map<String, FileRow> folderCovers = new HashMap<>();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // Listing must not queue behind a long first scan, or the folder picker waits for it.
     private final ExecutorService treeExecutor = Executors.newSingleThreadExecutor();
@@ -164,6 +175,7 @@ public final class AndroidFolderPlugin extends Plugin {
                 }
                 Map<String, Node> nodes = new LinkedHashMap<>();
                 List<FileRow> files = new ArrayList<>();
+                folderCovers.clear();
                 collect(nodes, files, rules);
                 Map<String, Boolean> folderSelected = new HashMap<>();
                 Set<String> seen = new HashSet<>();
@@ -198,6 +210,8 @@ public final class AndroidFolderPlugin extends Plugin {
                 for (int i = 0; i < rows.size(); i++) {
                     JSObject row = rows.get(i); JSONObject meta = metas.get(i);
                     for (String field : METADATA_FIELDS) if (meta.has(field)) row.put(field, meta.get(field));
+                    String art = meta.has("art") ? meta.getString("art") : folderCover(row.getString("folderKey"));
+                    if (art != null) row.put("artwork", artworkFile(art).getAbsolutePath());
                     tracks.put(row);
                 }
                 writeCache(nextCache);
@@ -255,6 +269,13 @@ public final class AndroidFolderPlugin extends Plugin {
                     String key = keyOf(tree.getAuthority(), documentId);
                     addNode(nodes, key, name, parentKey, tree, documentId, true);
                     if (!skip(tree, key, nodes, rules) && walked.add(key)) walk(tree, documentId, key, nodes, files, walked, rules);
+                    continue;
+                }
+                if (files != null && name != null && FOLDER_COVERS.contains(name.toLowerCase(java.util.Locale.ROOT))) {
+                    FileRow cover = new FileRow();
+                    cover.tree = tree; cover.documentId = documentId; cover.name = name; cover.folderKey = parentKey;
+                    cover.modified = cursor.isNull(4) ? null : cursor.getLong(4);
+                    folderCovers.putIfAbsent(parentKey, cover);
                     continue;
                 }
                 if (files == null || !isAudio(name, mime)) continue;
@@ -385,6 +406,68 @@ public final class AndroidFolderPlugin extends Plugin {
         return uuid;
     }
 
+    /** A folder's cover.jpg (or similar), scaled once and named by its key and modified time so a rescan reuses it. */
+    private String folderCover(String folderKey) {
+        FileRow cover = folderKey == null ? null : folderCovers.get(folderKey);
+        if (cover == null) return null;
+        Uri uri = DocumentsContract.buildDocumentUriUsingTree(cover.tree, cover.documentId);
+        return saveArtwork(hash((keyOf(cover.tree.getAuthority(), cover.documentId) + "@" + cover.modified).getBytes(StandardCharsets.UTF_8)),
+            () -> getContext().getContentResolver().openInputStream(uri));
+    }
+
+    private interface ImageSource { InputStream open() throws IOException; }
+
+    /**
+     * Writes the image as files/artwork/<name>.jpg, at most ARTWORK_SIZE on its longer side, unless that file exists.
+     * Returns the name, or null when the image cannot be decoded.
+     * ponytail: covers no longer used stay on disk; prune the folder if it grows large.
+     */
+    private String saveArtwork(String name, ImageSource source) {
+        File target = artworkFile(name);
+        if (target.exists()) return name;
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream in = source.open()) { BitmapFactory.decodeStream(in, null, bounds); }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            int longer = Math.max(bounds.outWidth, bounds.outHeight);
+            options.inSampleSize = 1;
+            while (longer / (options.inSampleSize * 2) >= ARTWORK_SIZE) options.inSampleSize *= 2;
+            Bitmap bitmap;
+            try (InputStream in = source.open()) { bitmap = BitmapFactory.decodeStream(in, null, options); }
+            if (bitmap == null) return null;
+            float scale = Math.min(1f, (float) ARTWORK_SIZE / Math.max(bitmap.getWidth(), bitmap.getHeight()));
+            Bitmap sized = scale < 1f ? Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale), Math.round(bitmap.getHeight() * scale), true) : bitmap;
+            File parent = target.getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) return null;
+            File temp = new File(parent, name + "." + Thread.currentThread().getId() + ".tmp");
+            try (FileOutputStream out = new FileOutputStream(temp)) { sized.compress(Bitmap.CompressFormat.JPEG, 85, out); }
+            if (sized != bitmap) sized.recycle();
+            bitmap.recycle();
+            // Another reader may have written the same picture meanwhile; either copy is fine.
+            if (!temp.renameTo(target)) temp.delete();
+            return target.exists() ? name : null;
+        } catch (IOException | RuntimeException error) {
+            return null;
+        }
+    }
+
+    private File artworkFile(String name) {
+        // The size is in the name, so a new ARTWORK_SIZE writes new files instead of reusing smaller ones.
+        return new File(new File(getContext().getFilesDir(), ARTWORK_DIR), name + "-" + ARTWORK_SIZE + ".jpg");
+    }
+
+    private static String hash(byte[] bytes) {
+        try {
+            StringBuilder hex = new StringBuilder();
+            for (byte b : MessageDigest.getInstance("SHA-1").digest(bytes)) hex.append(String.format("%02x", b));
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException error) {
+            return Integer.toHexString(java.util.Arrays.hashCode(bytes));
+        }
+    }
+
     private static String keyOf(String authority, String documentId) {
         return authority.length() + ":" + authority + documentId;
     }
@@ -402,6 +485,8 @@ public final class AndroidFolderPlugin extends Plugin {
             row.put("trackNumber", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)));
             row.put("year", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)));
             row.put("bitrate", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)));
+            byte[] picture = reader.getEmbeddedPicture();
+            if (picture != null) row.put("art", saveArtwork(hash(picture), () -> new java.io.ByteArrayInputStream(picture)));
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 row.put("sampleRate", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)));
                 row.put("bitDepth", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)));

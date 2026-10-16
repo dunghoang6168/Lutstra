@@ -1,34 +1,62 @@
-@if (resume(); as resume) {
-  <section class="resume-card" aria-labelledby="resumeLabel">
-    <app-cover-art class="resume-cover" [src]="resume.track.artwork" icon="music" [iconSize]="28" />
-    <div class="resume-text">
-      <h2 id="resumeLabel" class="resume-label">
-        {{ resume.current ? (player.isPlaybackActive() ? 'Now Playing' : 'Paused') : 'Continue listening' }}
-      </h2>
-      <p class="resume-title">{{ resume.track.title }}</p>
-      <p class="resume-meta">
-        <span class="resume-artist">{{ resume.track.artist ?? 'Unknown artist' }}</span>
-        @if (resume.format; as format) {
-          <span class="resume-format" [class.hires]="format.hires">{{ format.label }}</span>
-        }
-      </p>
+@if (library.snapshot()?.tracks?.length) {
+  <section class="hero" aria-labelledby="mixHeading">
+    <div class="hero-text">
+      <h2 id="mixHeading" class="hero-title">Your mix</h2>
+      <p class="hero-subtitle">Smart Shuffle, from what you listen to</p>
     </div>
-    <button type="button" class="resume-play" (click)="playResume()"
-      [attr.aria-label]="(resume.current && player.isPlaybackActive() ? 'Pause ' : 'Play ') + resume.track.title">
-      <app-icon [name]="resume.current && player.isPlaybackActive() ? 'pause' : 'play'" [size]="24" />
-    </button>
+    @if (!player.modesLocked()) {
+      <button type="button" class="hero-play" (click)="playMix()"
+        [attr.aria-label]="mixLive() && player.isPlaybackActive() ? 'Pause your mix' : 'Play your mix'">
+        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'smart-shuffle'" [size]="36" />
+      </button>
+    }
   </section>
-}
 
-@if (!player.modesLocked() && library.snapshot()?.tracks?.length) {
-  <button type="button" class="smart-card" (click)="startSmartShuffle()">
-    <span class="smart-icon"><app-icon name="smart-shuffle" [size]="24" /></span>
-    <span class="smart-text">
-      <span class="smart-title">Smart Shuffle</span>
-      <span class="smart-subtitle">Picks from what you listen to, with something new mixed in</span>
-    </span>
-    <app-icon class="chevron" name="play" [size]="20" />
-  </button>
+  @if (collage().length) {
+    <div class="collage">
+      @for (item of collage(); track item.album.id) {
+        <a class="collage-item" [class]="'slot-' + item.slot + ' shape-' + item.shape"
+          [routerLink]="['/library/albums', item.album.id]" [attr.aria-label]="item.album.title">
+          <app-cover-art [src]="item.album.artwork" [alt]="''" [iconSize]="28" />
+        </a>
+      }
+    </div>
+  }
+
+  @if (mixRows().length && !player.modesLocked()) {
+    <section class="mix-card" aria-labelledby="mixCardTitle">
+      <header class="mix-header">
+        <div class="mix-heading">
+          <h2 id="mixCardTitle" class="mix-title">Smart Shuffle</h2>
+          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'In your queue') : 'Based on your listening' }}</p>
+        </div>
+        @if (mixCovers().length) {
+          <span class="mix-covers" aria-hidden="true">
+            @for (cover of mixCovers(); track $index) { <app-cover-art [src]="cover" [icon]="null" /> }
+          </span>
+        }
+        @if (!mixLive()) {
+          <button type="button" class="mix-refresh" (click)="refreshPreview()" aria-label="New picks">
+            <app-icon name="refresh-cw" [size]="18" />
+          </button>
+        }
+      </header>
+      <ol class="mix-list">
+        @for (row of mixRows(); track row.track.id + '-' + $index; let i = $index) {
+          <li>
+            <button type="button" class="mix-row" [class.current]="row.current" (click)="playRow(row, i)"
+              [attr.aria-current]="row.current ? 'true' : null">
+              <app-cover-art class="mix-row-cover" [src]="row.track.artwork" icon="music" [iconSize]="18" />
+              <span class="mix-row-text">
+                <span class="mix-row-title">{{ row.track.title }}</span>
+                <span class="mix-row-artist">@if (row.suggested) { <span class="suggested" aria-label="Suggestion">✦</span> }{{ row.track.artist ?? 'Unknown artist' }}</span>
+              </span>
+            </button>
+          </li>
+        }
+      </ol>
+    </section>
+  }
 }
 
 @if (recentlyPlayed().length) {
