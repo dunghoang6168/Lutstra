@@ -1,6 +1,6 @@
 import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { Location } from '@angular/common';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { registerPlugin } from '@capacitor/core';
 import { filter, map } from 'rxjs';
@@ -13,6 +13,9 @@ import { CoverArtComponent } from '../../shared/components/cover-art/cover-art.c
 import { AndroidFolderPickerComponent } from '../../shared/components/android-folder-picker/android-folder-picker.component';
 import { PhoneNowPlayingComponent } from '../components/now-playing/phone-now-playing.component';
 import { PhoneQueueSheetComponent } from '../components/queue-sheet/phone-queue-sheet.component';
+import { PhoneTrackActionsSheetComponent } from '../components/track-actions-sheet/phone-track-actions-sheet.component';
+import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
+import { PhoneLibraryService } from '../phone-library.service';
 
 const appShell = registerPlugin<{ moveToBack(): Promise<void> }>('AppShell');
 
@@ -24,13 +27,17 @@ const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, CoverArtComponent, AndroidFolderPickerComponent,
-    PhoneNowPlayingComponent, PhoneQueueSheetComponent],
+    PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, AddToPlaylistDialogComponent],
   templateUrl: './phone-app.component.html',
   styleUrl: './phone-app.component.scss',
 })
 export class PhoneAppComponent {
   readonly player = inject(PlayerService);
   readonly queueActions = inject(QueueActionsService);
+  readonly library = inject(PhoneLibraryService);
+  private readonly content = viewChild.required<ElementRef<HTMLElement>>('content');
+  /** The page scrolls inside the shell, not the window, so the shell keeps each URL's offset for Back. */
+  private readonly scrollByUrl = new Map<string, number>();
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly injector = inject(Injector);
@@ -62,6 +69,19 @@ export class PhoneAppComponent {
     const track = this.player.currentTrack();
     return track ? formatTrackFormat(track) : null;
   });
+
+  constructor() {
+    let restoring = false;
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        this.scrollByUrl.set(this.router.url, this.content().nativeElement.scrollTop);
+        restoring = event.navigationTrigger === 'popstate';
+      } else if (event instanceof NavigationEnd) {
+        const top = restoring ? this.scrollByUrl.get(event.urlAfterRedirects) ?? 0 : 0;
+        afterNextRender(() => { this.content().nativeElement.scrollTop = top; }, { injector: this.injector });
+      }
+    });
+  }
 
   openNowPlaying(): void {
     this.nowPlayingOpen.set(true);

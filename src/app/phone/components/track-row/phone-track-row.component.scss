@@ -1,0 +1,100 @@
+:host { display: block; }
+
+.track-row {
+  display: flex;
+  align-items: center;
+  min-height: var(--row-height);
+  padding-right: var(--space-1);
+}
+
+.row-main {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  min-height: var(--row-height);
+  padding-left: var(--page-pad-x);
+  text-align: left;
+  color: inherit;
+}
+
+.row-main:active:not(:disabled) { background: var(--bg-surface-hover); }
+
+.row-cover {
+  flex: none;
+  width: var(--phone-cover-thumb);
+  height: var(--phone-cover-thumb);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.row-number {
+  flex: none;
+  width: var(--space-8);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.row-title,
+.row-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-title { font-size: var(--font-size-base); font-weight: 600; }
+.playing .row-title,
+.playing .row-number { color: var(--text-accent); }
+
+.row-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.row-format,
+.row-time {
+  flex: none;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.row-format.hires { color: var(--text-accent); }
+
+/* Amber means absence. */
+.unavailable .row-title { color: var(--text-muted); }
+.unavailable .row-artist { color: var(--status-warning-text); }
+
+.row-more {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.row-more:active { background: var(--bg-surface-hover); }
+
+button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}

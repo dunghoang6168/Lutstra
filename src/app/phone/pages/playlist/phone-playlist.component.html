@@ -1,0 +1,18 @@
+@if (playlist(); as playlist) {
+  <app-phone-detail-header [title]="playlist.name" subtitle="Playlist" [measure]="measure()" icon="list-music"
+    [canPlay]="tracks().length > 0" (play)="library.play(tracks())" (shuffle)="library.shuffle(tracks())" />
+  @if (missing() > 0) {
+    <p class="page-note">{{ missing() }} {{ missing() === 1 ? 'track is' : 'tracks are' }} not in the library on this phone.</p>
+  }
+  @if (entries().length) {
+    <div class="list">
+      @for (entry of entries(); track entry.id; let i = $index) {
+        <app-phone-track-row [track]="entry.track" (play)="library.play(tracks(), i)" />
+      }
+    </div>
+  } @else {
+    <p class="page-note">This playlist is empty. Add tracks from a track's ⋯ menu.</p>
+  }
+} @else if (loaded() && library.playlists().length) {
+  <p class="page-note">This playlist no longer exists.</p>
+}

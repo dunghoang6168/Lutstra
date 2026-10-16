@@ -1,0 +1,20 @@
+<div class="scrim" aria-hidden="true" (click)="close()"></div>
+<section class="actions-sheet" role="dialog" aria-modal="true" aria-labelledby="trackActionsTitle"
+  (keydown.escape)="close()">
+  <span class="grabber" aria-hidden="true"></span>
+  <h2 id="trackActionsTitle" class="sheet-title">{{ title() }}</h2>
+  @if (tracks().length === 1) {
+    <p class="sheet-subtitle">{{ tracks()[0].artist ?? 'Unknown artist' }}@if (tracks()[0].album) { · {{ tracks()[0].album }} }</p>
+  }
+  <div class="actions">
+    <button #firstAction type="button" class="action" (click)="playNext()">
+      <app-icon name="skip-forward" [size]="20" /> Play next
+    </button>
+    <button type="button" class="action" (click)="addToQueue()">
+      <app-icon name="queue" [size]="20" /> Add to queue
+    </button>
+    <button type="button" class="action" (click)="addToPlaylist()">
+      <app-icon name="list-music" [size]="20" /> Add to playlist…
+    </button>
+  </div>
+</section>

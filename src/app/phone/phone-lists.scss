@@ -1,0 +1,124 @@
+/* Lists shared by the phone Library and detail pages: navigation rows, album cards and page notes. */
+
+.page-note {
+  margin: 0;
+  padding: var(--space-6) var(--page-pad-x);
+  color: var(--text-secondary);
+}
+
+.list {
+  margin: 0;
+  padding: 0 0 var(--space-4);
+  list-style: none;
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--row-height);
+  padding: 0 var(--space-3) 0 var(--page-pad-x);
+  color: inherit;
+  text-decoration: none;
+}
+
+.nav-row:active { background: var(--bg-surface-hover); }
+
+.row-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--phone-cover-thumb);
+  height: var(--phone-cover-thumb);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  background: var(--bg-surface);
+}
+
+.row-icon.round { border-radius: var(--radius-full); }
+
+.row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.row-title,
+.row-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-title { font-size: var(--font-size-base); font-weight: 600; }
+.row-path { font-size: var(--font-size-xs); color: var(--text-secondary); }
+
+.row-measure {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.chevron { flex: none; color: var(--text-muted); }
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--page-pad-x) var(--space-6);
+  list-style: none;
+}
+
+.album-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.album-cover {
+  height: auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--cover-radius);
+}
+
+.album-title,
+.album-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-title {
+  margin-top: var(--space-2);
+  font-size: var(--card-title-size);
+  font-weight: var(--card-title-weight);
+}
+
+.album-artist { font-size: var(--font-size-xs); color: var(--text-secondary); }
+
+.album-format {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.album-format.hires { color: var(--text-accent); }
+
+.section-title {
+  margin: var(--space-4) 0 var(--space-2);
+  padding: 0 var(--page-pad-x);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}

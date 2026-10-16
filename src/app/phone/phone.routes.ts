@@ -19,6 +19,26 @@ export const phoneRoutes: Routes = [
     loadComponent: () => import('./pages/library/phone-library.component').then((m) => m.PhoneLibraryComponent),
   },
   {
+    path: 'library/albums/:id',
+    data: { title: 'Album' },
+    loadComponent: () => import('./pages/album/phone-album.component').then((m) => m.PhoneAlbumComponent),
+  },
+  {
+    path: 'library/artists/:id',
+    data: { title: 'Artist' },
+    loadComponent: () => import('./pages/artist/phone-artist.component').then((m) => m.PhoneArtistComponent),
+  },
+  {
+    path: 'library/playlists/:id',
+    data: { title: 'Playlist' },
+    loadComponent: () => import('./pages/playlist/phone-playlist.component').then((m) => m.PhonePlaylistComponent),
+  },
+  {
+    path: 'library/folders/:id',
+    data: { title: 'Folder' },
+    loadComponent: () => import('./pages/folder/phone-folder.component').then((m) => m.PhoneFolderComponent),
+  },
+  {
     // ponytail: the desktop Settings page until the phone Settings page (P3).
     path: 'settings',
     data: { title: 'Settings' },

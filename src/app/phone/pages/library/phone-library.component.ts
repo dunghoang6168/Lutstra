@@ -1,47 +1,85 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { LIBRARY_GATEWAY } from '../../../core/contracts';
-import { Track } from '../../../core/models';
-import { PlayerService } from '../../../core/player/player.service';
-import { formatTrackFormat } from '../../../features/home/library-quality';
+import { Component, computed, inject } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
+import { albumFormatMap, formatCount } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
+import { PhoneTrackRowComponent } from '../../components/track-row/phone-track-row.component';
+import { PhoneLibraryService } from '../../phone-library.service';
+import {
+  ALBUM_SORTS, ARTIST_SORTS, AlbumSort, ArtistSort, LibraryTab, SONG_SORTS, SongSort,
+  isLibraryTab, sortAlbums, sortArtists, sortTracks,
+} from '../../library-sort';
 
-const byTitle = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
-
-/** P0: every track by title, enough to start playback. The chip tabs and detail pages arrive in P1. */
+/** Library: chip tabs (kept in `?tab=` so Back returns to the same one), Shuffle and a sort for each list. */
 @Component({
   selector: 'app-phone-library',
   standalone: true,
-  imports: [IconComponent],
+  imports: [RouterLink, IconComponent, CoverArtComponent, PhoneTrackRowComponent],
   templateUrl: './phone-library.component.html',
-  styleUrl: './phone-library.component.scss',
+  styleUrls: ['../../phone-lists.scss', './phone-library.component.scss'],
 })
 export class PhoneLibraryComponent {
-  readonly player = inject(PlayerService);
-  private readonly library = inject(LIBRARY_GATEWAY);
-  readonly tracks = signal<Track[]>([]);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly rows = computed(() => this.tracks().map((track) => ({ track, format: formatTrackFormat(track) })));
+  readonly library = inject(PhoneLibraryService);
+  readonly tabs: { id: LibraryTab; label: string }[] = [
+    { id: 'songs', label: 'Songs' },
+    { id: 'albums', label: 'Albums' },
+    { id: 'artists', label: 'Artists' },
+    { id: 'playlists', label: 'Playlists' },
+    { id: 'folders', label: 'Folders' },
+  ];
+  readonly songSorts = Object.entries(SONG_SORTS) as [SongSort, string][];
+  readonly albumSorts = Object.entries(ALBUM_SORTS) as [AlbumSort, string][];
+  readonly artistSorts = Object.entries(ARTIST_SORTS) as [ArtistSort, string][];
+  readonly formatCount = formatCount;
+
+  readonly tab = toSignal(inject(ActivatedRoute).queryParamMap.pipe(
+    map((params) => { const tab = params.get('tab'); return isLibraryTab(tab) ? tab : 'songs'; }),
+  ), { initialValue: 'songs' as LibraryTab });
+  readonly songSort = this.library.songSort;
+  readonly albumSort = this.library.albumSort;
+  readonly artistSort = this.library.artistSort;
+
+  readonly loaded = computed(() => this.library.snapshot() !== null);
+  readonly allTracks = computed(() => this.library.snapshot()?.tracks ?? []);
+  readonly songs = computed(() => sortTracks(this.allTracks(), this.songSort()));
+  readonly albums = computed(() => sortAlbums(this.library.snapshot()?.albums ?? [], this.albumSort()));
+  readonly albumFormats = computed(() => albumFormatMap(this.library.snapshot()?.albums ?? [], this.allTracks()));
+  readonly artists = computed(() => sortArtists(this.library.snapshot()?.artists ?? [], this.artistSort()));
+  readonly folders = computed(() => this.library.snapshot()?.folders ?? []);
+  readonly playlists = this.library.playlists;
+  readonly count = computed(() => {
+    switch (this.tab()) {
+      case 'songs': return plural(this.songs().length, 'track');
+      case 'albums': return plural(this.albums().length, 'album');
+      case 'artists': return plural(this.artists().length, 'artist');
+      case 'playlists': return plural(this.playlists().length, 'playlist');
+      default: return plural(this.folders().length, 'folder');
+    }
+  });
 
   constructor() {
-    this.library.libraryChanged$?.pipe(takeUntilDestroyed(inject(DestroyRef))).subscribe(() => void this.load());
-    void this.load();
+    void this.library.ensureLoaded();
+    void this.library.loadPlaylists();
   }
 
-  play(index: number): void {
-    void this.player.playCollection(this.tracks(), index);
+  playSong(index: number): void {
+    this.library.play(this.songs(), index);
   }
 
-  private async load(): Promise<void> {
-    try {
-      const { tracks } = await this.library.getLibrary();
-      this.tracks.set([...tracks].sort((a, b) => byTitle.compare(a.title, b.title)));
-      this.error.set(null);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Failed to load the library');
-    } finally {
-      this.loading.set(false);
-    }
+  shuffleAll(): void {
+    this.library.shuffle(this.allTracks().filter((track) => track.isAvailable));
   }
+
+  onSort(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (this.tab() === 'songs') this.songSort.set(value as SongSort);
+    else if (this.tab() === 'albums') this.albumSort.set(value as AlbumSort);
+    else this.artistSort.set(value as ArtistSort);
+  }
+}
+
+function plural(count: number, noun: string): string {
+  return `${formatCount.format(count)} ${noun}${count === 1 ? '' : 's'}`;
 }

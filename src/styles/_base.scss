@@ -12,6 +12,11 @@ html:not([data-theme]) {
   color-scheme: dark;
 }
 
+/* The Android WebView paints a blue box over anything tapped; the phone shell gives its own :active feedback. */
+html[data-layout='phone'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body, app-root {
   height: 100%;
   width: 100%;

@@ -1,0 +1,24 @@
+@if (node(); as node) {
+  <app-phone-detail-header [title]="node.name" [subtitle]="subtitle()" [measure]="measure()" icon="folder"
+    [canPlay]="allTracks().length > 0" (play)="library.play(allTracks())" (shuffle)="library.shuffle(allTracks())" />
+  @if (subfolders().length) {
+    <ul class="list">
+      @for (folder of subfolders(); track folder.id) {
+        <li>
+          <a class="nav-row" [routerLink]="['/library/folders', folder.id]">
+            <span class="row-icon"><app-icon name="folder" [size]="22" /></span>
+            <span class="row-text"><span class="row-title">{{ folder.name }}</span></span>
+            <app-icon class="chevron" name="chevron-right" [size]="18" />
+          </a>
+        </li>
+      }
+    </ul>
+  }
+  <div class="list">
+    @for (track of tracks(); track track.id; let i = $index) {
+      <app-phone-track-row [track]="track" (play)="library.play(tracks(), i)" />
+    }
+  </div>
+} @else if (searched()) {
+  <p class="page-note">This folder is no longer in the library.</p>
+}

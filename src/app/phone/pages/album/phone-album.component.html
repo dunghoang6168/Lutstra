@@ -1,0 +1,12 @@
+@if (album(); as album) {
+  <app-phone-detail-header [title]="album.title" [subtitle]="subtitle()" [measure]="measure()"
+    [hires]="!!format()?.hires" [artwork]="album.artwork" [canPlay]="tracks().length > 0"
+    (play)="library.play(tracks())" (shuffle)="library.shuffle(tracks())" />
+  <div class="list">
+    @for (track of tracks(); track track.id; let i = $index) {
+      <app-phone-track-row [track]="track" [number]="track.trackNumber" (play)="library.play(tracks(), i)" />
+    }
+  </div>
+} @else if (library.snapshot()) {
+  <p class="page-note">This album is no longer in the library.</p>
+}

@@ -228,6 +228,16 @@ The Android app no longer runs the desktop shell. `main.ts` boots `PhoneAppCompo
 
 On the Motorola (2026-10-16): the three tabs switched; Library listed 459 tracks with real measurements after the one-time metadata re-read (`FLAC 24/48`, `16/44.1`, Hi-Res in accent); the mini player followed the playing track; Now Playing opened from the mini player, showed `FLAC 24/48 · 2221 kbps` between the times and closed with ⌄ and with Back (focus back on the mini player); the queue sheet opened from Now Playing and Back closed it (focus back on its button); Back closed the folder picker in Settings, then left Settings, went from Search to Home, and at Home moved the app to the background. An install that already saved an accent (this one had rose) keeps it.
 
+## Phone Library (P1)
+
+- **Library** (`phone/pages/library`) has chip tabs Songs · Albums · Artists · Playlists · Folders. The tab is the `?tab=` query parameter (switched with `replaceUrl`), so Back from a detail page returns to it. Each list has Shuffle (the whole library) and a native sort select (`library-sort.ts`; the choice lasts for the session in `PhoneLibraryService`).
+- **Detail pages** `library/albums/:id`, `artists/:id`, `playlists/:id` and `folders/:id` share `app-phone-detail-header` (cover, title, prose line, mono measurement line from `collectionMeasure`, ink Play and Shuffle) and `app-phone-track-row`. A folder id is its root's id followed by `/name` per level; Play and Shuffle on a folder take every track below it, and its list shows sub-folders, then its own tracks.
+- **⋯ sheet** (`app-phone-track-actions-sheet`): Play next, Add to queue, Add to playlist… (the shared `app-add-to-playlist-dialog`). Both close on Back through the shell's Escape path.
+- **Tap feedback:** `_base.scss` turns off the WebView's blue tap highlight under `data-layout='phone'`; phone controls show their own `:active` background instead.
+- **Scroll:** the page scrolls inside the shell, so the shell keeps each URL's offset and restores it on Back (popstate) only.
+
+On the Motorola (2026-10-17): the five tabs listed 459 tracks, 64 albums and one folder root; Music → US-UK → DPR IAN → Dear insanity showed 459, 236 and then 7 tracks, and Back walked up to `?tab=folders`; an album opened from 2000px down the grid came back to 2000px; album rows show track numbers; an artist page listed 2 albums and 12 tracks; the ⋯ sheet and the Add to playlist dialog opened and closed on Back (the first Back hides the keyboard). Playback (volume turned down): a Songs row, an album's Play, an artist's Shuffle and a folder's Play each started the expected track; Play next put the track right after the current one and Add to queue put it last; a playlist created from the dialog, with a second track added to it, listed both in order and played. The test playlist was deleted afterwards.
+
 ## Test devices
 
 From 2026-10-15 only the Motorola moto g stylus 5G (2024) is used for device testing. The Nothing A065 passed Gate B but is no longer in the test set, so later stages are verified on the Motorola alone.

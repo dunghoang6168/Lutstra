@@ -1,0 +1,14 @@
+<header class="detail-header">
+  <app-cover-art class="detail-cover" [class.round]="round()" [class.placeholder]="!artwork()" [src]="artwork()" [icon]="icon()" [iconSize]="56" />
+  <h2 class="detail-title">{{ title() }}</h2>
+  @if (subtitle(); as subtitle) { <p class="detail-subtitle">{{ subtitle }}</p> }
+  @if (measure(); as measure) { <p class="detail-measure" [class.hires]="hires()">{{ measure }}</p> }
+  <div class="detail-actions">
+    <button type="button" class="play-btn" (click)="play.emit()" [disabled]="!canPlay()">
+      <app-icon name="play" [size]="20" /> Play
+    </button>
+    <button type="button" class="shuffle-btn" (click)="shuffle.emit()" [disabled]="!canPlay()">
+      <app-icon name="shuffle" [size]="20" /> Shuffle
+    </button>
+  </div>
+</header>

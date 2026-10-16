@@ -1,26 +1,120 @@
-@if (error(); as error) {
+<nav class="chips" aria-label="Library sections">
+  @for (item of tabs; track item.id) {
+    <a class="chip" [class.active]="tab() === item.id" [routerLink]="[]" [queryParams]="{ tab: item.id }" replaceUrl
+      [attr.aria-current]="tab() === item.id ? 'page' : null">{{ item.label }}</a>
+  }
+</nav>
+
+@if (library.error(); as error) {
   <p class="page-note" role="alert">{{ error }}</p>
-} @else if (!loading() && !tracks().length) {
+} @else if (loaded() && !allTracks().length && tab() !== 'playlists') {
   <p class="page-note">No tracks yet. Choose music folders in Settings.</p>
-} @else {
-  <p class="count">{{ tracks().length }} {{ tracks().length === 1 ? 'track' : 'tracks' }}</p>
-  <ul class="track-list">
-    @for (row of rows(); track row.track.id; let i = $index) {
-      <li>
-        <button type="button" class="track-row" [class.playing]="player.currentTrack()?.id === row.track.id"
-          [attr.aria-current]="player.currentTrack()?.id === row.track.id ? 'true' : null" (click)="play(i)">
-          <span class="thumb" aria-hidden="true"><app-icon name="music" [size]="20" /></span>
-          <span class="row-text">
-            <span class="row-title">{{ row.track.title }}</span>
-            <span class="row-meta">
-              <span class="row-artist">{{ row.track.artist ?? 'Unknown artist' }}</span>
-              @if (row.format; as format) {
-                <span class="row-format" [class.hires]="format.hires">{{ format.label }}</span>
-              }
-            </span>
-          </span>
-        </button>
-      </li>
+} @else if (loaded()) {
+  <div class="toolbar">
+    <button type="button" class="shuffle-btn" (click)="shuffleAll()" [disabled]="!allTracks().length">
+      <app-icon name="shuffle" [size]="18" /> Shuffle
+    </button>
+    <span class="count">{{ count() }}</span>
+    @switch (tab()) {
+      @case ('songs') {
+        <select class="sort" aria-label="Sort tracks" (change)="onSort($event)">
+          @for (option of songSorts; track option[0]) {
+            <option [value]="option[0]" [selected]="songSort() === option[0]">{{ option[1] }}</option>
+          }
+        </select>
+      }
+      @case ('albums') {
+        <select class="sort" aria-label="Sort albums" (change)="onSort($event)">
+          @for (option of albumSorts; track option[0]) {
+            <option [value]="option[0]" [selected]="albumSort() === option[0]">{{ option[1] }}</option>
+          }
+        </select>
+      }
+      @case ('artists') {
+        <select class="sort" aria-label="Sort artists" (change)="onSort($event)">
+          @for (option of artistSorts; track option[0]) {
+            <option [value]="option[0]" [selected]="artistSort() === option[0]">{{ option[1] }}</option>
+          }
+        </select>
+      }
     }
-  </ul>
+  </div>
+
+  @switch (tab()) {
+    @case ('songs') {
+      <div class="list">
+        @for (track of songs(); track track.id; let i = $index) {
+          <app-phone-track-row [track]="track" (play)="playSong(i)" />
+        }
+      </div>
+    }
+    @case ('albums') {
+      <ul class="album-grid">
+        @for (album of albums(); track album.id) {
+          <li>
+            <a class="album-card" [routerLink]="['/library/albums', album.id]">
+              <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="40" />
+              <span class="album-title">{{ album.title }}</span>
+              <span class="album-artist">{{ album.artist ?? 'Unknown artist' }}</span>
+              @if (albumFormats().get(album.id); as format) {
+                <span class="album-format" [class.hires]="format.hires">{{ format.label }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    }
+    @case ('artists') {
+      <ul class="list">
+        @for (artist of artists(); track artist.id) {
+          <li>
+            <a class="nav-row" [routerLink]="['/library/artists', artist.id]">
+              <span class="row-icon round"><app-icon name="user" [size]="22" /></span>
+              <span class="row-text">
+                <span class="row-title">{{ artist.name }}</span>
+                <span class="row-measure">{{ artist.albumIds.length }} {{ artist.albumIds.length === 1 ? 'album' : 'albums' }} · {{ artist.trackIds.length }} {{ artist.trackIds.length === 1 ? 'track' : 'tracks' }}</span>
+              </span>
+              <app-icon class="chevron" name="chevron-right" [size]="18" />
+            </a>
+          </li>
+        }
+      </ul>
+    }
+    @case ('playlists') {
+      @if (playlists().length) {
+        <ul class="list">
+          @for (playlist of playlists(); track playlist.id) {
+            <li>
+              <a class="nav-row" [routerLink]="['/library/playlists', playlist.id]">
+                <span class="row-icon"><app-icon name="list-music" [size]="22" /></span>
+                <span class="row-text">
+                  <span class="row-title">{{ playlist.name }}</span>
+                  <span class="row-measure">{{ playlist.entries.length }} {{ playlist.entries.length === 1 ? 'track' : 'tracks' }}</span>
+                </span>
+                <app-icon class="chevron" name="chevron-right" [size]="18" />
+              </a>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="page-note">No playlists yet. Add tracks to one from a track's ⋯ menu.</p>
+      }
+    }
+    @case ('folders') {
+      <ul class="list">
+        @for (folder of folders(); track folder.id) {
+          <li>
+            <a class="nav-row" [routerLink]="['/library/folders', folder.id]">
+              <span class="row-icon"><app-icon name="folder" [size]="22" /></span>
+              <span class="row-text">
+                <span class="row-title">{{ folder.name }}</span>
+                <span class="row-path">{{ folder.path }}</span>
+              </span>
+              <app-icon class="chevron" name="chevron-right" [size]="18" />
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  }
 }
