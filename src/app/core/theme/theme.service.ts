@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common';
+import { Capacitor } from '@capacitor/core';
 import { effect, inject, Injectable, signal } from '@angular/core';
 import { SETTINGS_GATEWAY } from '../contracts';
 import { LayoutPreferenceService } from '../layout/layout-preference.service';
@@ -48,7 +49,8 @@ export class ThemeService {
       const themePreset = this.themePresetState();
       root.setAttribute('data-theme', themePreset);
       root.setAttribute('data-accent', this.accentColorState());
-      root.setAttribute('data-layout', this.layoutPreference.mode());
+      // The Android app has its own phone shell; the desktop layouts do not apply there.
+      root.setAttribute('data-layout', Capacitor.getPlatform() === 'android' ? 'phone' : this.layoutPreference.mode());
       root.style.colorScheme = themePreset;
     });
   }

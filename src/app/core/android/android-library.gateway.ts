@@ -19,6 +19,10 @@ export interface MediaStoreTrack {
   lastModified: number | null;
   trackNumber: number | null;
   year: number | null;
+  /** bps; sample rate and bit depth need Android 12 (API 31). */
+  bitrate?: number | null;
+  sampleRate?: number | null;
+  bitDepth?: number | null;
   relativePath: string | null;
   folderKey?: string;
 }
@@ -47,8 +51,8 @@ function toTrack(row: MediaStoreTrack): Track {
     artist: known(row.artist), albumArtist: known(row.albumArtist ?? null), album: known(row.album),
     genre: null, year: row.year && row.year > 0 ? row.year : null,
     trackNumber, discNumber, duration: Math.max(0, (row.durationMs || 0) / 1000),
-    codec: codecFor(row.mimeType, fileName), bitrate: null, sampleRate: null,
-    bitDepth: null, channels: null, artwork: null, fileSize: row.fileSize,
+    codec: codecFor(row.mimeType, fileName), bitrate: row.bitrate || null, sampleRate: row.sampleRate || null,
+    bitDepth: row.bitDepth || null, channels: null, artwork: null, fileSize: row.fileSize,
     lastModified: row.lastModified, isAvailable: true,
   };
 }
@@ -247,8 +251,8 @@ export class AndroidLibraryGateway implements LibraryGateway {
         discNumber: track.discNumber, totalDiscs: null,
       },
       audio: {
-        duration: track.duration, numberOfSamples: null, sampleRate: null, channels: null,
-        bitsPerSample: null, bitrate: null, codec: track.codec, codecProfile: null,
+        duration: track.duration, numberOfSamples: null, sampleRate: track.sampleRate, channels: null,
+        bitsPerSample: track.bitDepth, bitrate: track.bitrate, codec: track.codec, codecProfile: null,
         container: null, lossless: null, encoderTool: null, tagTypes: [], audioMd5: null,
       },
       file: {

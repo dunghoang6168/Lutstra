@@ -1,0 +1,38 @@
+<div class="scrim" aria-hidden="true" (click)="close.emit()"></div>
+<section class="queue-sheet phone-sheet" role="dialog" aria-modal="true" aria-labelledby="queueSheetTitle"
+  (keydown.escape)="close.emit()">
+  <span class="grabber" aria-hidden="true"></span>
+  <header class="sheet-header">
+    <h2 id="queueSheetTitle">Next up</h2>
+    <span class="count">{{ player.queue().length }} {{ player.queue().length === 1 ? 'track' : 'tracks' }}</span>
+    <button type="button" class="text-btn" (click)="queueActions.clearWithUndo()" [disabled]="!player.queue().length">Clear</button>
+    <button #closeButton type="button" class="icon-btn" (click)="close.emit()" aria-label="Close queue">
+      <app-icon name="x" [size]="20" />
+    </button>
+  </header>
+
+  @if (player.queue().length) {
+    <ol #list class="queue-list">
+      @for (entry of player.queue(); track entry.id; let i = $index) {
+        <li class="queue-row" [class.current]="i === player.currentIndex()"
+          [class.played]="i < player.currentIndex()"
+          [class.tentative]="entry.suggested && i > player.currentIndex() + 1"
+          [class.unavailable]="!entry.track.isAvailable"
+          [attr.aria-current]="i === player.currentIndex() ? 'true' : null">
+          <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)">
+            <span class="row-text">
+              <span class="row-title">{{ entry.track.title }}</span>
+              <span class="row-artist">@if (entry.suggested) { <span class="suggested" aria-label="Suggestion">✦</span> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
+            </span>
+            <span class="row-time">{{ entry.track.duration | duration }}</span>
+          </button>
+          <button type="button" class="icon-btn" (click)="remove(entry)" [attr.aria-label]="'Remove ' + entry.track.title + ' from queue'">
+            <app-icon name="x" [size]="18" />
+          </button>
+        </li>
+      }
+    </ol>
+  } @else {
+    <p class="empty">Queue is empty. Play something from Library.</p>
+  }
+</section>

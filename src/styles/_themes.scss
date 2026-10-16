@@ -361,6 +361,22 @@ html[data-layout='liquid-glass'][data-runtime='desktop'] {
   --glass-content: color-mix(in srgb, var(--color-surface) 58%, transparent);
 }
 
+/* Phone (Android): Gallery's palette and voice, sized for a thumb. Only the phone shell sets it. */
+html[data-layout='phone'] {
+  --page-pad-x: 16px;
+  --page-pad-top: var(--space-2);
+  --type-display: 2rem;
+  --row-height: 64px;
+  --touch-target: 48px;
+  --phone-app-bar-height: 64px;
+  --phone-nav-height: 64px;
+  --phone-mini-player-height: 64px;
+  --phone-cover-thumb: 48px;
+  --phone-transport-size: 56px;
+  --phone-play-size: 72px;
+  --sheet-radius: 28px;
+}
+
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   html[data-layout='liquid-glass'],
   html[data-layout='liquid-glass'][data-runtime='desktop'] {

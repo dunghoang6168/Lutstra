@@ -1,6 +1,7 @@
 import { ApplicationConfig, inject, InjectionToken, NgZone, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
+import { phoneRoutes } from './phone/phone.routes';
 import { ARTIST_METADATA_GATEWAY, AUDIO_ANALYSIS_ENGINE, AudioAnalysisEngine, LIBRARY_GATEWAY, LISTENING_HISTORY_GATEWAY, LYRICS_GATEWAY, PLAYBACK_ENGINE, PlaybackEngine, PLAYLIST_GATEWAY, POPULARITY_GATEWAY, SETTINGS_GATEWAY } from './core/contracts';
 import { MockArtistMetadataGateway, MockLibraryGateway, MockListeningHistoryGateway, MockLyricsGateway, MockPlaybackEngine, MockPopularityGateway, MockPlaylistGateway, MockSettingsGateway } from './core/mock';
 import { ElectronLibraryGateway } from './core/desktop/electron-library.gateway';
@@ -33,7 +34,7 @@ const ACTIVE_AUDIO_ENGINE = new InjectionToken<PlaybackEngine & AudioAnalysisEng
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(isAndroid() ? phoneRoutes : routes),
 
     { provide: LIBRARY_GATEWAY, useFactory: () => isDesktop() ? new ElectronLibraryGateway() : isAndroid() ? new AndroidLibraryGateway(inject(NgZone)) : new MockLibraryGateway() },
     { provide: PLAYLIST_GATEWAY, useFactory: () => isDesktop() ? new ElectronPlaylistGateway() : isAndroid() ? new AndroidPlaylistGateway() : new MockPlaylistGateway() },

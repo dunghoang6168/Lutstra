@@ -14,7 +14,8 @@
   display: flex;
   align-items: center;
   width: 100%;
-  height: 20px;
+  /* A parent can raise the hit area (the phone sets --touch-target); the track stays 4px. */
+  height: var(--range-hit-height, 20px);
 }
 
 .range-track {
@@ -44,7 +45,7 @@ input {
   position: relative;
   display: block;
   width: 100%;
-  height: 20px;
+  height: var(--range-hit-height, 20px);
   margin: 0;
   padding: 0;
   border: 0;

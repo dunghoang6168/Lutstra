@@ -1,0 +1,26 @@
+@if (error(); as error) {
+  <p class="page-note" role="alert">{{ error }}</p>
+} @else if (!loading() && !tracks().length) {
+  <p class="page-note">No tracks yet. Choose music folders in Settings.</p>
+} @else {
+  <p class="count">{{ tracks().length }} {{ tracks().length === 1 ? 'track' : 'tracks' }}</p>
+  <ul class="track-list">
+    @for (row of rows(); track row.track.id; let i = $index) {
+      <li>
+        <button type="button" class="track-row" [class.playing]="player.currentTrack()?.id === row.track.id"
+          [attr.aria-current]="player.currentTrack()?.id === row.track.id ? 'true' : null" (click)="play(i)">
+          <span class="thumb" aria-hidden="true"><app-icon name="music" [size]="20" /></span>
+          <span class="row-text">
+            <span class="row-title">{{ row.track.title }}</span>
+            <span class="row-meta">
+              <span class="row-artist">{{ row.track.artist ?? 'Unknown artist' }}</span>
+              @if (row.format; as format) {
+                <span class="row-format" [class.hires]="format.hires">{{ format.label }}</span>
+              }
+            </span>
+          </span>
+        </button>
+      </li>
+    }
+  </ul>
+}

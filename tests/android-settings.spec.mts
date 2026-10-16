@@ -22,6 +22,7 @@ describe('Android settings gateway', () => {
     vi.stubGlobal('localStorage', memoryStorage());
     const first = new AndroidSettingsGateway();
     expect((await first.getSettings()).crossfadeEnabled).toBe(false);
+    expect((await first.getSettings()).accentColor).toBe('blue');
     expect((await first.getSettings()).musicFolders).toEqual([]);
     await first.saveSettings({ defaultVolume: 0.35, crossfadeEnabled: true });
     await first.saveSession({ positionSeconds: 42 } as unknown as PlaybackSession);

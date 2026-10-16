@@ -68,6 +68,17 @@ export function formatTrackFormat(track: Track): FormatLabel | null {
   return { label: resolution ? `${codec} ${resolution}` : codec, hires: quality === 'hires' };
 }
 
+/** Every measurement the file has, such as "FLAC 24/96 · 2605 kbps" or "MP3 · 44.1 kHz · 320 kbps". */
+export function formatTrackQualityLine(track: Track): FormatLabel | null {
+  if (!track.codec) return null;
+  const lossy = trackQuality(track) === 'lossy';
+  const head = lossy ? track.codec.toUpperCase() : formatTrackFormat(track)!.label;
+  const parts = [head];
+  if (lossy && track.sampleRate) parts.push(`${formatKhz(track.sampleRate)} kHz`);
+  if (track.bitrate) parts.push(`${Math.round(track.bitrate / 1000)} kbps`);
+  return { label: parts.join(' · '), hires: trackQuality(track) === 'hires' };
+}
+
 /** Resolution for the Songs measurement column; lossy files never show bit depth. */
 export function formatResolution(track: Track): string {
   const lossy = trackQuality(track) === 'lossy';

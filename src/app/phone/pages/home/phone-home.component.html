@@ -1,0 +1,7 @@
+@if (player.currentTrack(); as track) {
+  <section class="section" aria-labelledby="continueTitle">
+    <h2 id="continueTitle">Continue listening</h2>
+    <p class="track">{{ track.title }} <span>· {{ track.artist ?? 'Unknown artist' }}</span></p>
+  </section>
+}
+<p class="page-note">Browse every track in <a routerLink="/library">Library</a>.</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeQuality, formatQualityLine, formatTrackFormat, formatAlbumFormat, matchesQualityFilter, formatResolution, trackQuality } from '../src/app/features/home/library-quality';
+import { summarizeQuality, formatQualityLine, formatTrackFormat, formatAlbumFormat, matchesQualityFilter, formatResolution, trackQuality, formatTrackQualityLine } from '../src/app/features/home/library-quality';
 import type { Track } from '../src/app/core/models';
 
 const t = (codec: string | null, bitDepth: number | null, sampleRate: number | null, isAvailable = true) =>
@@ -34,6 +34,13 @@ describe('format labels and quality filters', () => {
     expect(formatTrackFormat(f('flac', 16, 44100))).toEqual({ label: 'FLAC 16/44.1', hires: false });
     expect(formatTrackFormat(f('MP3', null, 44100, 320000))).toEqual({ label: 'MP3 320k', hires: false });
     expect(formatTrackFormat(f(null, null, null))).toBeNull();
+  });
+
+  it('spells out every measurement for the phone Now Playing chip', () => {
+    expect(formatTrackQualityLine(f('FLAC', 24, 96000, 2605000))).toEqual({ label: 'FLAC 24/96 · 2605 kbps', hires: true });
+    expect(formatTrackQualityLine(f('MP3', null, 44100, 320000))).toEqual({ label: 'MP3 · 44.1 kHz · 320 kbps', hires: false });
+    expect(formatTrackQualityLine(f('FLAC', null, null))).toEqual({ label: 'FLAC', hires: false });
+    expect(formatTrackQualityLine(f(null, null, null))).toBeNull();
   });
 
   it('picks the best track for an album and marks mixed codecs', () => {

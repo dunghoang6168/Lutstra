@@ -51,7 +51,9 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final String PATH_DOCUMENTS = "com.android.externalstorage.documents";
     // Tag reads wait on storage more than on the CPU, so a few run at once.
     private static final int READ_THREADS = 4;
-    private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year" };
+    private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year", "bitrate", "sampleRate", "bitDepth" };
+    // Bumped when readMetadata gains fields, so older cache entries are read again.
+    private static final int METADATA_VERSION = 2;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // Listing must not queue behind a long first scan, or the folder picker waits for it.
     private final ExecutorService treeExecutor = Executors.newSingleThreadExecutor();
@@ -183,9 +185,9 @@ public final class AndroidFolderPlugin extends Plugin {
                     row.put("mimeType", file.mime); row.put("fileSize", file.size);
                     row.put("lastModified", file.modified); row.put("relativePath", file.documentId);
                     JSONObject meta = cache.optJSONObject(key);
-                    if (meta == null || meta.optLong("size", -1) != orMinus(file.size) || meta.optLong("modified", -1) != orMinus(file.modified)) {
+                    if (meta == null || meta.optInt("v") != METADATA_VERSION || meta.optLong("size", -1) != orMinus(file.size) || meta.optLong("modified", -1) != orMinus(file.modified)) {
                         meta = new JSONObject();
-                        meta.put("size", orMinus(file.size)); meta.put("modified", orMinus(file.modified));
+                        meta.put("v", METADATA_VERSION); meta.put("size", orMinus(file.size)); meta.put("modified", orMinus(file.modified));
                         unread.add(rows.size()); unreadUris.add(uri);
                     }
                     nextCache.put(key, meta);
@@ -399,6 +401,11 @@ public final class AndroidFolderPlugin extends Plugin {
             row.put("durationMs", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)));
             row.put("trackNumber", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)));
             row.put("year", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)));
+            row.put("bitrate", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)));
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                row.put("sampleRate", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)));
+                row.put("bitDepth", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)));
+            }
         } catch (RuntimeException ignored) {
             // A malformed file still appears in the library with its document name.
         } finally { try { reader.release(); } catch (Exception ignored) { } }

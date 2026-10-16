@@ -10,6 +10,13 @@ const row = (id: string, changes: Partial<MediaStoreTrack> = {}): MediaStoreTrac
 });
 
 describe('Android MediaStore snapshot', () => {
+  it('carries the scanned bitrate, sample rate and bit depth', () => {
+    const [track] = snapshotFrom([row('a', { fileName: 'a.flac', bitrate: 2605000, sampleRate: 96000, bitDepth: 24 })]).tracks;
+    expect([track.codec, track.bitrate, track.sampleRate, track.bitDepth]).toEqual(['FLAC', 2605000, 96000, 24]);
+    const [older] = snapshotFrom([row('b', { fileName: 'b.mp3' })]).tracks;
+    expect([older.bitrate, older.sampleRate, older.bitDepth]).toEqual([null, null, null]);
+  });
+
   it('keeps URI identities stable, deduplicates a repeated scan row, and tolerates missing tags', () => {
     const id = 'content://media/external_primary/audio/media/42';
     const snapshot = snapshotFrom([row(id, { fileName: 'song.flac' }), row(id, { fileName: 'song.flac' })]);

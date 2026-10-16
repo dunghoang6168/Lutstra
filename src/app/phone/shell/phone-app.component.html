@@ -1,0 +1,76 @@
+<div class="phone-shell" [attr.inert]="nowPlayingOpen() ? '' : null">
+  <header class="app-bar">
+    @if (!onTab()) {
+      <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
+        <app-icon name="chevron-left" [size]="24" />
+      </button>
+    }
+    <h1 class="app-bar-title">{{ title() }}</h1>
+    @if (onTab()) {
+      <a class="icon-btn" routerLink="/settings" aria-label="Settings">
+        <app-icon name="settings" [size]="22" />
+      </a>
+    }
+  </header>
+
+  <main class="phone-content">
+    <router-outlet />
+  </main>
+
+  @if (player.currentTrack(); as track) {
+    <div class="mini-player">
+      <span class="mini-progress" aria-hidden="true" [style.--progress.%]="player.progressPercent()"></span>
+      <button #miniOpen type="button" class="mini-open" (click)="openNowPlaying()" aria-haspopup="dialog"
+        [attr.aria-label]="'Open Now Playing: ' + track.title">
+        <app-cover-art class="mini-cover" [src]="track.artwork" [iconSize]="20" />
+        <span class="mini-text">
+          <span class="mini-title">{{ track.title }}</span>
+          <span class="mini-meta">
+            <span class="mini-artist">{{ track.artist ?? 'Unknown artist' }}</span>
+            @if (format(); as format) {
+              <span class="mini-format" [class.hires]="format.hires">{{ format.label }}</span>
+            }
+          </span>
+        </span>
+      </button>
+      <button type="button" class="mini-play" (click)="player.togglePlayPause()"
+        [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
+        <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="22" />
+      </button>
+      <button type="button" class="icon-btn" (click)="player.next()" aria-label="Next track">
+        <app-icon name="skip-forward" [size]="22" />
+      </button>
+    </div>
+  }
+
+  <nav class="bottom-nav" aria-label="Main">
+    @for (tab of tabs; track tab.path) {
+      <a class="nav-item" [routerLink]="tab.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <span class="nav-indicator"><app-icon [name]="tab.icon" [size]="22" /></span>
+        <span class="nav-label">{{ tab.label }}</span>
+      </a>
+    }
+  </nav>
+</div>
+
+@if (nowPlayingOpen()) {
+  <app-phone-now-playing [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
+}
+@if (queueOpen()) {
+  <app-phone-queue-sheet (close)="queueOpen.set(false)" />
+}
+
+@if (queueActions.notice(); as notice) {
+  <div class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span>{{ notice.message }}</span>
+    @if (notice.action; as action) {
+      <button type="button" (click)="action.run()">{{ action.label }}</button>
+    }
+  </div>
+} @else if (player.playbackNotice(); as notice) {
+  <div class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span>{{ notice }}</span>
+    <button type="button" (click)="player.playbackNotice.set(null)">Dismiss</button>
+  </div>
+}
+@if (folderPickerRequest()) { <app-android-folder-picker /> }

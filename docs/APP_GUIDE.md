@@ -140,6 +140,8 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 
 Component không viết `if layout === ...`. Thay vào đó, chúng đọc token theo layout: `--surface-radius`, `--control-radius`, `--row-height`, `--cover-*`, `--type-display*`, `--motion-*`. Chỉ khi topology thật sự khác (ví dụ Lyrics chỉ có trong rail Gallery) mới tách theo layout.
 
+**Android dùng khung điện thoại riêng**, không dùng ba layout trên. `main.ts` khởi động `PhoneAppComponent` (`src/app/phone/`) với `phoneRoutes`, và `ThemeService` đặt `data-layout='phone'`: giữ bảng màu và giọng chữ của Gallery, thêm token cho ngón tay (`--touch-target` 48px, `--phone-nav-height`, `--phone-mini-player-height`, `--phone-transport-size`, `--phone-play-size`, `--sheet-radius`). Khung gồm app bar (tiêu đề lấy từ `data.title` của route), trang, mini player (bìa, tên, nghệ sĩ, định dạng, play/next, vạch tiến độ) và thanh điều hướng Home · Search · Library. Chạm mini player mở Now Playing toàn màn hình (chip `formatTrackQualityLine` nằm giữa hai mốc thời gian, nút chế độ phát, mở hàng chờ); hàng chờ là bottom sheet "Next up". Nút Back của Android: đóng dialog trên cùng → hàng chờ → Now Playing → lùi trang → ở Home thì đưa app xuống nền. Accent mặc định trên điện thoại là blue. Settings tạm dùng trang desktop đến P3. Kế hoạch: `plan/plans/android-phone-shell.md`.
+
 Responsive tính theo **container** `.main-content` (`@container main-content`, đơn vị `cqi`), không theo viewport. Lý do: ở Console, cây thư viện và inspector chiếm chỗ, nên cùng một cửa sổ nhưng phần nội dung hẹp hơn nhiều.
 
 ## 4. Token, theme và màu
@@ -160,6 +162,7 @@ Responsive tính theo **container** `.main-content` (`@container main-content`, 
   - `trackQuality`: trả về `lossy` / `lossless` / `hires`. Hi-Res nghĩa là lossless và 24-bit trở lên hoặc trên 48 kHz.
   - `formatTrackFormat`: dạng "FLAC 24/96".
   - `formatResolution`: dạng "24/96" hoặc "256k".
+  - `formatTrackQualityLine`: đủ mọi thông số, dạng "FLAC 24/96 · 2605 kbps" hoặc "MP3 · 44.1 kHz · 320 kbps" (Now Playing trên điện thoại).
 - **Signal path** (`shared/components/signal-path`): dòng mono `nguồn → đường ra`, có tooltip giải thích trạng thái. Settings › Audio output giải thích engine và shared mixer ngay tại chỗ. Dock Ambient chỉ hiện độ phân giải (`pillFormat` trong player-bar), hoặc "Output disconnected" màu amber khi mất output.
 - **Câu chữ:**
   - Mọi nhãn viết sentence case: nút, tiêu đề, aria-label, tooltip.

@@ -1,0 +1,57 @@
+<section class="now-playing phone-sheet" role="dialog" aria-modal="true" aria-label="Now Playing"
+  [attr.inert]="queueOpen() ? '' : null" (keydown.escape)="close.emit()">
+  <header class="np-bar">
+    <button #closeButton type="button" class="icon-btn collapse" (click)="close.emit()" aria-label="Close Now Playing">
+      <app-icon name="chevron-left" [size]="26" />
+    </button>
+    <span class="np-bar-title">Now Playing</span>
+  </header>
+
+  @if (player.currentTrack(); as track) {
+    <app-cover-art class="np-cover" [src]="track.artwork" [iconSize]="64" />
+
+    <div class="np-heading">
+      <h2 class="np-title">{{ track.title }}</h2>
+      <p class="np-artist">{{ track.artist ?? 'Unknown artist' }}@if (track.album) { · {{ track.album }} }</p>
+    </div>
+
+    <div class="np-timeline">
+      <app-range-slider [min]="0" [max]="player.duration() || 0" [step]="1" [value]="position()"
+        [disabled]="!player.duration()" ariaLabel="Seek"
+        [ariaValueText]="(position() | duration) + ' of ' + (player.duration() | duration)"
+        (valueChange)="onSeekInput($event)" (adjustingChange)="onScrubbing($event)" />
+      <div class="np-times">
+        <span class="np-time">{{ position() | duration }}</span>
+        @if (quality(); as quality) {
+          <span class="np-quality" [class.hires]="quality.hires">{{ quality.label }}</span>
+        }
+        <span class="np-time">{{ player.duration() | duration }}</span>
+      </div>
+    </div>
+
+    <div class="np-transport">
+      <button type="button" class="transport-btn" (click)="player.previous()" aria-label="Previous track">
+        <app-icon name="skip-back" [size]="28" />
+      </button>
+      <button type="button" class="play-btn" (click)="player.togglePlayPause()"
+        [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
+        <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="32" />
+      </button>
+      <button type="button" class="transport-btn" (click)="player.next()" aria-label="Next track">
+        <app-icon name="skip-forward" [size]="28" />
+      </button>
+    </div>
+
+    <div class="np-secondary">
+      @if (!player.modesLocked()) {
+        <button type="button" class="icon-btn mode-btn" [class.on]="player.playbackMode() !== 'off'"
+          (click)="cyclePlaybackMode()" [attr.aria-label]="player.playbackModeLabel()">
+          <app-icon [name]="player.playbackModeIcon()" [size]="22" />
+        </button>
+      }
+      <button #queueButton type="button" class="icon-btn" (click)="openQueue.emit()" aria-haspopup="dialog" aria-label="Open queue">
+        <app-icon name="queue" [size]="22" />
+      </button>
+    </div>
+  }
+</section>
