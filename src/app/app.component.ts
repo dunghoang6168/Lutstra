@@ -12,6 +12,7 @@ import { IconComponent } from './shared/components/icon/icon.component';
 import { CoverArtComponent } from './shared/components/cover-art/cover-art.component';
 import { RightPanelService } from './core/layout/right-panel.service';
 import { PlayerService } from './core/player/player.service';
+import { SmartShuffleService } from './core/smart-shuffle/smart-shuffle.service';
 import { QueueActionsService } from './core/player/queue-actions.service';
 import { LayoutPreferenceService } from './core/layout/layout-preference.service';
 import { ArtworkGlowPositionService } from './core/layout/artwork-glow-position.service';
@@ -56,6 +57,7 @@ export class AppComponent implements AfterViewChecked {
   readonly windowWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1280);
   readonly rightPanels = inject(RightPanelService);
   readonly player = inject(PlayerService);
+  private readonly smartShuffle = inject(SmartShuffleService);
   readonly queueActions = inject(QueueActionsService);
   readonly layoutPreference = inject(LayoutPreferenceService);
   readonly artworkGlowPosition = inject(ArtworkGlowPositionService);
@@ -376,8 +378,9 @@ export class AppComponent implements AfterViewChecked {
         this.player.next();
         break;
       case 'KeyS':
-        if (!this.player.queue().length || this.player.modesLocked()) return;
-        this.player.toggleShuffle();
+        if (this.player.modesLocked()) return;
+        // Off → Shuffle → Smart Shuffle → Off, like the shuffle button.
+        void this.smartShuffle.cycleShuffle();
         break;
       case 'KeyR':
         if (this.player.modesLocked()) return;

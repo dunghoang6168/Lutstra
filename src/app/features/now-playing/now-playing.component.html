@@ -102,25 +102,26 @@
                     type="button"
                     class="btn-icon playback-mode-button"
                     [class.active]="player.playbackMode() !== 'off'"
-                    (click)="player.cyclePlaybackMode()"
+                    (click)="smartShuffle.cyclePlaybackMode()"
                     [style.visibility]="player.modesLocked() ? 'hidden' : null"
                     [appTip]="player.playbackModeLabel()"
                     [attr.aria-label]="player.playbackModeLabel()">
-                    <app-icon [name]="player.playbackModeIcon()" [size]="16" />
+                    <app-icon [name]="player.playbackModeIcon()" [size]="player.smartShuffle() ? 14 : 16" />
                     @if (player.playbackMode() === 'combined') {
                       <app-icon name="repeat" [size]="10" class="mode-repeat" />
                     }
                   </button>
                 } @else {
+                  <!-- Off → Shuffle → Smart Shuffle (the star) → Off, like repeat. -->
                   <button
                     type="button"
                     class="btn-icon"
-                    [class.active]="player.isShuffle()"
-                    (click)="player.toggleShuffle()"
+                    [class.active]="player.shuffleState() !== 'Off'"
+                    (click)="smartShuffle.cycleShuffle()"
                     [style.visibility]="player.modesLocked() ? 'hidden' : null"
-                    appTip="Toggle shuffle"
-                    aria-label="Shuffle" [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
-                    <app-icon name="shuffle" [size]="16" />
+                    [appTip]="'Shuffle: ' + player.shuffleState()"
+                    [attr.aria-label]="'Shuffle: ' + player.shuffleState()" [attr.aria-pressed]="player.shuffleState() !== 'Off'" aria-keyshortcuts="S">
+                    <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="player.smartShuffle() ? 14 : 16" />
                   </button>
                 }
 
@@ -163,7 +164,7 @@
                     class="btn-icon"
                     [class.active]="player.repeatMode() !== 'off'"
                     (click)="player.cycleRepeatMode()"
-                    [style.visibility]="player.modesLocked() ? 'hidden' : null"
+                    [style.visibility]="player.modesLocked() || player.smartShuffle() ? 'hidden' : null"
                     [appTip]="'Repeat Mode: ' + player.repeatMode()"
                     [attr.aria-label]="'Repeat: ' + player.repeatMode()" aria-keyshortcuts="R">
                     <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="16" />

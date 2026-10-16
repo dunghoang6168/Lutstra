@@ -10,6 +10,7 @@ export class MockSettingsGateway implements SettingsGateway {
     defaultVolume: 0.8,
     repeatMode: 'off',
     shuffle: false,
+    smartShuffle: false,
     crossfadeEnabled: true,
     crossfadeSeconds: 5,
     audioEngineBackend: 'chromium',

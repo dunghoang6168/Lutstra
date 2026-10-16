@@ -2,13 +2,16 @@
 export type TransitionCause = 'next' | 'previous' | 'user';
 
 export type ListenStart = TransitionCause | 'auto' | 'resume';
-/** `other`: the track left without a user transition before its end (a failure, the queue cleared). */
-export type ListenEnd = 'ended' | 'skip_next' | 'skip_previous' | 'picked_other' | 'app_closed' | 'other';
-export type ListenSource = 'queue' | 'roulette';
+/**
+ * `other`: the track left without a user transition before its end (a failure, the queue cleared).
+ * `removed`: a Smart Shuffle suggestion taken out of the queue before it played (0 seconds).
+ */
+export type ListenEnd = 'ended' | 'skip_next' | 'skip_previous' | 'picked_other' | 'app_closed' | 'other' | 'removed';
+export type ListenSource = 'queue' | 'roulette' | 'smart-shuffle';
 
 export const LISTEN_STARTS: readonly ListenStart[] = ['user', 'auto', 'next', 'previous', 'resume'];
-export const LISTEN_ENDS: readonly ListenEnd[] = ['ended', 'skip_next', 'skip_previous', 'picked_other', 'app_closed', 'other'];
-export const LISTEN_SOURCES: readonly ListenSource[] = ['queue', 'roulette'];
+export const LISTEN_ENDS: readonly ListenEnd[] = ['ended', 'skip_next', 'skip_previous', 'picked_other', 'app_closed', 'other', 'removed'];
+export const LISTEN_SOURCES: readonly ListenSource[] = ['queue', 'roulette', 'smart-shuffle'];
 
 /** One finished listen. Kept for the listener analysis; the History page shows only the track and the time. */
 export interface PlayEvent {
@@ -39,7 +42,7 @@ export interface HistoryPageRequest {
 }
 
 export const HISTORY_PAGE_SIZE = 200;
-/** The History page lists every recorded listen except roulette rolls, which stay in the log for the analysis. */
-export function shownInHistory(event: Pick<PlayEvent, 'source'>): boolean {
-  return event.source !== 'roulette';
+/** The History page lists every listen except roulette rolls and removed suggestions, which stay in the log for the analysis. */
+export function shownInHistory(event: Pick<PlayEvent, 'source' | 'endReason'>): boolean {
+  return event.source !== 'roulette' && event.endReason !== 'removed';
 }

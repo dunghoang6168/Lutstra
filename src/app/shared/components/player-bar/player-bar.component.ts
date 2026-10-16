@@ -5,6 +5,7 @@ import { TimelineScrub, timelineFraction } from '../../utils/timeline-scrub';
 import { CurrentLyricsService, centerLyricLine } from '../../../features/now-playing/current-lyrics.service';
 import { PlayerService } from '../../../core/player/player.service';
 import { RightPanelService } from '../../../core/layout/right-panel.service';
+import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { CoverArtComponent } from '../cover-art/cover-art.component';
@@ -26,6 +27,7 @@ export type PlayerVariant = 'strip' | 'rail' | 'pill';
 export class PlayerBarComponent {
   readonly player = inject(PlayerService);
   readonly rightPanels = inject(RightPanelService);
+  readonly smartShuffle = inject(SmartShuffleService);
   readonly variant = input<PlayerVariant>('strip');
   readonly isQueueOpen = input<boolean>(false);
   readonly toggleQueue = output<void>();

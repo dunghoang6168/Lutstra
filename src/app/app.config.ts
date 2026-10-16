@@ -19,6 +19,7 @@ import { MediaSessionService } from './core/media/media-session.service';
 import { LayoutPreferenceService } from './core/layout/layout-preference.service';
 import { AudioVisualizationPreferenceService } from './core/layout/audio-visualization-preference.service';
 import { ListeningHistoryService } from './core/history/listening-history.service';
+import { SmartShuffleService } from './core/smart-shuffle/smart-shuffle.service';
 import { Capacitor } from '@capacitor/core';
 import { AndroidLibraryGateway } from './core/android/android-library.gateway';
 import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway';
@@ -51,5 +52,6 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => inject(AudioVisualizationPreferenceService).restore()),
     provideAppInitializer(() => void inject(MediaSessionService)),
     provideAppInitializer(() => void inject(ListeningHistoryService)),
+    provideAppInitializer(() => void inject(SmartShuffleService)),
   ],
 };

@@ -1,7 +1,7 @@
 import { MusicFolder } from './folder.model';
 
 export type RepeatMode = 'off' | 'one' | 'all';
-export type PlaybackMode = 'off' | 'shuffle' | 'repeat-all' | 'repeat-one' | 'combined';
+export type PlaybackMode = 'off' | 'shuffle' | 'smart-shuffle' | 'repeat-all' | 'repeat-one' | 'combined';
 
 export const DARK_THEME_PRESETS = ['dark'] as const;
 
@@ -90,6 +90,7 @@ export interface Settings {
   defaultVolume: number; // 0.0 to 1.0
   repeatMode: RepeatMode;
   shuffle: boolean;
+  smartShuffle: boolean;
   crossfadeEnabled: boolean;
   crossfadeSeconds: number;
   preferredAudioOutputId: string;

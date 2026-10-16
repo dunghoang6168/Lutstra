@@ -1,6 +1,7 @@
 import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { LISTENING_HISTORY_GATEWAY } from '../contracts';
-import { PlayEvent } from '../models';
+import { PlayEvent, Track } from '../models';
+import { Subject } from 'rxjs';
 import { PlayerService } from '../player/player.service';
 import { closedListen, endWindowFor, ListenTracker, parseOpenListen } from './listen-tracker';
 
@@ -22,6 +23,9 @@ export class ListeningHistoryService {
   private savedPlayed = -1;
   /** Bumped after each recorded listen, so an open History page can reload. */
   readonly changes = signal(0);
+  /** Each listen once it is stored, for the listener analysis. */
+  readonly recorded$ = new Subject<PlayEvent>();
+  readonly cleared$ = new Subject<void>();
 
   constructor() {
     this.recordInterruptedListen();
@@ -40,7 +44,7 @@ export class ListeningHistoryService {
           time,
           duration: Math.max(track?.duration ?? 0, this.player.duration()),
           playing: state === 'playing',
-          source: external ? 'roulette' : 'queue',
+          source: external ? 'roulette' : entry?.suggested ? 'smart-shuffle' : 'queue',
           endWindow: endWindowFor(this.player.crossfadeEnabled(), this.player.crossfadeSeconds()),
         }, fresh ? transition.cause : null, Date.now());
         if (changed && transition) this.consumedCauseAt = transition.at;
@@ -52,11 +56,23 @@ export class ListeningHistoryService {
   async clear(): Promise<void> {
     await this.gateway.clear();
     this.changes.update((value) => value + 1);
+    this.cleared$.next();
+  }
+
+  /** A Smart Shuffle suggestion the user took out of the queue before it played: a mild dislike. */
+  recordRemoval(track: Track): void {
+    this.record({
+      trackId: track.id, startedAt: Date.now(), playedSeconds: 0, endPosition: 0, duration: track.duration, seekForwardSeconds: 0,
+      startedBy: 'auto', endReason: 'removed', source: 'smart-shuffle',
+    });
   }
 
   private record(event: PlayEvent): void {
     this.gateway.record(event)
-      .then(() => this.changes.update((value) => value + 1))
+      .then(() => {
+        this.changes.update((value) => value + 1);
+        this.recorded$.next(event);
+      })
       .catch((error) => console.warn('Could not record a listen', error));
   }
 

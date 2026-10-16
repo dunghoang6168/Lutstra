@@ -18,18 +18,35 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 - **Phát nhạc:**
   - `PlayerService` (`core/player`) giữ queue và trạng thái phát.
   - Phiên nghe được giữ qua lần tắt app: queue, thứ tự trước shuffle, bài hiện tại và giây (`PlaybackSession`), lưu ở hàng `session` của bảng `settings` qua IPC `session:get` / `session:save` (`validPlaybackSession`). Renderer ghi dần trong lúc nghe, vì `before-quit` đóng database ngay: queue đổi thì ghi trong khoảng 1 giây, còn vị trí thì tối đa 5 giây một lần khi đang phát. Khi roulette chạy, cái được lưu là queue đang tạm gác và chỗ nghe tiếp của nó. Mở app thì nạp lại ở trạng thái **dừng**, không tự phát. Bài đã bị xoá khỏi thư viện thì bỏ qua. File của bài hiện tại bị mất thì hiện Unavailable.
-  - **Lịch sử nghe** (nền cho Smart Shuffle sau này):
-    - **Ghi ngầm.** `ListeningHistoryService` (`core/history`, khởi động trong `app.config.ts`) ghi ngầm mọi lượt nghe vào bảng `play_events`: bài, lúc bắt đầu, số giây thật sự phát (không tính phần tua), vị trí xa nhất, số giây tua qua, cách bắt đầu (`user` / `auto` / `next` / `previous` / `resume`), lý do kết thúc (`ended` / `skip_next` / `skip_previous` / `picked_other` / `app_closed` / `other`) và nguồn (`queue` / `roulette`).
+  - **Smart Shuffle** là một bước trong vòng xoay của nút Shuffle: Off → Shuffle → Smart Shuffle (icon ngôi sao) → Off, giống nút Repeat; phím S xoay theo đúng vòng này. Nút gộp ở Ambient và Gallery Now Playing xoay Off → Shuffle → Smart Shuffle → Repeat All → Repeat One. Smart Shuffle ẩn khi Roulette chạy. Chi tiết kỹ thuật nằm ở mục Smart Shuffle trong AGENTS.md.
+    - **Một chế độ của queue**, loại trừ với Shuffle:
+      - Bài của bạn được xếp lại theo gu; bài được Play next hoặc kéo tay thì giữ nguyên chỗ.
+      - Cứ vài bài (3 lúc đầu, tự chỉnh từ 2 đến 6) lại chèn một bài gợi ý, chỉ trong 10 vị trí phía trước. Hết bài của bạn thì chạy tiếp bằng gợi ý, không dứt.
+      - Queue trống mà xoay tới Smart Shuffle thì phát luôn các bài gợi ý.
+      - Rời Smart Shuffle thì bỏ các bài gợi ý chưa phát và trả lại thứ tự gốc.
+    - **Thuật toán chạy ngầm, không có nút đánh giá** (`core/smart-shuffle`):
+      - Hồ sơ gu tính từ `play_events`, tín hiệu cũ giảm một nửa sau 60 ngày.
+      - Mỗi bài được lấy mẫu Thompson, rồi nhân với độ liên kết với bài trước (nghệ sĩ, vùng, thể loại, thời kỳ) và độ mỏi (bài vừa nghe thì nghỉ một ngày).
+      - Không để 3 bài liền cùng nghệ sĩ.
+      - Skip hai bài liền cùng vùng thì vùng đó bị hạ cho đến hết phiên.
+    - **Queue drawer:**
+      - Bài gợi ý có dấu ✦ nhỏ trước tên nghệ sĩ.
+      - Bài gợi ý sau bài kế tiếp hiện nhạt hơn, vì có thể đổi.
+      - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
+      - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).
+    - **Báo cáo:** `node scripts/listening-report.mjs` ghi ra `plan/reports/listening-report.md` gồm tỉ lệ nghe hết và skip sớm theo nguồn và theo tuần, độ phủ thư viện trong 30 ngày, và tỉ lệ lặp bài trong 3 ngày.
+  - **Lịch sử nghe** (nền cho Smart Shuffle):
+    - **Ghi ngầm.** `ListeningHistoryService` (`core/history`, khởi động trong `app.config.ts`) ghi ngầm mọi lượt nghe vào bảng `play_events`: bài, lúc bắt đầu, số giây thật sự phát (không tính phần tua), vị trí xa nhất, số giây tua qua, cách bắt đầu (`user` / `auto` / `next` / `previous` / `resume`), lý do kết thúc (`ended` / `skip_next` / `skip_previous` / `picked_other` / `app_closed` / `other` / `removed`) và nguồn (`queue` / `roulette` / `smart-shuffle`).
     - **Đánh dấu lý do chuyển bài.** `PlayerService` ghi lại thao tác chuyển bài gần nhất của người dùng (`lastTransition()`), đặt trong `next()`, `previous()`, `playTrack()`, `playCollection()`, `jumpToQueueIndex()`, `playExternal()` và `backToQueue()`. Bài tự chuyển khi hết đi qua `advance()` riêng nên không bị tính là skip.
     - **Cách tính.** Logic thuần nằm trong `listen-tracker.ts`:
       - Nghe tới cách cuối bài trong `max(3, crossfade + 1)` giây thì tính là `ended`.
       - Repeat One: mỗi vòng là một lượt nghe.
       - Lượt dưới 1 giây không được ghi.
       - Lượt đang nghe dở được lưu tạm ở `lutstra.history.openListen`; lần mở app sau ghi lại với lý do `app_closed`.
-    - **IPC:** `history:record`, `history:list` và `history:clear`, có validate. Trên trình duyệt và Android, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
+    - **IPC:** `history:record`, `history:list`, `history:events` (toàn bộ, cho phân tích) và `history:clear`, có validate. Trên trình duyệt và Android, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
     - **Trang History** (`/history`, sau Folders ở sidebar và tab):
       - Chỉ là lịch sử, không phải thống kê. Mỗi dòng gồm bài, nghệ sĩ, album, giờ nghe và thời lượng bài, chia nhóm theo ngày.
-      - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ Roulette (`shownInHistory`). Lượt Roulette vẫn được lưu để phân tích.
+      - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ Roulette và bài gợi ý bị xóa (`shownInHistory`). Các lượt này vẫn được lưu để phân tích.
       - Settings > Playback có nút **Clear history** (hỏi lại trước khi xóa).
   - `PlaybackEngine` là ranh giới với backend: Native Shared (Native Audio Host, mặc định) hoặc Chromium Shared (dự phòng).
   - Media flyout của Windows (Quick Settings, lock screen): khi chạy Chromium Shared, Chromium tự đẩy `navigator.mediaSession` lên. Khi chạy Native Shared, `MediaSessionService` gửi bài đang phát qua IPC `media-controls:update`, rồi `electron/media-controls.ts` gọi SMTC trong addon `native/window-snap/media_controls.cc`. Nút bấm trên flyout đi về theo channel `media-keys:action`.

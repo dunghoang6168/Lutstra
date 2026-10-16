@@ -1,4 +1,7 @@
 import type { FolderNode } from '../../core/models/folder.model';
+import { collectTrackIds } from '../../core/library/track-regions';
+
+export { collectTrackIds, trackRegions } from '../../core/library/track-regions';
 
 /** 1 base, 2 blue, 3 red, 4 gold, 5 mythical. */
 export type RarityTier = 1 | 2 | 3 | 4 | 5;
@@ -71,18 +74,6 @@ export function popularityTiers(tracks: readonly RankedTrack[]): Map<string, Rar
   return tiers;
 }
 
-/** Region of each track: the top-level folder under its music root, or the root itself for files directly in it. */
-export function trackRegions(roots: readonly FolderNode[]): Map<string, string> {
-  const regions = new Map<string, string>();
-  for (const root of roots) {
-    for (const child of root.children ?? []) {
-      const ids = child.isFolder ? collectTrackIds(child, true) : child.trackId ? [child.trackId] : [];
-      for (const id of ids) regions.set(id, child.isFolder ? child.name : root.name);
-    }
-  }
-  return regions;
-}
-
 export function listFolders(roots: FolderNode[]): FolderNode[] {
   const folders: FolderNode[] = [];
   for (const node of roots) {
@@ -90,19 +81,6 @@ export function listFolders(roots: FolderNode[]): FolderNode[] {
     folders.push(node, ...listFolders(node.children ?? []));
   }
   return folders;
-}
-
-export function collectTrackIds(folder: FolderNode, recursive: boolean): string[] {
-  if (!folder.isFolder) return [];
-  const ids: string[] = [];
-  for (const child of folder.children ?? []) {
-    if (child.isFolder) {
-      if (recursive) ids.push(...collectTrackIds(child, true));
-    } else if (child.trackId) {
-      ids.push(child.trackId);
-    }
-  }
-  return [...new Set(ids)];
 }
 
 /** Track ids of several sources, without repeats: a ticked folder may sit inside another ticked folder. */

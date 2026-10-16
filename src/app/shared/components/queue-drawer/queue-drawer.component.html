@@ -59,12 +59,13 @@
           </div>
         } @else {
           <div class="queue-list" role="list" #rowsContainer (keydown)="onRowsKeyDown($event)">
-            @for (entry of player.queue(); track entry.id; let i = $index) {
+            @for (entry of visibleEntries(); track entry.id; let i = $index) {
               <div
                 class="queue-item"
                 [class.current]="player.currentIndex() === i && !player.externalSource()"
                 [class.parked]="player.currentIndex() === i && !!player.externalSource()"
                 [class.unavailable]="!entry.track.isAvailable"
+                [class.tentative]="entry.suggested && i > player.currentIndex() + 1"
                 [class.dragging]="draggingEntryId() === entry.id"
                 [class.drop-before]="dropTarget()?.entryId === entry.id && dropTarget()?.placement === 'before'"
                 [class.drop-after]="dropTarget()?.entryId === entry.id && dropTarget()?.placement === 'after'"
@@ -128,6 +129,10 @@
                     {{ entry.track.title }}
                   </span>
                   <span class="track-artist truncate" appTipOverflow>
+                    @if (entry.suggested) {
+                      <app-icon name="smart-shuffle" [size]="10" class="suggested-mark" />
+                      <span class="sr-only">Suggested by Smart Shuffle. </span>
+                    }
                     {{ entry.track.artist || 'Unknown Artist' }}
                   </span>
                 </div>
@@ -150,6 +155,12 @@
               </div>
             }
           </div>
+          @if (suggestionTail().length > 3) {
+            <button type="button" class="suggestions-toggle" (click)="suggestionsExpanded.set(!suggestionsExpanded())"
+              [attr.aria-expanded]="suggestionsExpanded()">
+              {{ suggestionsExpanded() ? 'Show fewer' : 'Show more' }}
+            </button>
+          }
         }
         <span class="sr-only" aria-live="polite">{{ reorderAnnouncement() }}</span>
       </div>

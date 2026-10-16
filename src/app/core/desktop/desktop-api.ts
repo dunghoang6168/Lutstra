@@ -107,6 +107,7 @@ export interface DesktopApi {
   history: {
     record(event: PlayEvent): Promise<void>;
     list(request: HistoryPageRequest): Promise<HistoryEntry[]>;
+    events(): Promise<PlayEvent[]>;
     clear(): Promise<void>;
   };
 }

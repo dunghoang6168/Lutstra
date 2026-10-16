@@ -322,6 +322,28 @@
       margin-top: 1px;
     }
 
+    // Smart Shuffle suggestions: a small star before the artist. Ones after the next track may still change, so they read quieter.
+    .suggested-mark {
+      display: inline-flex;
+      vertical-align: -1px;
+      margin-right: var(--space-1);
+      color: var(--text-muted);
+    }
+
+    .queue-item.tentative .track-title { color: var(--text-secondary); font-weight: 400; }
+
+    .suggestions-toggle {
+      display: block;
+      margin: var(--space-2) auto 0;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      color: var(--text-secondary);
+    }
+
+    .suggestions-toggle:hover { color: var(--text-primary); background: var(--bg-surface-hover); }
+    .suggestions-toggle:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
     .queue-item-duration {
       font-size: var(--font-size-xs);
       font-family: var(--font-family-mono);

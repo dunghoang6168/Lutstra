@@ -115,6 +115,13 @@ export class PlayerService implements OnDestroy {
   readonly isMuted = signal<boolean>(false);
   readonly repeatMode = signal<RepeatMode>('off');
   readonly isShuffle = signal<boolean>(false);
+  /**
+   * Smart Shuffle (`SmartShuffleService` arranges the queue): the user's tracks in taste order with
+   * suggestions (`QueueEntry.suggested`) mixed in. Exclusive with shuffle; `originalQueue` keeps the user's order.
+   */
+  readonly smartShuffle = signal<boolean>(false);
+  /** The shuffle button's state, for its label: the button cycles Off → Shuffle → Smart Shuffle. */
+  readonly shuffleState = computed(() => this.smartShuffle() ? 'Smart Shuffle' : this.isShuffle() ? 'On' : 'Off');
   private readonly external = signal<ExternalPlayback | null>(null);
   private externalCount = 0;
   /** The source playing outside the queue, if any. */
@@ -127,6 +134,7 @@ export class PlayerService implements OnDestroy {
   readonly modesLocked = computed(() => this.external() !== null);
   /** Shuffle and repeat as one control's state; `combined` only arises from the separate S and R shortcuts. */
   readonly playbackMode = computed<PlaybackMode>(() => {
+    if (this.smartShuffle()) return 'smart-shuffle';
     const shuffle = this.isShuffle();
     const repeat = this.repeatMode();
     if (shuffle && repeat !== 'off') return 'combined';
@@ -138,23 +146,27 @@ export class PlayerService implements OnDestroy {
   /** Off shows the plain repeat glyph (muted by the caller); the active modes show their own. */
   readonly playbackModeIcon = computed(() => {
     const mode = this.playbackMode();
-    return mode === 'repeat-one' ? 'repeat-one' as const : mode === 'shuffle' || mode === 'combined' ? 'shuffle' as const : 'repeat' as const;
+    return mode === 'repeat-one' ? 'repeat-one' as const : mode === 'smart-shuffle' ? 'smart-shuffle' as const
+      : mode === 'shuffle' || mode === 'combined' ? 'shuffle' as const : 'repeat' as const;
   });
   readonly playbackModeLabel = computed(() => {
     const current = this.playbackMode();
     const names: Record<PlaybackMode, string> = {
       off: 'Off',
       shuffle: 'Shuffle',
+      'smart-shuffle': 'Smart Shuffle',
       'repeat-all': 'Repeat All',
       'repeat-one': 'Repeat One',
       combined: `Shuffle and ${this.repeatMode() === 'one' ? 'Repeat One' : 'Repeat All'}`,
     };
     const next = current === 'off' ? 'Shuffle'
-      : current === 'shuffle' ? 'Repeat All'
+      : current === 'shuffle' ? 'Smart Shuffle'
+      : current === 'smart-shuffle' ? 'Repeat All'
       : current === 'repeat-all' ? 'Repeat One' : 'Off';
     return `Playback mode: ${names[current]}. Click for ${next}`;
   });
-  private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() ? 'off' : this.repeatMode());
+  /** Smart Shuffle never runs out of tracks, so repeat does not apply while it is on either. */
+  private readonly activeRepeat = computed<RepeatMode>(() => this.modesLocked() || this.smartShuffle() ? 'off' : this.repeatMode());
   readonly crossfadeEnabled = signal<boolean>(true);
   readonly crossfadeSeconds = signal<number>(5);
   readonly error = signal<string | null>(null);
@@ -316,6 +328,7 @@ export class PlayerService implements OnDestroy {
         if (typeof settings.shuffle === 'boolean') {
           this.setShuffle(settings.shuffle);
         }
+        if (settings.smartShuffle === true) this.setSmartShuffle(true);
         if (typeof settings.crossfadeEnabled === 'boolean') this.setCrossfadeEnabled(settings.crossfadeEnabled);
         if (Number.isInteger(settings.crossfadeSeconds)) this.setCrossfadeSeconds(settings.crossfadeSeconds);
         this.outputMode.set(settings.outputMode === 'exclusive-dsp' ? 'exclusive-dsp' : 'shared');
@@ -369,13 +382,17 @@ export class PlayerService implements OnDestroy {
     // Tracks gone from the library are dropped; a missing current track hands over to the next one, from the start.
     const kept = session.trackIds.flatMap((id, index) => tracks.has(id) ? [index] : []);
     if (!kept.length) return;
-    const entries = kept.map((old, index) => this.createQueueEntry(tracks.get(session.trackIds[old])!, index));
+    const suggested = new Set(session.suggested ?? []);
+    const entries = kept.map((old, index) => {
+      const entry = this.createQueueEntry(tracks.get(session.trackIds[old])!, index);
+      return suggested.has(old) ? { ...entry, suggested: true } : entry;
+    });
     const newIndex = new Map(kept.map((old, index) => [old, index]));
     const next = kept.findIndex((old) => old >= session.currentIndex);
     const index = session.currentIndex < 0 ? -1 : next >= 0 ? next : kept.length - 1;
     const position = index >= 0 && kept[index] === session.currentIndex ? session.positionSeconds : 0;
     this.queue.set(entries);
-    this.originalQueue = session.originalOrder.flatMap((old) => newIndex.has(old) ? [entries[newIndex.get(old)!]] : []);
+    this.originalQueue = session.originalOrder.flatMap((old) => newIndex.has(old) && !suggested.has(old) ? [entries[newIndex.get(old)!]] : []);
     this.currentIndex.set(index);
     if (index < 0) return;
     // A file that is gone shows as unavailable instead of skipping ahead.
@@ -400,11 +417,15 @@ export class PlayerService implements OnDestroy {
       && (last.position === position || (this.isPlaybackActive() && now - last.at < 5000))) return;
     this.savedSession = { queue, index, position, at: now };
     const positions = new Map(queue.map((entry, i) => [entry.id, i]));
-    const order = this.originalQueue.map((entry) => positions.get(entry.id) ?? -1);
+    // Smart Shuffle keeps only the user's tracks in the original order; its suggestions follow at the end.
+    const order = [...this.originalQueue, ...queue.filter((entry) => entry.suggested && !this.originalQueue.includes(entry))]
+      .map((entry) => positions.get(entry.id) ?? -1);
     const originalOrder = order.length === queue.length && new Set(order).size === order.length && !order.includes(-1)
       ? order : queue.map((_, i) => i);
+    const suggested = queue.flatMap((entry, i) => entry.suggested ? [i] : []);
+    const session = { trackIds: queue.map((entry) => entry.track.id), originalOrder, currentIndex: index, positionSeconds: position };
     try {
-      void this.settingsGateway.saveSession({ version: 1, trackIds: queue.map((entry) => entry.track.id), originalOrder, currentIndex: index, positionSeconds: position })
+      void this.settingsGateway.saveSession(suggested.length ? { version: 2, ...session, suggested } : { version: 1, ...session })
         .catch(() => undefined);
     } catch { /* A gateway without sessions keeps nothing. */ }
   }
@@ -504,10 +525,11 @@ export class PlayerService implements OnDestroy {
 
     this.originalQueue = [...entries];
 
-    if (this.isShuffle()) {
+    if (this.isShuffle() || this.smartShuffle()) {
+      // Smart Shuffle orders the rest itself once the queue changes.
       const selected = entries[safeIndex];
       const others = entries.filter((_, idx) => idx !== safeIndex);
-      const shuffledOthers = this.shuffleArray(others);
+      const shuffledOthers = this.smartShuffle() ? others : this.shuffleArray(others);
       const newQueue = [selected, ...shuffledOthers];
       this.queue.set(newQueue);
       this.currentIndex.set(0);
@@ -646,14 +668,27 @@ export class PlayerService implements OnDestroy {
   }
 
   /** Off → Shuffle → Repeat All → Repeat One → Off. */
+  /** Off → Shuffle → Smart Shuffle → Repeat All → Repeat One → Off (`SmartShuffleService.cyclePlaybackMode` starts suggestions on an empty queue). */
   cyclePlaybackMode(): void {
     const current = this.playbackMode();
+    if (current === 'shuffle') {
+      this.setSmartShuffle(true);
+      return;
+    }
     const next = current === 'off' ? { shuffle: true, repeat: 'off' as const }
-      : current === 'shuffle' ? { shuffle: false, repeat: 'all' as const }
+      : current === 'smart-shuffle' ? { shuffle: false, repeat: 'all' as const }
       : current === 'repeat-all' ? { shuffle: false, repeat: 'one' as const }
       : { shuffle: false, repeat: 'off' as const };
+    if (this.smartShuffle()) this.setSmartShuffle(false);
     if (this.isShuffle() !== next.shuffle) this.setShuffle(next.shuffle);
     if (this.repeatMode() !== next.repeat) this.setRepeatMode(next.repeat);
+  }
+
+  /** The shuffle button and S: Off → Shuffle → Smart Shuffle → Off. */
+  cycleShuffle(): void {
+    if (this.smartShuffle()) this.setSmartShuffle(false);
+    else if (this.isShuffle()) this.setSmartShuffle(true);
+    else this.setShuffle(true);
   }
 
   setShuffle(enabled: boolean): void {
@@ -662,7 +697,64 @@ export class PlayerService implements OnDestroy {
     }
   }
 
+  setSmartShuffle(enabled: boolean): void {
+    if (this.smartShuffle() === enabled) return;
+    if (enabled) {
+      if (this.isShuffle()) this.toggleShuffle();
+      this.originalQueue = this.queue().filter((entry) => !entry.suggested);
+    } else {
+      this.restoreFromSmartShuffle();
+    }
+    this.smartShuffle.set(enabled);
+    if (!this.restoringSettings) void this.persistSettings({ smartShuffle: enabled });
+  }
+
+  /**
+   * Back to the user's order: suggestions not played yet leave the queue; played ones stay where they
+   * were heard, after the entry before them.
+   */
+  private restoreFromSmartShuffle(): void {
+    const queue = this.queue();
+    const current = this.currentQueueEntry();
+    const restored = this.originalQueue.filter((entry) => queue.includes(entry));
+    const index = this.currentIndex();
+    queue.forEach((entry, position) => {
+      if (!entry.suggested || position > index || restored.includes(entry)) return;
+      const before = queue.slice(0, position).reverse().find((item) => restored.includes(item));
+      restored.splice(before ? restored.indexOf(before) + 1 : 0, 0, entry);
+    });
+    const kept = restored.map((entry) => entry.suggested ? { ...entry, suggested: false } : entry);
+    this.queue.set(kept);
+    this.originalQueue = [...kept];
+    if (current) this.currentIndex.set(restored.indexOf(current));
+    this.refreshPreparedCandidate();
+  }
+
+  /** Smart Shuffle's arrangement of everything after the current entry. */
+  replaceUpcoming(entries: QueueEntry[]): void {
+    const index = this.currentIndex();
+    this.queue.set([...this.queue().slice(0, index + 1), ...entries]);
+    this.refreshPreparedCandidate();
+  }
+
+  /** Smart Shuffle turned on with nothing queued: plays its suggestions from the first. */
+  async startSuggestions(entries: QueueEntry[]): Promise<void> {
+    if (!entries.length || this.blockedByBusyOutput()) return;
+    this.markTransition('user');
+    this.external.set(null);
+    this.failedEntryIds.clear();
+    this.queue.set(entries);
+    this.originalQueue = [];
+    this.currentIndex.set(0);
+    await this.loadAndPlayCurrent();
+  }
+
+  createSuggestedEntry(track: Track): QueueEntry {
+    return { ...this.createQueueEntry(track, -1), suggested: true };
+  }
+
   toggleShuffle(): void {
+    if (!this.isShuffle() && this.smartShuffle()) this.setSmartShuffle(false);
     const nextShuffle = !this.isShuffle();
     this.isShuffle.set(nextShuffle);
     if (!this.restoringSettings) void this.persistSettings({ shuffle: nextShuffle });
@@ -1005,7 +1097,8 @@ export class PlayerService implements OnDestroy {
   playNext(tracks: Track[]): void {
     if (!tracks || tracks.length === 0) return;
 
-    const newEntries = this.createQueueEntries(tracks);
+    // Under Smart Shuffle, Play next is a placement the arrangement keeps.
+    const newEntries = this.createQueueEntries(tracks).map((entry) => this.smartShuffle() ? { ...entry, pinned: true } : entry);
     const currIdx = this.currentIndex();
     const q = [...this.queue()];
 
@@ -1100,12 +1193,14 @@ export class PlayerService implements OnDestroy {
     const targetIndex = reordered.findIndex((entry) => entry.id === targetId);
     if (targetIndex < 0) return false;
 
-    reordered.splice(targetIndex + (placement === 'after' ? 1 : 0), 0, current[sourceIndex]);
+    // A track the user drags stays where it is put under Smart Shuffle.
+    const moved = this.smartShuffle() ? { ...current[sourceIndex], pinned: true } : current[sourceIndex];
+    reordered.splice(targetIndex + (placement === 'after' ? 1 : 0), 0, moved);
     if (reordered.every((entry, index) => entry.id === current[index].id)) return false;
 
     this.queue.set(reordered);
     this.currentIndex.set(currentEntryId ? reordered.findIndex((entry) => entry.id === currentEntryId) : -1);
-    this.originalQueue = [...reordered];
+    this.originalQueue = reordered.filter((entry) => !entry.suggested);
     this.refreshPreparedCandidate();
     return true;
   }

@@ -138,6 +138,7 @@ const api: DesktopApi = {
   history: {
     record: (event) => ipcRenderer.invoke('history:record', event),
     list: (request) => ipcRenderer.invoke('history:list', request),
+    events: () => ipcRenderer.invoke('history:events'),
     clear: () => ipcRenderer.invoke('history:clear'),
   },
 };

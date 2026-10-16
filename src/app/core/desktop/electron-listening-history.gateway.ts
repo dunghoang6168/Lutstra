@@ -11,6 +11,10 @@ export class ElectronListeningHistoryGateway implements ListeningHistoryGateway 
     return this.api().list(request);
   }
 
+  events(): Promise<PlayEvent[]> {
+    return this.api().events();
+  }
+
   clear(): Promise<void> {
     return this.api().clear();
   }

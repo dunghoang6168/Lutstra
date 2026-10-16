@@ -5,6 +5,8 @@ export interface ListeningHistoryGateway {
   record(event: PlayEvent): Promise<void>;
   /** Only listens that `shownInHistory` keeps, newest first. */
   list(request: HistoryPageRequest): Promise<HistoryEntry[]>;
+  /** Every recorded listen, oldest first, for the listener analysis. */
+  events(): Promise<PlayEvent[]>;
   clear(): Promise<void>;
 }
 

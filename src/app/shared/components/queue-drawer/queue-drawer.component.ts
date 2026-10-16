@@ -1,11 +1,14 @@
-import { Component, HostListener, afterNextRender, effect, ElementRef, Injector, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { Component, HostListener, afterNextRender, computed, effect, ElementRef, Injector, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
+import { ListeningHistoryService } from '../../../core/history/listening-history.service';
 import { focusListItem, nextRowIndex } from '../../utils/row-navigation';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
+
+const COLLAPSED_SUGGESTIONS = 3;
 
 @Component({
   selector: 'app-queue-drawer',
@@ -25,6 +28,21 @@ export class QueueDrawerComponent {
   readonly draggingEntryId = signal<string | null>(null);
   readonly dropTarget = signal<{ entryId: string; placement: 'before' | 'after' } | null>(null);
   readonly reorderAnnouncement = signal('');
+  private readonly history = inject(ListeningHistoryService);
+  /** Smart Shuffle's own run at the end of the queue shows three suggestions until expanded. */
+  readonly suggestionsExpanded = signal(false);
+  readonly suggestionTail = computed(() => {
+    const queue = this.player.queue();
+    let start = queue.length;
+    while (start > this.player.currentIndex() + 1 && queue[start - 1].suggested) start--;
+    return { start, length: queue.length - start };
+  });
+  /** A prefix of the queue, so row indices stay queue indices. */
+  readonly visibleEntries = computed(() => {
+    const tail = this.suggestionTail();
+    const queue = this.player.queue();
+    return tail.length > COLLAPSED_SUGGESTIONS && !this.suggestionsExpanded() ? queue.slice(0, tail.start + COLLAPSED_SUGGESTIONS) : queue;
+  });
 
   constructor() {
     effect(() => {
@@ -63,7 +81,7 @@ export class QueueDrawerComponent {
     )) return;
     const row = target.closest<HTMLElement>('.queue-item[data-entry-id]');
     if (!row || row.parentElement !== event.currentTarget) return;
-    const rows = this.player.queue();
+    const rows = this.visibleEntries();
     const current = rows.findIndex((entry) => entry.id === row.dataset['entryId']);
     if (current < 0) return;
     if (event.key === 'Enter') {
@@ -181,6 +199,9 @@ export class QueueDrawerComponent {
 
   onRemove(event: MouseEvent, entryId: string): void {
     event.stopPropagation();
+    // Taking a suggestion out before it plays tells Smart Shuffle it was not wanted.
+    const entry = this.player.queue().find((item) => item.id === entryId);
+    if (entry?.suggested) this.history.recordRemoval(entry.track);
     this.player.removeFromQueue(entryId);
   }
 }

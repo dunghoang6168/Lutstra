@@ -69,6 +69,7 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('popularity:cancel', () => popularity.cancel(), development);
   handle('history:record', (_event, value) => database.recordPlayEvent(validPlayEvent(value)), development);
   handle('history:list', (_event, request) => database.listHistory(validHistoryPageRequest(request)), development);
+  handle('history:events', () => database.listPlayEvents(), development);
   handle('history:clear', () => database.clearHistory(), development);
   handle('library:select-and-add-folders', async () => {
     const window = getWindow();

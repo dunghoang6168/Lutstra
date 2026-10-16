@@ -194,13 +194,21 @@ export class DatabaseService {
 
   /** The History page's rows: what `shownInHistory` keeps, newest first. */
   listHistory(request: HistoryPageRequest): HistoryEntry[] {
-    const shown = "source <> 'roulette'";
+    const shown = "source <> 'roulette' AND end_reason <> 'removed'";
     const cursor = request.before;
     const rows = (cursor
       ? this.db.prepare(`SELECT id, track_id, started_at FROM play_events WHERE ${shown} AND (started_at < ? OR (started_at = ? AND id < ?))
           ORDER BY started_at DESC, id DESC LIMIT ?`).all(cursor.startedAt, cursor.startedAt, cursor.id, request.limit)
       : this.db.prepare(`SELECT id, track_id, started_at FROM play_events WHERE ${shown} ORDER BY started_at DESC, id DESC LIMIT ?`).all(request.limit)) as Row[];
     return rows.map((row) => ({ id: Number(row['id']), trackId: String(row['track_id']), startedAt: Number(row['started_at']) }));
+  }
+
+  listPlayEvents(): PlayEvent[] {
+    return (this.db.prepare('SELECT * FROM play_events ORDER BY started_at, id').all() as Row[]).map((row) => ({
+      trackId: String(row['track_id']), startedAt: Number(row['started_at']), playedSeconds: Number(row['played_seconds']),
+      endPosition: Number(row['end_position']), duration: Number(row['duration']), seekForwardSeconds: Number(row['seek_forward_seconds']),
+      startedBy: row['started_by'] as PlayEvent['startedBy'], endReason: row['end_reason'] as PlayEvent['endReason'], source: row['source'] as PlayEvent['source'],
+    }));
   }
 
   clearHistory(): void {
@@ -370,7 +378,7 @@ export class DatabaseService {
 
   getSettings(): Settings {
     const row = this.db.prepare("SELECT value FROM settings WHERE key='app'").get() as Row | undefined;
-    const defaults: Settings = { musicFolders: this.listFolders(), defaultVolume: 0.8, repeatMode: 'off', shuffle: false, crossfadeEnabled: true, crossfadeSeconds: 5, audioEngineBackend: 'native-shared', preferredAudioOutputId: 'system-default', preferredAudioOutputName: 'System Default', preferredNativeAudioOutputId: 'system-default', preferredNativeAudioOutputName: 'System Default', outputMode: 'shared', exclusiveBufferMs: 20, audioOutputFallbackEnabled: false, themePreset: DEFAULT_THEME_PRESET, accentColor: DEFAULT_ACCENT_COLOR, liquidGlassAccentColor: DEFAULT_LIQUID_GLASS_ACCENT_COLOR, layoutMode: DEFAULT_LAYOUT_MODE, audioVisualizationMode: DEFAULT_AUDIO_VISUALIZATION_MODE, ambientArtwork: true, hiddenSongColumns: [], songColumnOrder: [...DEFAULT_SONG_COLUMN_ORDER], addTracksTab: DEFAULT_ADD_TRACKS_TAB };
+    const defaults: Settings = { musicFolders: this.listFolders(), defaultVolume: 0.8, repeatMode: 'off', shuffle: false, smartShuffle: false, crossfadeEnabled: true, crossfadeSeconds: 5, audioEngineBackend: 'native-shared', preferredAudioOutputId: 'system-default', preferredAudioOutputName: 'System Default', preferredNativeAudioOutputId: 'system-default', preferredNativeAudioOutputName: 'System Default', outputMode: 'shared', exclusiveBufferMs: 20, audioOutputFallbackEnabled: false, themePreset: DEFAULT_THEME_PRESET, accentColor: DEFAULT_ACCENT_COLOR, liquidGlassAccentColor: DEFAULT_LIQUID_GLASS_ACCENT_COLOR, layoutMode: DEFAULT_LAYOUT_MODE, audioVisualizationMode: DEFAULT_AUDIO_VISUALIZATION_MODE, ambientArtwork: true, hiddenSongColumns: [], songColumnOrder: [...DEFAULT_SONG_COLUMN_ORDER], addTracksTab: DEFAULT_ADD_TRACKS_TAB };
     if (!row) return defaults;
     try {
       const stored = JSON.parse(String(row['value'])) as Partial<Settings>;

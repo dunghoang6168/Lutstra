@@ -1,9 +1,9 @@
-<!-- Ambient: shuffle and repeat as one button cycling Off → Shuffle → Repeat All → Repeat One; accent when on,
+<!-- Ambient: shuffle and repeat as one button cycling Off → Shuffle → Smart Shuffle → Repeat All → Repeat One; accent when on,
      a muted repeat glyph when off. -->
 <ng-template #playbackModeButton>
   @if (!player.modesLocked()) {
     <button type="button" class="ctrl-btn playback-mode-btn" [class.active]="player.playbackMode() !== 'off'"
-      (click)="player.cyclePlaybackMode()" [appTip]="player.playbackModeLabel()" [attr.aria-label]="player.playbackModeLabel()">
+      (click)="smartShuffle.cyclePlaybackMode()" [appTip]="player.playbackModeLabel()" [attr.aria-label]="player.playbackModeLabel()">
       <app-icon [name]="player.playbackModeIcon()" [size]="16" />
       @if (player.playbackMode() === 'combined') { <app-icon name="repeat" [size]="10" class="mode-repeat" /> }
     </button>
@@ -12,11 +12,11 @@
 
 <ng-template #transport let-size="size" let-modes="modes">
   @if (modes && !player.modesLocked()) {
-    <button type="button" class="ctrl-btn" [class.active]="player.isShuffle()" (click)="player.toggleShuffle()"
-      [disabled]="player.queue().length === 0"
-      appTip="Shuffle (S)" aria-label="Shuffle"
-      [attr.aria-pressed]="player.isShuffle()" aria-keyshortcuts="S">
-      <app-icon name="shuffle" [size]="16" />
+    <!-- Off → Shuffle → Smart Shuffle (the star) → Off, like repeat. -->
+    <button type="button" class="ctrl-btn" [class.active]="player.shuffleState() !== 'Off'" (click)="smartShuffle.cycleShuffle()"
+      [appTip]="'Shuffle: ' + player.shuffleState() + ' (S)'" [attr.aria-label]="'Shuffle: ' + player.shuffleState()"
+      [attr.aria-pressed]="player.shuffleState() !== 'Off'" aria-keyshortcuts="S">
+      <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="player.smartShuffle() ? 14 : 16" />
     </button>
   }
   <button type="button" class="ctrl-btn" (click)="player.previous()" [disabled]="!player.currentTrack()"
@@ -34,7 +34,9 @@
     <app-icon name="skip-forward" [size]="18" />
   </button>
   @if (modes && !player.modesLocked()) {
+    <!-- Smart Shuffle never ends, so repeat steps aside; it keeps its place so the controls do not shift. -->
     <button type="button" class="ctrl-btn" [class.active]="player.repeatMode() !== 'off'"
+      [style.visibility]="player.smartShuffle() ? 'hidden' : null"
       (click)="player.cycleRepeatMode()" [appTip]="'Repeat: ' + player.repeatMode() + ' (R)'"
       [attr.aria-label]="'Repeat: ' + player.repeatMode()" [attr.aria-pressed]="player.repeatMode() !== 'off'"
       aria-keyshortcuts="R">

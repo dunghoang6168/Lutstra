@@ -7,6 +7,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../shared/components/cover-art/cover-art.component';
 import { SpectrumVisualizerComponent } from '../../shared/components/spectrum-visualizer/spectrum-visualizer.component';
 import { RightPanelService } from '../../core/layout/right-panel.service';
+import { SmartShuffleService } from '../../core/smart-shuffle/smart-shuffle.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { ArtworkGlowPositionService } from '../../core/layout/artwork-glow-position.service';
 import { LyricLine } from '../../core/models';
@@ -28,6 +29,7 @@ import { TipDirective } from '../../shared/directives/tip.directive';
 export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
   readonly player = inject(PlayerService);
   readonly rightPanels = inject(RightPanelService);
+  readonly smartShuffle = inject(SmartShuffleService);
   readonly layoutPreference = inject(LayoutPreferenceService);
   readonly audioVisualization = inject(AudioVisualizationPreferenceService);
   private readonly artworkGlowPosition = inject(ArtworkGlowPositionService);
