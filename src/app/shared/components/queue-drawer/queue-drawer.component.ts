@@ -1,4 +1,4 @@
-import { Component, afterNextRender, effect, ElementRef, Injector, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { Component, HostListener, afterNextRender, effect, ElementRef, Injector, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
@@ -35,6 +35,17 @@ export class QueueDrawerComponent {
         }
       });
     });
+  }
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /** Click-outside dismiss; the queue toggles and the queue notice (Undo) keep it open. */
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent): void {
+    if (!this.isOpen() || !(event.target instanceof Element)) return;
+    if (this.host.nativeElement.contains(event.target)) return;
+    if (event.target.closest('[aria-controls="queue-drawer"], .queue-notice')) return;
+    this.close.emit();
   }
 
   onActivateEntry(entryId: string, moveFocus = false): void {
