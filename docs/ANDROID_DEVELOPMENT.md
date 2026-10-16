@@ -238,6 +238,14 @@ On the Motorola (2026-10-16): the three tabs switched; Library listed 459 tracks
 
 On the Motorola (2026-10-17): the five tabs listed 459 tracks, 64 albums and one folder root; Music → US-UK → DPR IAN → Dear insanity showed 459, 236 and then 7 tracks, and Back walked up to `?tab=folders`; an album opened from 2000px down the grid came back to 2000px; album rows show track numbers; an artist page listed 2 albums and 12 tracks; the ⋯ sheet and the Add to playlist dialog opened and closed on Back (the first Back hides the keyboard). Playback (volume turned down): a Songs row, an album's Play, an artist's Shuffle and a folder's Play each started the expected track; Play next put the track right after the current one and Add to queue put it last; a playlist created from the dialog, with a second track added to it, listed both in order and played. The test playlist was deleted afterwards.
 
+## Phone Home and Search (P2)
+
+- **Home** (`phone/pages/home`): a continue-listening card (the playing track, or the last one in `RecentPlaysService` still on the phone, resumed with its album as `recentTrackCollection` does on desktop), a Smart Shuffle card, then Recently played and Recently added album strips. The shell injects `RecentPlaysService` so plays are recorded on the phone too.
+- **Smart Shuffle quick start:** `SmartShuffleService.playSuggestions()` turns Smart Shuffle on and plays its own picks in place of the queue (the cold start the shuffle cycle uses when nothing is queued).
+- **Search** (`phone/pages/search`): one field over tracks, albums, artists and playlists, ranked by `rankMatches` / `normalizeSearch` (`shared/utils/search-rank.ts`, shared with the desktop global search), so case and Vietnamese accents, `đ` included, are optional. The query is `?q=` (`replaceUrl` per keystroke), so Back from a result returns to the same results. A song result plays that track alone, as on desktop.
+
+On the Motorola (2026-10-17): Home showed the paused track, the Smart Shuffle card and both strips; "cuộc gọi" and "cuoc goi" both found "100 Cuộc Gọi Nhỡ", "duong" found "đường về" and "Slippery (feat. Tùng Dương)", "mck" listed RPT MCK's tracks, two albums and the artist, and "zzqx" said no matches; Back from an album opened from the results kept "hours" and its results; Smart Shuffle (volume turned down) played a suggestion with 11 suggested entries queued. Typing through Gboard's Vietnamese Telex turns "af" into "à", as in any app.
+
 ## Test devices
 
 From 2026-10-15 only the Motorola moto g stylus 5G (2024) is used for device testing. The Nothing A065 passed Gate B but is no longer in the test set, so later stages are verified on the Motorola alone.

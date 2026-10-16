@@ -69,6 +69,16 @@ describe('SmartShuffleService', () => {
     expect(new Set(player.queue().map((entry) => entry.track.id)).size).toBe(10);
   });
 
+  it('plays its own picks in place of the queue from the phone Home', async () => {
+    const { player, service, tracks } = await setup();
+    await player.playCollection(tracks.slice(0, 3), 1);
+    await service.playSuggestions();
+    expect(player.smartShuffle()).toBe(true);
+    expect(player.queue().length).toBe(10);
+    expect(player.queue().every((entry) => entry.suggested)).toBe(true);
+    expect(player.currentIndex()).toBe(0);
+  });
+
   it('mixes suggestions into the user queue and takes them out again when turned off', async () => {
     const { player, service, tracks, arrange, turnOn } = await setup();
     const own = tracks.slice(0, 8);

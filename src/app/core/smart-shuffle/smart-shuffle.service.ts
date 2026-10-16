@@ -75,14 +75,22 @@ export class SmartShuffleService {
     await this.startIfEmpty();
   }
 
+  /** The phone Home's quick start: Smart Shuffle plays its own picks in place of the queue. */
+  async playSuggestions(): Promise<void> {
+    if (this.player.modesLocked()) return;
+    await this.ensureLoaded();
+    this.player.setSmartShuffle(true);
+    await this.start(true);
+  }
+
   /** Only a user's turn starts playback; a setting restored at launch never does. */
   private async startIfEmpty(): Promise<void> {
     if (this.player.smartShuffle() && !this.player.queue().length) await this.start();
   }
 
-  private async start(): Promise<void> {
+  private async start(replaceQueue = false): Promise<void> {
     await this.ensureLoaded();
-    if (!this.player.smartShuffle() || this.player.queue().length) return;
+    if (!this.player.smartShuffle() || (!replaceQueue && this.player.queue().length)) return;
     const plan = planUpcoming({
       upcoming: [], recent: [], userRun: 0, every: suggestionSpacing(this.events), window: SUGGESTION_WINDOW,
       refresh: false, reorder: false, exclude: this.sessionExclude,

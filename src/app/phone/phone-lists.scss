@@ -122,3 +122,20 @@ a:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
 }
+.album-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 40%;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0 var(--page-pad-x) var(--space-2);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--page-pad-x);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+
+  li { scroll-snap-align: start; }
+}

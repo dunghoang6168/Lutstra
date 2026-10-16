@@ -1,5 +1,61 @@
-.page-note {
-  margin: 0;
-  padding: var(--space-4) var(--page-pad-x);
+.search-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--page-pad-x) var(--space-2);
+  padding: 0 var(--space-1) 0 var(--space-4);
+  min-height: var(--touch-target);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 var(--space-2) var(--bg-app);
+}
+
+.search-bar:focus-within { border-color: var(--accent-primary); }
+
+.search-icon { flex: none; color: var(--text-muted); }
+
+.search-field {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch-target);
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-md);
+}
+
+/* The bar shows focus (:focus-within), so the field drops the global input ring. */
+.search-field,
+.search-field:focus {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.search-field::-webkit-search-cancel-button { display: none; }
+
+.clear-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
 }
+
+.clear-btn:active { background: var(--bg-surface-hover); }
+
+.clear-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.row-icon { overflow: hidden; }

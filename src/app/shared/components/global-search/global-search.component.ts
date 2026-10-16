@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { LIBRARY_GATEWAY, type LibrarySnapshot } from '../../../core/contracts/library.gateway';
 import type { Album, Artist, Track } from '../../../core/models';
+import { normalizeSearch, rankMatches } from '../../utils/search-rank';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { IconComponent } from '../icon/icon.component';
@@ -173,7 +174,7 @@ export class GlobalSearchComponent {
 }
 
 function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): SearchGroup[] {
-  const query = normalize(rawQuery.trim());
+  const query = normalizeSearch(rawQuery.trim());
   if (!snapshot || !query) return [
     { label: 'Songs', results: [] },
     { label: 'Albums', results: [] },
@@ -182,7 +183,7 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
   return [
     {
       label: 'Songs',
-      results: rank(snapshot.tracks, query, (track) => track.title, (track) => [track.artist, track.album, track.fileName])
+      results: rankMatches(snapshot.tracks, query, (track) => track.title, (track) => [track.artist, track.album, track.fileName])
         .slice(0, 5)
         .map((track) => ({
           key: `song-${track.id}`, kind: 'song', title: track.title,
@@ -192,7 +193,7 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
     },
     {
       label: 'Albums',
-      results: rank(snapshot.albums, query, (album) => album.title, (album) => [album.artist])
+      results: rankMatches(snapshot.albums, query, (album) => album.title, (album) => [album.artist])
         .slice(0, 5)
         .map((album) => ({
           key: `album-${album.id}`, kind: 'album', title: album.title,
@@ -201,7 +202,7 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
     },
     {
       label: 'Artists',
-      results: rank(snapshot.artists, query, (artist) => artist.name, () => [])
+      results: rankMatches(snapshot.artists, query, (artist) => artist.name, () => [])
         .slice(0, 5)
         .map((artist) => ({
           key: `artist-${artist.id}`, kind: 'artist', title: artist.name,
@@ -209,28 +210,6 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
         })),
     },
   ];
-}
-
-function rank<T>(items: T[], query: string, primary: (item: T) => string, secondary: (item: T) => Array<string | null>): T[] {
-  return items
-    .map((item, index) => ({ item, index, score: matchScore(primary(item), secondary(item), query) }))
-    .filter((entry) => Number.isFinite(entry.score))
-    .sort((a, b) => a.score - b.score || a.index - b.index)
-    .map((entry) => entry.item);
-}
-
-function matchScore(primary: string, secondary: Array<string | null>, query: string): number {
-  const normalizedPrimary = normalize(primary);
-  if (normalizedPrimary.startsWith(query)) return 0;
-  if (normalizedPrimary.includes(query)) return 1;
-  const normalizedSecondary = secondary.filter((value): value is string => Boolean(value)).map(normalize);
-  if (normalizedSecondary.some((value) => value.startsWith(query))) return 2;
-  if (normalizedSecondary.some((value) => value.includes(query))) return 3;
-  return Number.POSITIVE_INFINITY;
-}
-
-function normalize(value: string): string {
-  return value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replaceAll('đ', 'd');
 }
 
 function firstSelectable(results: SearchResult[]): SearchResult | undefined {

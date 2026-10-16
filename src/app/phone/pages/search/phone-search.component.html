@@ -1,1 +1,77 @@
-<p class="page-note">Search is not available yet.</p>
+<div class="search-bar" role="search">
+  <app-icon class="search-icon" name="search" [size]="20" />
+  <input #field type="search" class="search-field" [value]="query()" (input)="onInput($event)"
+    placeholder="Tracks, albums, artists, playlists" aria-label="Search the library" enterkeyhint="search"
+    autocomplete="off" autocapitalize="off" spellcheck="false" />
+  @if (query()) {
+    <button type="button" class="clear-btn" (click)="clear()" aria-label="Clear search">
+      <app-icon name="x" [size]="18" />
+    </button>
+  }
+</div>
+
+@if (!query().trim()) {
+  <p class="page-note">Search by title, artist or album. Accents are optional.</p>
+} @else if (empty()) {
+  <p class="page-note" role="status">No matches for “{{ query().trim() }}”.</p>
+} @else {
+  @if (songs().length) {
+    <h2 class="section-title">Songs</h2>
+    <div class="list">
+      @for (track of songs(); track track.id) {
+        <app-phone-track-row [track]="track" (play)="library.play([track])" />
+      }
+    </div>
+  }
+  @if (albums().length) {
+    <h2 class="section-title">Albums</h2>
+    <ul class="list">
+      @for (album of albums(); track album.id) {
+        <li>
+          <a class="nav-row" [routerLink]="['/library/albums', album.id]">
+            <app-cover-art class="row-icon" [src]="album.artwork" [iconSize]="22" />
+            <span class="row-text">
+              <span class="row-title">{{ album.title }}</span>
+              <span class="row-path">{{ album.artist ?? 'Unknown artist' }}</span>
+            </span>
+            <app-icon class="chevron" name="chevron-right" [size]="18" />
+          </a>
+        </li>
+      }
+    </ul>
+  }
+  @if (artists().length) {
+    <h2 class="section-title">Artists</h2>
+    <ul class="list">
+      @for (artist of artists(); track artist.id) {
+        <li>
+          <a class="nav-row" [routerLink]="['/library/artists', artist.id]">
+            <span class="row-icon round"><app-icon name="user" [size]="22" /></span>
+            <span class="row-text">
+              <span class="row-title">{{ artist.name }}</span>
+              <span class="row-measure">{{ artist.trackIds.length }} {{ artist.trackIds.length === 1 ? 'track' : 'tracks' }}</span>
+            </span>
+            <app-icon class="chevron" name="chevron-right" [size]="18" />
+          </a>
+        </li>
+      }
+    </ul>
+  }
+  @if (playlists().length) {
+    <h2 class="section-title">Playlists</h2>
+    <ul class="list">
+      @for (playlist of playlists(); track playlist.id) {
+        <li>
+          <a class="nav-row" [routerLink]="['/library/playlists', playlist.id]">
+            <span class="row-icon"><app-icon name="list-music" [size]="22" /></span>
+            <span class="row-text">
+              <span class="row-title">{{ playlist.name }}</span>
+              <span class="row-measure">{{ playlist.entries.length }} {{ playlist.entries.length === 1 ? 'track' : 'tracks' }}</span>
+            </span>
+            <app-icon class="chevron" name="chevron-right" [size]="18" />
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}

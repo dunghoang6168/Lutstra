@@ -1,7 +1,66 @@
-@if (player.currentTrack(); as track) {
-  <section class="section" aria-labelledby="continueTitle">
-    <h2 id="continueTitle">Continue listening</h2>
-    <p class="track">{{ track.title }} <span>· {{ track.artist ?? 'Unknown artist' }}</span></p>
+@if (resume(); as resume) {
+  <section class="resume-card" aria-labelledby="resumeLabel">
+    <app-cover-art class="resume-cover" [src]="resume.track.artwork" icon="music" [iconSize]="28" />
+    <div class="resume-text">
+      <h2 id="resumeLabel" class="resume-label">
+        {{ resume.current ? (player.isPlaybackActive() ? 'Now Playing' : 'Paused') : 'Continue listening' }}
+      </h2>
+      <p class="resume-title">{{ resume.track.title }}</p>
+      <p class="resume-meta">
+        <span class="resume-artist">{{ resume.track.artist ?? 'Unknown artist' }}</span>
+        @if (resume.format; as format) {
+          <span class="resume-format" [class.hires]="format.hires">{{ format.label }}</span>
+        }
+      </p>
+    </div>
+    <button type="button" class="resume-play" (click)="playResume()"
+      [attr.aria-label]="(resume.current && player.isPlaybackActive() ? 'Pause ' : 'Play ') + resume.track.title">
+      <app-icon [name]="resume.current && player.isPlaybackActive() ? 'pause' : 'play'" [size]="24" />
+    </button>
   </section>
 }
-<p class="page-note">Browse every track in <a routerLink="/library">Library</a>.</p>
+
+@if (!player.modesLocked() && library.snapshot()?.tracks?.length) {
+  <button type="button" class="smart-card" (click)="startSmartShuffle()">
+    <span class="smart-icon"><app-icon name="smart-shuffle" [size]="24" /></span>
+    <span class="smart-text">
+      <span class="smart-title">Smart Shuffle</span>
+      <span class="smart-subtitle">Picks from what you listen to, with something new mixed in</span>
+    </span>
+    <app-icon class="chevron" name="play" [size]="20" />
+  </button>
+}
+
+@if (recentlyPlayed().length) {
+  <h2 class="section-title">Recently played</h2>
+  <ul class="album-strip">
+    @for (album of recentlyPlayed(); track album.id) {
+      <li>
+        <a class="album-card" [routerLink]="['/library/albums', album.id]">
+          <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="36" />
+          <span class="album-title">{{ album.title }}</span>
+          <span class="album-artist">{{ album.artist ?? 'Unknown artist' }}</span>
+        </a>
+      </li>
+    }
+  </ul>
+}
+
+@if (recentlyAdded().length) {
+  <h2 class="section-title">Recently added</h2>
+  <ul class="album-strip">
+    @for (album of recentlyAdded(); track album.id) {
+      <li>
+        <a class="album-card" [routerLink]="['/library/albums', album.id]">
+          <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="36" />
+          <span class="album-title">{{ album.title }}</span>
+          @if (albumFormats().get(album.id); as format) {
+            <span class="album-format" [class.hires]="format.hires">{{ format.label }}</span>
+          }
+        </a>
+      </li>
+    }
+  </ul>
+} @else if (library.snapshot() && !library.snapshot()!.tracks.length) {
+  <p class="page-note">No tracks yet. Choose music folders in <a routerLink="/settings">Settings</a>.</p>
+}

@@ -17,7 +17,7 @@ const text = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }
   standalone: true,
   imports: [RouterLink, CoverArtComponent, PhoneDetailHeaderComponent, PhoneTrackRowComponent],
   templateUrl: './phone-artist.component.html',
-  styleUrls: ['../../phone-lists.scss', './phone-artist.component.scss'],
+  styleUrls: ['../../phone-lists.scss'],
 })
 export class PhoneArtistComponent {
   readonly library = inject(PhoneLibraryService);

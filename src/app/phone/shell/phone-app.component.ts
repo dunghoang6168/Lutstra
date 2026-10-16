@@ -16,6 +16,7 @@ import { PhoneQueueSheetComponent } from '../components/queue-sheet/phone-queue-
 import { PhoneTrackActionsSheetComponent } from '../components/track-actions-sheet/phone-track-actions-sheet.component';
 import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { PhoneLibraryService } from '../phone-library.service';
+import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 
 const appShell = registerPlugin<{ moveToBack(): Promise<void> }>('AppShell');
 
@@ -71,6 +72,8 @@ export class PhoneAppComponent {
   });
 
   constructor() {
+    // Records what plays, for Home's continue listening and recently played.
+    inject(RecentPlaysService);
     let restoring = false;
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
