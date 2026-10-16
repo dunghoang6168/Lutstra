@@ -1,0 +1,3 @@
+# Capacitor regenerates these with LF on every cap sync; keep them LF so they do not show as modified.
+android/app/capacitor.build.gradle text eol=lf
+android/capacitor.settings.gradle text eol=lf
