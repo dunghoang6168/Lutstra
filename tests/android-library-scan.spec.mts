@@ -2,12 +2,14 @@ import '@angular/compiler';
 import { describe, expect, it, vi } from 'vitest';
 
 const scans: Array<(tracks: unknown[]) => void> = [];
+const saved: { lastScan: object } = { lastScan: {} };
 vi.mock('../src/app/core/android/android-folder-selection', async original => ({
   ...(await original<typeof import('../src/app/core/android/android-folder-selection')>()),
   androidFolders: {
     listTree: async () => ({ folders: [], grants: [] }),
     getSelection: async () => ({ rules: [] }),
-    scan: () => new Promise(resolve => scans.push(tracks => resolve({ tracks }))),
+    scan: () => new Promise(resolve => scans.push(tracks => resolve({ tracks, folders: [], grants: [] }))),
+    getLastScan: async () => saved.lastScan,
     addListener: async () => ({ remove: async () => undefined }),
   },
 }));
@@ -37,5 +39,27 @@ describe('Android library scan queue', () => {
     await saved;
     expect((await gateway.getLibrary()).tracks).toHaveLength(2);
     expect(scans).toHaveLength(2);
+  });
+
+  it('shows the saved scan at once, rescans in the background, and stays quiet when nothing changed', async () => {
+    scans.length = 0;
+    saved.lastScan = { tracks: [row('a')], folders: [], grants: [] };
+    const gateway = new AndroidLibraryGateway();
+    let changes = 0;
+    gateway.libraryChanged$.subscribe(() => changes++);
+    expect((await gateway.getLibrary()).tracks.map(track => track.id)).toEqual(['a']);
+    await settle();
+    expect(scans).toHaveLength(1);
+    scans[0]([row('a')]);
+    await settle();
+    expect(changes).toBe(0);
+
+    void gateway.requestScan();
+    await settle();
+    scans[1]([row('a'), row('b')]);
+    await settle();
+    expect(changes).toBe(1);
+    expect((await gateway.getLibrary()).tracks).toHaveLength(2);
+    saved.lastScan = {};
   });
 });

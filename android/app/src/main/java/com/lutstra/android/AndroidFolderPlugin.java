@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Library folders chosen through the Storage Access Framework. Each granted tree is walked for
@@ -45,6 +47,10 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final String KEY_URIS = "uris";
     private static final String KEY_RULES = "rules";
     private static final String CACHE_FILE = "library-metadata.json";
+    private static final String LAST_SCAN_FILE = "last-scan.json";
+    private static final String PATH_DOCUMENTS = "com.android.externalstorage.documents";
+    // Tag reads wait on storage more than on the CPU, so a few run at once.
+    private static final int READ_THREADS = 4;
     private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year" };
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // Listing must not queue behind a long first scan, or the folder picker waits for it.
@@ -110,24 +116,9 @@ public final class AndroidFolderPlugin extends Plugin {
         treeExecutor.execute(() -> {
             try {
                 Map<String, Node> nodes = new LinkedHashMap<>();
-                collect(nodes, null);
-                JSONArray folders = new JSONArray();
-                for (Node node : nodes.values()) {
-                    JSObject row = new JSObject();
-                    row.put("key", node.key); row.put("name", node.name); row.put("parentKey", node.parentKey);
-                    row.put("treeUri", node.treeUri); row.put("documentId", node.documentId); row.put("available", node.available);
-                    folders.put(row);
-                }
-                JSONArray grants = new JSONArray();
-                JSONArray saved = savedUris();
-                for (int i = 0; i < saved.length(); i++) {
-                    Uri tree = Uri.parse(saved.getString(i));
-                    String rootId = DocumentsContract.getTreeDocumentId(tree);
-                    JSObject grant = new JSObject();
-                    grant.put("treeUri", tree.toString()); grant.put("key", keyOf(tree.getAuthority(), rootId));
-                    grant.put("volumeLabel", volumeLabel(rootId));
-                    grants.put(grant);
-                }
+                collect(nodes, null, null);
+                JSONArray folders = foldersJson(nodes);
+                JSONArray grants = grantsJson();
                 JSObject response = new JSObject(); response.put("folders", folders); response.put("grants", grants); call.resolve(response);
             } catch (Exception error) { call.reject("Could not list folders", error); }
         });
@@ -149,22 +140,35 @@ public final class AndroidFolderPlugin extends Plugin {
         } catch (JSONException error) { call.reject("Could not release folder access", error); }
     }
 
+    /** The result of the last finished scan, so the app can show the library before rescanning. */
+    @PluginMethod
+    public void getLastScan(PluginCall call) {
+        treeExecutor.execute(() -> {
+            AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), LAST_SCAN_FILE));
+            try { call.resolve(new JSObject(new String(file.readFully(), StandardCharsets.UTF_8))); }
+            catch (IOException | JSONException error) { call.resolve(new JSObject()); }
+        });
+    }
+
     @PluginMethod
     public void scan(PluginCall call) {
         executor.execute(() -> {
             try {
-                Map<String, Node> nodes = new LinkedHashMap<>();
-                List<FileRow> files = new ArrayList<>();
-                collect(nodes, files);
                 Map<String, Boolean> rules = new HashMap<>();
                 JSONArray savedRules = new JSONArray(prefs().getString(KEY_RULES, "[]"));
                 for (int i = 0; i < savedRules.length(); i++) {
                     JSONObject rule = savedRules.getJSONObject(i);
                     rules.put(rule.getString("key"), rule.getBoolean("selected"));
                 }
+                Map<String, Node> nodes = new LinkedHashMap<>();
+                List<FileRow> files = new ArrayList<>();
+                collect(nodes, files, rules);
                 Map<String, Boolean> folderSelected = new HashMap<>();
                 Set<String> seen = new HashSet<>();
-                JSONArray tracks = new JSONArray();
+                List<JSObject> rows = new ArrayList<>();
+                List<JSONObject> metas = new ArrayList<>();
+                List<Integer> unread = new ArrayList<>();
+                List<Uri> unreadUris = new ArrayList<>();
                 JSONObject cache = readCache();
                 JSONObject nextCache = new JSONObject();
                 for (FileRow file : files) {
@@ -181,27 +185,35 @@ public final class AndroidFolderPlugin extends Plugin {
                     JSONObject meta = cache.optJSONObject(key);
                     if (meta == null || meta.optLong("size", -1) != orMinus(file.size) || meta.optLong("modified", -1) != orMinus(file.modified)) {
                         meta = new JSONObject();
-                        readMetadata(uri, meta);
                         meta.put("size", orMinus(file.size)); meta.put("modified", orMinus(file.modified));
+                        unread.add(rows.size()); unreadUris.add(uri);
                     }
                     nextCache.put(key, meta);
+                    rows.add(row); metas.add(meta);
+                }
+                readAll(unread, unreadUris, metas, rows.size() - unread.size());
+                JSONArray tracks = new JSONArray();
+                for (int i = 0; i < rows.size(); i++) {
+                    JSObject row = rows.get(i); JSONObject meta = metas.get(i);
                     for (String field : METADATA_FIELDS) if (meta.has(field)) row.put(field, meta.get(field));
                     tracks.put(row);
-                    if (tracks.length() % 25 == 0) {
-                        JSObject progress = new JSObject(); progress.put("tracks", tracks.length()); progress.put("folder", file.folderKey);
-                        notifyListeners("scanProgress", progress);
-                    }
                 }
                 writeCache(nextCache);
-                JSObject response = new JSObject(); response.put("tracks", tracks); call.resolve(response);
+                JSObject response = new JSObject();
+                response.put("tracks", tracks); response.put("folders", foldersJson(nodes)); response.put("grants", grantsJson());
+                writeFile(LAST_SCAN_FILE, response.toString());
+                call.resolve(response);
             } catch (SecurityException error) {
                 call.reject("FOLDER_PERMISSION_REVOKED", "FOLDER_PERMISSION_REVOKED", error);
             } catch (Exception error) { call.reject("Folder scan failed", error); }
         });
     }
 
-    /** Walks every granted tree. With files == null only folders are collected (no scan). */
-    private void collect(Map<String, Node> nodes, List<FileRow> files) throws JSONException {
+    /**
+     * Walks every granted tree. With files == null only folders are collected (no scan). With rules, a scan
+     * skips folders that are neither ticked nor above a ticked folder.
+     */
+    private void collect(Map<String, Node> nodes, List<FileRow> files, Map<String, Boolean> rules) throws JSONException {
         JSONArray saved = savedUris();
         Set<String> walked = new HashSet<>();
         for (int i = 0; i < saved.length(); i++) {
@@ -212,8 +224,8 @@ public final class AndroidFolderPlugin extends Plugin {
             if (!available && files != null) throw new SecurityException("FOLDER_PERMISSION_REVOKED: " + tree);
             String name = rootId.substring(Math.max(rootId.lastIndexOf('/'), rootId.lastIndexOf(':')) + 1);
             addNode(nodes, rootKey, name.isEmpty() ? rootId : name, null, tree, rootId, available);
-            if (!available || !walked.add(rootKey)) continue;
-            try { walk(tree, rootId, rootKey, nodes, files, walked); }
+            if (!available || skip(tree, rootKey, nodes, rules) || !walked.add(rootKey)) continue;
+            try { walk(tree, rootId, rootKey, nodes, files, walked, rules); }
             catch (RuntimeException error) {
                 // A granted tree can still vanish, e.g. an ejected SD card. Listing marks it; scanning refuses.
                 if (files != null) throw new SecurityException("FOLDER_PERMISSION_REVOKED: " + tree, error);
@@ -222,7 +234,7 @@ public final class AndroidFolderPlugin extends Plugin {
         }
     }
 
-    private void walk(Uri tree, String parentId, String parentKey, Map<String, Node> nodes, List<FileRow> files, Set<String> walked) {
+    private void walk(Uri tree, String parentId, String parentKey, Map<String, Node> nodes, List<FileRow> files, Set<String> walked, Map<String, Boolean> rules) {
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId);
         String[] columns = {
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -240,7 +252,7 @@ public final class AndroidFolderPlugin extends Plugin {
                 if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
                     String key = keyOf(tree.getAuthority(), documentId);
                     addNode(nodes, key, name, parentKey, tree, documentId, true);
-                    if (walked.add(key)) walk(tree, documentId, key, nodes, files, walked);
+                    if (!skip(tree, key, nodes, rules) && walked.add(key)) walk(tree, documentId, key, nodes, files, walked, rules);
                     continue;
                 }
                 if (files == null || !isAudio(name, mime)) continue;
@@ -288,20 +300,77 @@ public final class AndroidFolderPlugin extends Plugin {
         catch (IOException | JSONException error) { return new JSONObject(); }
     }
 
-    private void writeCache(JSONObject cache) {
-        AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), CACHE_FILE));
+    private void writeCache(JSONObject cache) { writeFile(CACHE_FILE, cache.toString()); }
+
+    private void writeFile(String name, String text) {
+        AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), name));
         FileOutputStream output = null;
         try {
             output = file.startWrite();
-            output.write(cache.toString().getBytes(StandardCharsets.UTF_8));
+            output.write(text.getBytes(StandardCharsets.UTF_8));
             file.finishWrite(output);
         } catch (IOException error) {
-            // The cache only saves time; the next scan reads the tags again.
+            // Both files only save time: the next scan reads the tags again, the next start waits for a scan.
             if (output != null) file.failWrite(output);
         }
     }
 
     private static long orMinus(Long value) { return value == null ? -1 : value; }
+
+    /** Path-like document IDs ("3066-6139:Music/VN") let a scan tell whether a ticked folder lies below. */
+    private boolean skip(Uri tree, String key, Map<String, Node> nodes, Map<String, Boolean> rules) {
+        if (rules == null || !PATH_DOCUMENTS.equals(tree.getAuthority()) || isSelected(key, nodes, rules)) return false;
+        // A volume root ("3066-6139:") is followed directly by its children ("3066-6139:Music").
+        String below = key.endsWith(":") ? key : key + "/";
+        for (Map.Entry<String, Boolean> rule : rules.entrySet()) if (rule.getValue() && rule.getKey().startsWith(below)) return false;
+        return true;
+    }
+
+    /** Reads tags for the rows at the given indexes on a few threads, reporting progress every 25 tracks. */
+    private void readAll(List<Integer> indexes, List<Uri> uris, List<JSONObject> metas, int alreadyRead) throws Exception {
+        AtomicInteger done = new AtomicInteger(alreadyRead);
+        ExecutorService readers = Executors.newFixedThreadPool(READ_THREADS);
+        try {
+            List<Future<?>> reads = new ArrayList<>();
+            for (int i = 0; i < indexes.size(); i++) {
+                JSONObject meta = metas.get(indexes.get(i)); Uri uri = uris.get(i);
+                reads.add(readers.submit(() -> {
+                    try { readMetadata(uri, meta); } catch (JSONException ignored) { /* Listed with its file name. */ }
+                    int count = done.incrementAndGet();
+                    if (count % 25 == 0) {
+                        JSObject progress = new JSObject(); progress.put("tracks", count);
+                        notifyListeners("scanProgress", progress);
+                    }
+                }));
+            }
+            for (Future<?> read : reads) read.get();
+        } finally { readers.shutdown(); }
+    }
+
+    private JSONArray foldersJson(Map<String, Node> nodes) {
+        JSONArray folders = new JSONArray();
+        for (Node node : nodes.values()) {
+            JSObject row = new JSObject();
+            row.put("key", node.key); row.put("name", node.name); row.put("parentKey", node.parentKey);
+            row.put("treeUri", node.treeUri); row.put("documentId", node.documentId); row.put("available", node.available);
+            folders.put(row);
+        }
+        return folders;
+    }
+
+    private JSONArray grantsJson() throws JSONException {
+        JSONArray grants = new JSONArray();
+        JSONArray saved = savedUris();
+        for (int i = 0; i < saved.length(); i++) {
+            Uri tree = Uri.parse(saved.getString(i));
+            String rootId = DocumentsContract.getTreeDocumentId(tree);
+            JSObject grant = new JSObject();
+            grant.put("treeUri", tree.toString()); grant.put("key", keyOf(tree.getAuthority(), rootId));
+            grant.put("volumeLabel", volumeLabel(rootId));
+            grants.put(grant);
+        }
+        return grants;
+    }
 
     /** "primary:Music" or "3066-6139:Music" names its volume before the colon; the system describes it ("SanDisk SD card"). */
     private String volumeLabel(String documentId) {

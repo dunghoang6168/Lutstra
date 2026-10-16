@@ -16,6 +16,13 @@ export interface FolderRule { key: string; selected: boolean }
 /** A tree the user granted through the system picker; its root may sit inside a wider grant. */
 export interface FolderGrant { treeUri: string; key: string; volumeLabel: string }
 
+/** One walk of the granted trees: the tracks in ticked folders and the folders the walk visited. */
+export interface FolderScan {
+  tracks: import('./android-library.gateway').MediaStoreTrack[];
+  folders: AndroidFolderNode[];
+  grants: FolderGrant[];
+}
+
 interface NativeFolders {
   choose(): Promise<{ chosenUri: string; key: string }>;
   getSelection(): Promise<{ rules: FolderRule[] }>;
@@ -23,7 +30,9 @@ interface NativeFolders {
   listTree(): Promise<{ folders: AndroidFolderNode[]; grants?: FolderGrant[] }>;
   releaseGrant(options: { treeUri: string }): Promise<void>;
   addListener(event: 'scanProgress', listener: (progress: { tracks: number; folder: string }) => void): Promise<PluginListenerHandle>;
-  scan(): Promise<{ tracks: import('./android-library.gateway').MediaStoreTrack[] }>;
+  scan(): Promise<FolderScan>;
+  /** The last finished scan, or an empty object before the first one. */
+  getLastScan(): Promise<Partial<FolderScan>>;
 }
 
 export const androidFolders = registerPlugin<NativeFolders>('AndroidFolders');

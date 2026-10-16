@@ -3,7 +3,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { LibraryGateway, LibrarySnapshot } from '../contracts/library.gateway';
 import { Album, Artist, FolderNode, MusicFolder, ScanProgress, Track, TrackDetails } from '../models';
 import { compareAlbumTracks } from '../models/album-track-order';
-import { AndroidFolderNode, androidFolders, openFolderPicker, selectedBranches, toggleFolder } from './android-folder-selection';
+import { AndroidFolderNode, FolderRule, FolderScan, androidFolders, openFolderPicker, selectedBranches, toggleFolder } from './android-folder-selection';
 
 export interface MediaStoreTrack {
   id: string;
@@ -96,6 +96,7 @@ export class AndroidLibraryGateway implements LibraryGateway {
   private running: Promise<void> | null = null;
   private pass: Promise<void> | null = null;
   private rescanQueued = false;
+  private restoring: Promise<void> | null = null;
   private readonly progress = new BehaviorSubject<ScanProgress>({
     isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null,
   });
@@ -113,7 +114,8 @@ export class AndroidLibraryGateway implements LibraryGateway {
   }
 
   async getLibrary(): Promise<LibrarySnapshot> {
-    // Callers arriving during the first scan wait for it instead of getting an empty library.
+    if (!this.loaded) await (this.restoring ??= this.restoreLastScan());
+    // Without a saved scan, callers arriving during the first scan wait for it instead of getting an empty library.
     if (!this.loaded) {
       // The error, if any, arrives through the pass below.
       if (!this.pass) this.requestScan().catch(() => undefined);
@@ -147,22 +149,40 @@ export class AndroidLibraryGateway implements LibraryGateway {
     return this.running;
   }
 
+  /** Shows the last finished scan at once and rescans in the background; any failure falls back to a plain scan. */
+  private async restoreLastScan(): Promise<void> {
+    try {
+      const [last, selection] = await Promise.all([androidFolders.getLastScan(), androidFolders.getSelection()]);
+      if (!last.tracks || !last.folders || this.loaded) return;
+      this.apply({ tracks: last.tracks, folders: last.folders, grants: last.grants ?? [] }, selection.rules);
+      // A failed rescan is reported through scanProgress$; the saved library stays.
+      this.requestScan().catch(() => undefined);
+    } catch {
+      // No saved scan: getLibrary() scans instead.
+    }
+  }
+
+  private apply(scan: FolderScan, rules: FolderRule[]): void {
+    this.rows = scan.tracks;
+    this.folderNodes = scan.folders;
+    this.snapshot = snapshotFrom(scan.tracks, selectedBranches(scan.folders, rules, scan.grants));
+    this.loaded = true;
+  }
+
   private async scanOnce(folderIds?: string[]): Promise<void> {
-    const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
-    const folders = selectedBranches(tree.folders, selection.rules, tree.grants);
-    if (folderIds?.length && folderIds.some(id => !folders.some(folder => folder.id === id))) {
+    if (folderIds?.length && folderIds.some(id => !this.snapshot.folders.some(folder => folder.id === id))) {
       throw new Error('Unknown Android folder');
     }
-    this.progress.next({ isScanning: true, scannedFiles: 0, audioFiles: 0, currentPath: folders[0]?.path || null });
+    this.progress.next({ isScanning: true, scannedFiles: 0, audioFiles: 0, currentPath: this.snapshot.folders[0]?.path || null });
     try {
-      const result = await androidFolders.scan();
-      this.rows = result.tracks;
-      this.folderNodes = tree.folders;
-      this.snapshot = snapshotFrom(result.tracks, folders);
-      this.loaded = true;
+      const [selection, result] = await Promise.all([androidFolders.getSelection(), androidFolders.scan()]);
+      const before = JSON.stringify([this.rows, this.snapshot.folders]);
+      const wasLoaded = this.loaded;
+      this.apply(result, selection.rules);
       const count = this.snapshot.tracks.length;
       this.progress.next({ isScanning: false, scannedFiles: count, audioFiles: count, currentPath: null });
-      this.changed.next();
+      // A background rescan that finds nothing new leaves the pages alone.
+      if (!wasLoaded || JSON.stringify([this.rows, this.snapshot.folders]) !== before) this.changed.next();
     } catch (error) {
       const message = String(error);
       this.progress.next({ isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null, error: message });
@@ -246,8 +266,9 @@ export class AndroidLibraryGateway implements LibraryGateway {
   }
 
   async removeMusicFolder(folderId: string): Promise<void> {
-    const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
-    await androidFolders.saveSelection({ rules: toggleFolder(tree.folders, selection.rules, folderId, false) });
+    // The last scan visited every ticked folder and its ancestors, which is all toggleFolder needs here.
+    const selection = await androidFolders.getSelection();
+    await androidFolders.saveSelection({ rules: toggleFolder(this.folderNodes, selection.rules, folderId, false) });
     await this.requestScan();
   }
 }
