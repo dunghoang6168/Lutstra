@@ -27,6 +27,18 @@ Lutstra is a local-first desktop music player for lossless and Hi-Res libraries:
 - **One playback-mode control:** the Ambient dock and Gallery's Now Playing use one button that cycles Off → Shuffle → Repeat All → Repeat One (`PlayerService.playbackMode`, `playbackModeIcon`, `playbackModeLabel`, `cyclePlaybackMode()`): accent when on, a muted repeat glyph when off. The Console strip and the Gallery rail keep separate shuffle and repeat. S and R still toggle each.
 - **Responsive:** respond to the `.main-content` container (`@container main-content (...)`, `cqi`), not the viewport, so Console's tree and inspector are accounted for.
 
+## Listening history
+`ListeningHistoryService` (`core/history`, started from `app.config.ts`) records every listen in the background to the `play_events` table: played seconds without seeks, furthest position, seconds seeked over, how it started and why it ended, and the source (`queue` or `roulette`). It feeds the planned Smart Shuffle.
+- **Recording.** The pure logic lives in `listen-tracker.ts`.
+  - `PlayerService.lastTransition()` tells a user skip from an automatic advance: the public transport methods mark it, and automatic advances go through the private `advance()`.
+  - A listen within `max(3, crossfade + 1)` seconds of the end counts as `ended`. Each Repeat One loop is its own listen. Listens under a second are dropped.
+  - A listen cut short by closing the app is kept in `lutstra.history.openListen` and recorded as `app_closed` on the next start.
+- **History page** (`/history`, after Folders in the sidebar and tabs).
+  - It lists only the track and when it was played, grouped by day. It is a log, not statistics: never show played time, skip reasons or sources.
+  - `shownInHistory` leaves out only roulette listens; they stay in the database for the analysis.
+  - Settings > Playback has **Clear history** behind a confirmation.
+- **Storage.** IPC is `history:record`, `history:list` and `history:clear`. Browser and Android keep the log in memory (`MockListeningHistoryGateway`).
+
 ## Track lists and keyboard
 Every track table follows the same pattern: `role="grid"` with roving tabindex (one row in the tab order), ↑/↓/Home/End/PageUp/PageDown through `nextRowIndex` in `src/app/shared/utils/row-navigation.ts`, Enter for the row's main action, and Space left to global play/pause. Selection follows focus (`aria-selected`), and row actions are tabbable only on the active row. Songs and the album, artist and playlist detail tables also multi-select through `shared/utils/row-selection.ts`: Ctrl+click or Ctrl+Space toggles, Shift+click or Shift+arrows select a range, Ctrl+arrows move focus only, Ctrl+A selects all visible rows, and Esc collapses to the focused row. At least one row stays selected. From two selected rows, `app-track-selection-bar` covers the header. Row actions live in one `app-track-actions-menu` (⋯: Play next, Add to queue, Add to playlist…); both it and the selection bar open `app-add-to-playlist-dialog`, which marks playlists that already hold the tracks and asks before adding duplicates. Playlist detail adds tracks through `app-add-tracks-panel`, a non-modal right column (Songs / Albums / Artists / Folders, last tab saved as the `addTracksTab` setting) whose rows drag into the table with the `application/x-lutstra-tracks` payload. Detail pages read `route.paramMap`, not the snapshot, so a reused component reloads when the id changes.
 

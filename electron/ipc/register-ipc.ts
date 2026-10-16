@@ -10,7 +10,7 @@ import { LyricsService } from '../services/lyrics.service.js';
 import { PopularityService } from '../services/popularity.service.js';
 import { AudioHostService } from '../services/audio-host.service.js';
 import { validPlaybackSession, validSettings } from './settings-validation.js';
-import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
+import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validHistoryPageRequest, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validPlayEvent, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
 import { updateWindowSnapBounds } from '../window-snap.js';
 import { updateMediaControls } from '../media-controls.js';
 
@@ -67,6 +67,9 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('popularity:get', (_event, trackIds) => popularity.get(validIdArray(trackIds)), development);
   handle('popularity:fetch-batch', (_event, trackIds) => popularity.fetchBatch(validIdArray(trackIds)), development);
   handle('popularity:cancel', () => popularity.cancel(), development);
+  handle('history:record', (_event, value) => database.recordPlayEvent(validPlayEvent(value)), development);
+  handle('history:list', (_event, request) => database.listHistory(validHistoryPageRequest(request)), development);
+  handle('history:clear', () => database.clearHistory(), development);
   handle('library:select-and-add-folders', async () => {
     const window = getWindow();
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'multiSelections'] };

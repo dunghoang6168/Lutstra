@@ -1,0 +1,88 @@
+<div class="history-page">
+  <header class="page-header">
+    <h1>History</h1>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="state-error state-message" role="alert">
+      <app-icon name="alert-triangle" [size]="32" />
+      <p>Could not load your history.</p>
+      <button type="button" class="btn-retry" (click)="load()">Retry</button>
+    </div>
+  } @else if (isLoading()) {
+    <div class="state-loading state-message">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Loading history…</p>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="state-empty state-message">
+      <app-icon name="clock" [size]="32" />
+      <p>Tracks you play will show up here.</p>
+    </div>
+  } @else {
+    <div class="table-card" #rowsContainer (keydown)="onRowsKeyDown($event)">
+      <table class="history-table" role="grid" aria-label="Listening history">
+        <thead>
+          <tr>
+            <th class="col-title">Title</th>
+            <th class="col-artist">Artist</th>
+            <th class="col-album">Album</th>
+            <th class="col-played">Played</th>
+            <th class="col-duration">Time</th>
+            <th class="col-actions"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <!-- One row group per day, so the columns line up across days. -->
+        @for (day of days(); track day.key) {
+          <tbody>
+            <tr class="day-row">
+              <th colspan="6" scope="rowgroup" class="day-heading">{{ day.label }}</th>
+            </tr>
+            @for (row of day.rows; track row.id) {
+              <tr
+                class="history-row"
+                [class.unavailable]="!row.track.isAvailable"
+                (dblclick)="onPlayRow(row)"
+                (click)="onActivateRow(row, true)"
+                (focusin)="onActivateRow(row)"
+                [attr.aria-selected]="activeId() === row.id"
+                [attr.data-entry-id]="row.id"
+                [attr.tabindex]="activeId() === row.id ? 0 : -1">
+                <td class="col-title">
+                  <div class="title-cell">
+                    @if (row.track.artwork) {
+                      <img [src]="row.track.artwork" alt="" class="thumb-img" />
+                    } @else {
+                      <div class="thumb-placeholder" aria-hidden="true">
+                        <app-icon name="music" [size]="16" />
+                      </div>
+                    }
+                    <span class="track-title" appTipOverflow>{{ row.track.title }}</span>
+                    @if (!row.track.isAvailable) {
+                      <span class="badge-unavailable">Unavailable</span>
+                    }
+                  </div>
+                </td>
+                <td class="col-artist"><span class="cell-text" appTipOverflow>{{ row.track.artist || 'Unknown Artist' }}</span></td>
+                <td class="col-album"><span class="cell-text" appTipOverflow>{{ row.track.album || 'Unknown Album' }}</span></td>
+                <td class="col-played">{{ formatTime(row.startedAt) }}</td>
+                <td class="col-duration">{{ row.track.duration | duration }}</td>
+                <td class="col-actions" (click)="$event.stopPropagation()">
+                  <app-track-actions-menu [track]="row.track" [tabIndex]="activeId() === row.id ? 0 : -1" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        }
+      </table>
+    </div>
+
+    @if (hasMore()) {
+      <div class="load-more">
+        <button type="button" class="btn btn-secondary" (click)="loadMore()" [disabled]="isLoadingMore()">
+          {{ isLoadingMore() ? 'Loading…' : 'Show more' }}
+        </button>
+      </div>
+    }
+  }
+</div>

@@ -135,6 +135,11 @@ const api: DesktopApi = {
       return () => ipcRenderer.removeListener('popularity:progress', handler);
     },
   },
+  history: {
+    record: (event) => ipcRenderer.invoke('history:record', event),
+    list: (request) => ipcRenderer.invoke('history:list', request),
+    clear: () => ipcRenderer.invoke('history:clear'),
+  },
 };
 
 contextBridge.exposeInMainWorld('desktop', api);

@@ -283,6 +283,15 @@
                 </div>
               </div>
             }
+            <div class="pref-row">
+              <div class="pref-label">
+                <span class="pref-title">Listening history</span>
+                <span class="pref-desc">Lutstra keeps the tracks you play on this computer and learns from them. They are listed on the History page.</span>
+              </div>
+              <div class="pref-control">
+                <button type="button" class="btn btn-secondary" (click)="clearHistoryError.set(null); showClearHistory.set(true)">Clear history</button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -422,5 +431,9 @@
         <app-confirm-remove-folder-dialog [folderName]="folder.name" [busy]="removingFolder()"
           [errorMessage]="errorMessage()" (cancelled)="pendingRemoveFolder.set(null)"
           (confirmed)="onRemoveFolder()" />
+      }
+      @if (showClearHistory()) {
+        <app-confirm-clear-history-dialog [busy]="clearingHistory()" [errorMessage]="clearHistoryError()"
+          (cancelled)="showClearHistory.set(false)" (confirmed)="onClearHistory()" />
       }
     </div>

@@ -34,6 +34,7 @@ export class SidebarComponent implements OnDestroy {
     { path: '/artists', label: 'Artists', icon: 'user' },
     { path: '/playlists', label: 'Playlists', icon: 'list-music' },
     { path: '/folders', label: 'Folders', icon: 'folder' },
+    { path: '/history', label: 'History', icon: 'clock' },
   ]);
   readonly exactQuery: IsActiveMatchOptions = { paths: 'subset', queryParams: 'exact', fragment: 'ignored', matrixParams: 'ignored' };
   private readonly library = signal<{ tracks: number; albums: number; artists: number; quality: QualityStats } | null>(null);

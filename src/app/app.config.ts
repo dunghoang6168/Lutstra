@@ -1,14 +1,15 @@
 import { ApplicationConfig, inject, InjectionToken, NgZone, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { ARTIST_METADATA_GATEWAY, AUDIO_ANALYSIS_ENGINE, AudioAnalysisEngine, LIBRARY_GATEWAY, LYRICS_GATEWAY, PLAYBACK_ENGINE, PlaybackEngine, PLAYLIST_GATEWAY, POPULARITY_GATEWAY, SETTINGS_GATEWAY } from './core/contracts';
-import { MockArtistMetadataGateway, MockLibraryGateway, MockLyricsGateway, MockPlaybackEngine, MockPopularityGateway, MockPlaylistGateway, MockSettingsGateway } from './core/mock';
+import { ARTIST_METADATA_GATEWAY, AUDIO_ANALYSIS_ENGINE, AudioAnalysisEngine, LIBRARY_GATEWAY, LISTENING_HISTORY_GATEWAY, LYRICS_GATEWAY, PLAYBACK_ENGINE, PlaybackEngine, PLAYLIST_GATEWAY, POPULARITY_GATEWAY, SETTINGS_GATEWAY } from './core/contracts';
+import { MockArtistMetadataGateway, MockLibraryGateway, MockListeningHistoryGateway, MockLyricsGateway, MockPlaybackEngine, MockPopularityGateway, MockPlaylistGateway, MockSettingsGateway } from './core/mock';
 import { ElectronLibraryGateway } from './core/desktop/electron-library.gateway';
 import { ElectronPlaylistGateway } from './core/desktop/electron-playlist.gateway';
 import { ElectronSettingsGateway } from './core/desktop/electron-settings.gateway';
 import { ElectronArtistMetadataGateway } from './core/desktop/electron-artist-metadata.gateway';
 import { ElectronLyricsGateway } from './core/desktop/electron-lyrics.gateway';
 import { ElectronPopularityGateway } from './core/desktop/electron-popularity.gateway';
+import { ElectronListeningHistoryGateway } from './core/desktop/electron-listening-history.gateway';
 import { HtmlAudioPlaybackEngine } from './core/desktop/html-audio-playback.engine';
 import { NativeAudioPlaybackEngine } from './core/desktop/native-audio-playback.engine';
 import { SwitchingPlaybackEngine } from './core/desktop/switching-playback.engine';
@@ -17,6 +18,7 @@ import { ThemeService } from './core/theme/theme.service';
 import { MediaSessionService } from './core/media/media-session.service';
 import { LayoutPreferenceService } from './core/layout/layout-preference.service';
 import { AudioVisualizationPreferenceService } from './core/layout/audio-visualization-preference.service';
+import { ListeningHistoryService } from './core/history/listening-history.service';
 import { Capacitor } from '@capacitor/core';
 import { AndroidLibraryGateway } from './core/android/android-library.gateway';
 import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway';
@@ -38,6 +40,7 @@ export const appConfig: ApplicationConfig = {
     { provide: ARTIST_METADATA_GATEWAY, useFactory: () => isDesktop() ? new ElectronArtistMetadataGateway() : new MockArtistMetadataGateway() },
     { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : new MockLyricsGateway() },
     { provide: POPULARITY_GATEWAY, useFactory: () => isDesktop() ? new ElectronPopularityGateway() : new MockPopularityGateway() },
+    { provide: LISTENING_HISTORY_GATEWAY, useFactory: () => isDesktop() ? new ElectronListeningHistoryGateway() : new MockListeningHistoryGateway() },
     { provide: ACTIVE_AUDIO_ENGINE, useFactory: () => isDesktop()
       ? new SwitchingPlaybackEngine(new HtmlAudioPlaybackEngine(), new NativeAudioPlaybackEngine(inject(NgZone)))
       : isAndroid() ? new AndroidPlaybackEngine(inject(NgZone)) : new MockPlaybackEngine() },
@@ -47,5 +50,6 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => inject(LayoutPreferenceService).restore()),
     provideAppInitializer(() => inject(AudioVisualizationPreferenceService).restore()),
     provideAppInitializer(() => void inject(MediaSessionService)),
+    provideAppInitializer(() => void inject(ListeningHistoryService)),
   ],
 };

@@ -45,6 +45,7 @@ export class AppHeaderComponent {
     { path: '/artists', label: 'Artists' },
     { path: '/playlists', label: 'Playlists' },
     { path: '/folders', label: 'Folders' },
+    { path: '/history', label: 'History' },
   ]);
   readonly scanProgress = toSignal(this.gateway.scanProgress$, {
     initialValue: {

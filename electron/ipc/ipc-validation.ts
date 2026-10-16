@@ -1,4 +1,5 @@
 import type { MediaControlsInfo } from '../media-controls.js';
+import { HISTORY_PAGE_SIZE, HistoryPageRequest, LISTEN_ENDS, LISTEN_SOURCES, LISTEN_STARTS, PlayEvent } from '../../src/app/core/models/index.js';
 
 const ID_PATTERN = /^[a-z]+-[a-f0-9]{64}$/;
 
@@ -71,4 +72,39 @@ export function validMediaControlsInfo(value: unknown, resolveArtworkPath: (hash
     title: text(info['title']), artist: text(info['artist']), album: text(info['album']), state,
     artworkPath: hash ? resolveArtworkPath(hash) : null,
   };
+}
+
+const DAY_SECONDS = 60 * 60 * 24;
+
+export function validPlayEvent(value: unknown): PlayEvent {
+  if (!value || typeof value !== 'object') throw new Error('Invalid listen');
+  const event = value as Record<string, unknown>;
+  const seconds = (name: string) => {
+    const number = event[name];
+    if (typeof number !== 'number' || !Number.isFinite(number) || number < 0 || number > DAY_SECONDS) throw new Error(`Invalid listen ${name}`);
+    return number;
+  };
+  const oneOf = <T extends string>(name: string, values: readonly T[]): T => {
+    if (!values.includes(event[name] as T)) throw new Error(`Invalid listen ${name}`);
+    return event[name] as T;
+  };
+  const startedAt = event['startedAt'];
+  if (typeof startedAt !== 'number' || !Number.isSafeInteger(startedAt) || startedAt <= 0) throw new Error('Invalid listen startedAt');
+  return {
+    trackId: validId(event['trackId']), startedAt, playedSeconds: seconds('playedSeconds'), endPosition: seconds('endPosition'),
+    duration: seconds('duration'), seekForwardSeconds: seconds('seekForwardSeconds'), startedBy: oneOf('startedBy', LISTEN_STARTS),
+    endReason: oneOf('endReason', LISTEN_ENDS), source: oneOf('source', LISTEN_SOURCES),
+  };
+}
+
+export function validHistoryPageRequest(value: unknown): HistoryPageRequest {
+  if (!value || typeof value !== 'object') throw new Error('Invalid history request');
+  const request = value as Record<string, unknown>;
+  const limit = request['limit'];
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_SIZE) throw new Error('Invalid history limit');
+  const before = request['before'];
+  if (before === undefined) return { limit };
+  const cursor = before as Record<string, unknown> | null;
+  if (!cursor || typeof cursor !== 'object' || !Number.isSafeInteger(cursor['startedAt']) || !Number.isSafeInteger(cursor['id'])) throw new Error('Invalid history cursor');
+  return { limit, before: { startedAt: cursor['startedAt'] as number, id: cursor['id'] as number } };
 }

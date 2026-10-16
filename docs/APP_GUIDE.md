@@ -18,6 +18,19 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 - **Phát nhạc:**
   - `PlayerService` (`core/player`) giữ queue và trạng thái phát.
   - Phiên nghe được giữ qua lần tắt app: queue, thứ tự trước shuffle, bài hiện tại và giây (`PlaybackSession`), lưu ở hàng `session` của bảng `settings` qua IPC `session:get` / `session:save` (`validPlaybackSession`). Renderer ghi dần trong lúc nghe, vì `before-quit` đóng database ngay: queue đổi thì ghi trong khoảng 1 giây, còn vị trí thì tối đa 5 giây một lần khi đang phát. Khi roulette chạy, cái được lưu là queue đang tạm gác và chỗ nghe tiếp của nó. Mở app thì nạp lại ở trạng thái **dừng**, không tự phát. Bài đã bị xoá khỏi thư viện thì bỏ qua. File của bài hiện tại bị mất thì hiện Unavailable.
+  - **Lịch sử nghe** (nền cho Smart Shuffle sau này):
+    - **Ghi ngầm.** `ListeningHistoryService` (`core/history`, khởi động trong `app.config.ts`) ghi ngầm mọi lượt nghe vào bảng `play_events`: bài, lúc bắt đầu, số giây thật sự phát (không tính phần tua), vị trí xa nhất, số giây tua qua, cách bắt đầu (`user` / `auto` / `next` / `previous` / `resume`), lý do kết thúc (`ended` / `skip_next` / `skip_previous` / `picked_other` / `app_closed` / `other`) và nguồn (`queue` / `roulette`).
+    - **Đánh dấu lý do chuyển bài.** `PlayerService` ghi lại thao tác chuyển bài gần nhất của người dùng (`lastTransition()`), đặt trong `next()`, `previous()`, `playTrack()`, `playCollection()`, `jumpToQueueIndex()`, `playExternal()` và `backToQueue()`. Bài tự chuyển khi hết đi qua `advance()` riêng nên không bị tính là skip.
+    - **Cách tính.** Logic thuần nằm trong `listen-tracker.ts`:
+      - Nghe tới cách cuối bài trong `max(3, crossfade + 1)` giây thì tính là `ended`.
+      - Repeat One: mỗi vòng là một lượt nghe.
+      - Lượt dưới 1 giây không được ghi.
+      - Lượt đang nghe dở được lưu tạm ở `lutstra.history.openListen`; lần mở app sau ghi lại với lý do `app_closed`.
+    - **IPC:** `history:record`, `history:list` và `history:clear`, có validate. Trên trình duyệt và Android, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
+    - **Trang History** (`/history`, sau Folders ở sidebar và tab):
+      - Chỉ là lịch sử, không phải thống kê. Mỗi dòng gồm bài, nghệ sĩ, album, giờ nghe và thời lượng bài, chia nhóm theo ngày.
+      - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ Roulette (`shownInHistory`). Lượt Roulette vẫn được lưu để phân tích.
+      - Settings > Playback có nút **Clear history** (hỏi lại trước khi xóa).
   - `PlaybackEngine` là ranh giới với backend: Native Shared (Native Audio Host, mặc định) hoặc Chromium Shared (dự phòng).
   - Media flyout của Windows (Quick Settings, lock screen): khi chạy Chromium Shared, Chromium tự đẩy `navigator.mediaSession` lên. Khi chạy Native Shared, `MediaSessionService` gửi bài đang phát qua IPC `media-controls:update`, rồi `electron/media-controls.ts` gọi SMTC trong addon `native/window-snap/media_controls.cc`. Nút bấm trên flyout đi về theo channel `media-keys:action`.
 - **Electron (`electron/`):** main process, IPC đã validate, SQLite, scanner và protocol `music://`. Renderer không chạm filesystem hay IPC thô.
@@ -28,7 +41,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 - `LayoutPreferenceService`: layout hiện tại, lưu trong `lutsra.layout.*`.
 - `ThemeService`: theme Graphite/Cloud và accent. Service này gắn `data-theme`, `data-accent` và `data-layout` lên `<html>`.
 - `TrackSelectionService`: track đang chọn. Inspector của Console đọc giá trị này.
-- `RecentPlaysService`: lịch sử nghe, lưu trong `lutsra.recentPlays` dạng `[{ trackId, playedAt }]`, mới nhất trước, tối đa 20. Lịch sử được ghi khi `player.currentTrack` đổi.
+- `RecentPlaysService`: 20 bài gần nhất cho Home (Continue listening), lưu trong `lutsra.recentPlays` dạng `[{ trackId, playedAt }]`, mới nhất trước. Ghi khi `player.currentTrack` đổi. Đây không phải lịch sử nghe đầy đủ (`play_events`, xem mục Phát nhạc).
 - `RightPanelService`: panel nào đang mở bên phải (queue drawer hoặc track details).
 - `NavigationHistoryService`: lịch sử điều hướng cho nút back/forward.
 - `DevModeService` (`core/settings`): developer mode ẩn, lưu trong `lutsra.dev.enabled`. Cách bật: khi dev mode đang tắt, bấm tiêu đề "About Lutstra" trong Settings để mở modal nhập mã (`app-dev-mode-dialog`). Mã duy nhất là **`lutstra-dev`**; không phân biệt hoa thường, bỏ qua khoảng trắng hai đầu. Mã này chỉ để tránh bật nhầm, không phải để bảo mật. Khi dev mode đang bật, bấm tiêu đề không làm gì; thẻ About có dòng "Developer mode: On" kèm nút **Exit developer mode** để quay về chế độ thường. Khi bật, header (cả 3 layout) có thêm nút icon gacha cạnh Settings (`src/assets/icons/gacha_cards_{outline,solid}.svg`, hiển thị bằng CSS mask, bản solid khi đang ở trang) dẫn tới trang **Music Roulette** (`/random-folder`, có guard; route, tên trong code và key localStorage vẫn giữ tên "random folder"). Trang này cố ý không nằm trong tab hay sidebar để không lẫn với Folders:

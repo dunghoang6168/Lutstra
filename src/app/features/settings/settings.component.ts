@@ -20,6 +20,8 @@ import { SongColumnsSettingsComponent } from './song-columns-settings.component'
 import { LayoutSettingsComponent } from './layout-settings.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
 import { DevModeDialogComponent } from './dev-mode-dialog/dev-mode-dialog.component';
+import { ConfirmClearHistoryDialogComponent } from './confirm-clear-history-dialog/confirm-clear-history-dialog.component';
+import { ListeningHistoryService } from '../../core/history/listening-history.service';
 import { TipDirective } from '../../shared/directives/tip.directive';
 
 export const AUDIO_HOST_LABELS: Record<AudioHostState, string> = {
@@ -51,7 +53,7 @@ export interface ThemePresetOption {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, DevModeDialogComponent, TipDirective],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, ConfirmClearHistoryDialogComponent, DevModeDialogComponent, TipDirective],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
@@ -215,6 +217,26 @@ export class SettingsComponent implements OnInit {
       this.errorMessage.set(err?.message || 'Couldn’t remove the folder. Try again.');
     } finally {
       this.removingFolder.set(false);
+    }
+  }
+
+  private readonly listeningHistory = inject(ListeningHistoryService);
+  readonly showClearHistory = signal(false);
+  readonly clearingHistory = signal(false);
+  readonly clearHistoryError = signal<string | null>(null);
+
+  async onClearHistory(): Promise<void> {
+    if (this.clearingHistory()) return;
+    this.clearingHistory.set(true);
+    this.clearHistoryError.set(null);
+    try {
+      await this.listeningHistory.clear();
+      this.showClearHistory.set(false);
+      this.queueActions.notify('Listening history cleared');
+    } catch (err: any) {
+      this.clearHistoryError.set(err?.message || 'Couldn’t clear the history. Try again.');
+    } finally {
+      this.clearingHistory.set(false);
     }
   }
 

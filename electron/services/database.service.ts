@@ -1,6 +1,6 @@
 import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 import path from 'node:path';
-import { Album, Artist, ArtistMetadataSource, ArtistOnlineMetadata, DEFAULT_ACCENT_COLOR, DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, DEFAULT_THEME_PRESET, FolderNode, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isThemePreset, MusicFolder, normalizeHiddenSongColumns, normalizeSongColumnOrder, normalizeThemePreset, orderAlbumTracks, Playlist, PlaylistEntry, PlaybackSession, Settings, Track } from '../../src/app/core/models/index.js';
+import { Album, Artist, ArtistMetadataSource, ArtistOnlineMetadata, DEFAULT_ACCENT_COLOR, DEFAULT_ADD_TRACKS_TAB, DEFAULT_AUDIO_VISUALIZATION_MODE, DEFAULT_LAYOUT_MODE, DEFAULT_LIQUID_GLASS_ACCENT_COLOR, DEFAULT_SONG_COLUMN_ORDER, DEFAULT_THEME_PRESET, FolderNode, HistoryEntry, HistoryPageRequest, isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isThemePreset, MusicFolder, normalizeHiddenSongColumns, normalizeSongColumnOrder, normalizeThemePreset, orderAlbumTracks, PlayEvent, Playlist, PlaylistEntry, PlaybackSession, Settings, Track } from '../../src/app/core/models/index.js';
 import { LibrarySnapshot } from '../../src/app/core/contracts/library.gateway.js';
 import type { TrackPopularity } from '../../src/app/core/contracts/popularity.gateway.js';
 import { pathKey, stableId } from '../utils/path-utils.js';
@@ -83,6 +83,17 @@ export class DatabaseService {
       const trackColumns = new Set((this.db.prepare('PRAGMA table_info(tracks)').all() as Row[]).map((row) => String(row['name'])));
       if (!trackColumns.has('artwork_source')) this.db.exec('ALTER TABLE tracks ADD COLUMN artwork_source TEXT');
       this.db.exec("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (4, unixepoch('now') * 1000)");
+      // No foreign key to tracks: the listening history outlives files removed from the library.
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS play_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, track_id TEXT NOT NULL, started_at INTEGER NOT NULL, played_seconds REAL NOT NULL,
+        end_position REAL NOT NULL, duration REAL NOT NULL, seek_forward_seconds REAL NOT NULL, started_by TEXT NOT NULL,
+        end_reason TEXT NOT NULL, source TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS play_events_started_at ON play_events(started_at, id);
+      CREATE INDEX IF NOT EXISTS play_events_track_id ON play_events(track_id);
+      INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (5, unixepoch('now') * 1000);
+      `);
       this.db.exec('COMMIT');
     } catch (error) {
       this.db.exec('ROLLBACK');
@@ -171,6 +182,29 @@ export class DatabaseService {
       channel=excluded.channel,url=excluded.url,fetched_at=excluded.fetched_at`).run(
       value.trackId, value.status, value.views, value.videoTitle, value.channel, value.url, value.fetchedAt,
     );
+  }
+
+  recordPlayEvent(event: PlayEvent): void {
+    this.db.prepare(`INSERT INTO play_events(track_id,started_at,played_seconds,end_position,duration,seek_forward_seconds,started_by,end_reason,source)
+      VALUES(?,?,?,?,?,?,?,?,?)`).run(
+      event.trackId, event.startedAt, event.playedSeconds, event.endPosition, event.duration, event.seekForwardSeconds,
+      event.startedBy, event.endReason, event.source,
+    );
+  }
+
+  /** The History page's rows: what `shownInHistory` keeps, newest first. */
+  listHistory(request: HistoryPageRequest): HistoryEntry[] {
+    const shown = "source <> 'roulette'";
+    const cursor = request.before;
+    const rows = (cursor
+      ? this.db.prepare(`SELECT id, track_id, started_at FROM play_events WHERE ${shown} AND (started_at < ? OR (started_at = ? AND id < ?))
+          ORDER BY started_at DESC, id DESC LIMIT ?`).all(cursor.startedAt, cursor.startedAt, cursor.id, request.limit)
+      : this.db.prepare(`SELECT id, track_id, started_at FROM play_events WHERE ${shown} ORDER BY started_at DESC, id DESC LIMIT ?`).all(request.limit)) as Row[];
+    return rows.map((row) => ({ id: Number(row['id']), trackId: String(row['track_id']), startedAt: Number(row['started_at']) }));
+  }
+
+  clearHistory(): void {
+    this.db.exec('DELETE FROM play_events');
   }
 
   findTrackFingerprint(filePath: string): { fileSize: number | null; lastModified: number | null } | null {

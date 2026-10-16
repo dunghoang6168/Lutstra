@@ -1,0 +1,184 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.history-page {
+  padding: var(--page-pad-top) var(--page-pad-x) var(--space-10);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.page-header { margin-bottom: var(--space-6); }
+
+.page-header h1 {
+  font-size: var(--type-display);
+  font-weight: var(--type-display-weight);
+  letter-spacing: var(--type-display-tracking);
+  line-height: 1.05;
+}
+
+.state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.history-table {
+  width: 100%;
+  // Fixed layout: long titles truncate instead of widening the table past its frame.
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.history-table thead th {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-caps: var(--type-label-variant);
+  letter-spacing: var(--type-label-tracking);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.history-table .day-heading {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+tbody + tbody .day-heading { border-top: 1px solid var(--border-subtle); }
+
+.history-table td {
+  padding: var(--space-2) var(--space-4);
+  vertical-align: middle;
+}
+
+.history-row {
+  height: 48px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  // Keyboard navigation: keep the focused row clear of the page's top edge.
+  scroll-margin-top: calc(var(--page-pad-top) + var(--space-2));
+}
+
+.history-row { border-top: 1px solid var(--border-subtle); }
+.day-row + .history-row { border-top: 0; }
+.history-row:hover { background: var(--bg-surface-hover); }
+.history-row[aria-selected="true"] { background: var(--bg-surface-active); }
+.history-row.unavailable { opacity: 0.45; }
+
+.history-row:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.col-title { width: auto; }
+.col-artist { width: 22%; color: var(--text-secondary); }
+.col-album { width: 22%; color: var(--text-secondary); }
+.col-played,
+.col-duration {
+  width: calc(5ch + var(--space-4) * 2);
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.col-actions { width: calc(28px + var(--space-4) * 2); text-align: right; }
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.track-title,
+.cell-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-title { flex: 1; }
+
+.thumb-img,
+.thumb-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+}
+
+.badge-unavailable {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: var(--status-warning-text);
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+// Narrow columns collapse to zero width instead of display: none, so the day rows' colspan still matches
+// the column count (a missing column would leave an empty one taking the freed width).
+@mixin collapsed-column {
+  width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+@container main-content (max-width: 860px) {
+  .col-album { @include collapsed-column; }
+  .col-artist { width: 30%; }
+}
+
+@container main-content (max-width: 600px) {
+  .col-artist { @include collapsed-column; }
+
+  .history-table thead th,
+  .history-table td { padding-inline: var(--space-2); }
+  .history-table .day-heading { padding-inline: var(--space-2); }
+
+  .col-played,
+  .col-duration { width: calc(5ch + var(--space-2) * 2); }
+  .col-actions { width: calc(28px + var(--space-2) * 2); }
+}

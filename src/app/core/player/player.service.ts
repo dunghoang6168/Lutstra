@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { LIBRARY_GATEWAY, PLAYBACK_ENGINE, SETTINGS_GATEWAY } from '../contracts';
-import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackSession, PlaybackState, PlaybackMode, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track } from '../models';
+import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, PlaybackError, PlaybackSession, PlaybackState, PlaybackMode, QueueEntry, RepeatMode, Settings, SYSTEM_DEFAULT_OUTPUT_ID, Track, TransitionCause } from '../models';
 import { getDesktopApi } from '../desktop/desktop-api';
 import { logPlaybackDiagnostic } from './playback-diagnostics';
 import { nextPlayableQueueIndex } from './playback-policy';
@@ -101,6 +101,8 @@ export class PlayerService implements OnDestroy {
   private sessionTimer: ReturnType<typeof setInterval> | null = null;
   private savedSession: { queue: QueueEntry[]; index: number; position: number; at: number } | null = null;
   private readonly playRequested = signal(false);
+  /** The user's last transport request, so the listening history can tell a skip from an automatic advance. */
+  private transition: { cause: TransitionCause; at: number } | null = null;
 
   // Primary Signals
   readonly currentTrack = signal<Track | null>(null);
@@ -478,11 +480,21 @@ export class PlayerService implements OnDestroy {
    * Starts playing a track from a collection.
    * Replaces queue with a fresh copy of the collection with unique entry IDs.
    */
+  /** The cause of the latest user transport request, with when it was made (ms). */
+  lastTransition(): { cause: TransitionCause; at: number } | null {
+    return this.transition;
+  }
+
+  private markTransition(cause: TransitionCause): void {
+    this.transition = { cause, at: Date.now() };
+  }
+
   async playCollection(tracks: Track[], startIndex: number = 0): Promise<void> {
     if (this.blockedByBusyOutput()) return;
     if (!tracks || tracks.length === 0) {
       return;
     }
+    this.markTransition('user');
 
     const safeIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
     const entries = this.createQueueEntries(tracks);
@@ -513,6 +525,7 @@ export class PlayerService implements OnDestroy {
    */
   async playTrack(track: Track): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    this.markTransition('user');
     this.external.set(null);
     const q = this.queue();
     const existingIndex = q.findIndex((e) => e.track.id === track.id);
@@ -873,10 +886,17 @@ export class PlayerService implements OnDestroy {
    */
   async next(): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    this.markTransition('next');
+    await this.advance();
+  }
+
+  /** Moves to the next playable item; `next()` without marking a user skip, for automatic advances. */
+  private async advance(): Promise<void> {
+    if (this.blockedByBusyOutput()) return;
     const external = this.external();
     if (external) {
       const track = external.source.next();
-      if (track) await this.playExternal(external.source, track);
+      if (track) await this.startExternal(external.source, track);
       else this.pause();
       return;
     }
@@ -926,10 +946,11 @@ export class PlayerService implements OnDestroy {
    */
   async previous(): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    this.markTransition('previous');
     const external = this.external();
     if (external) {
       const track = this.currentTime() > 3 ? null : external.source.previous();
-      if (track) await this.playExternal(external.source, track);
+      if (track) await this.startExternal(external.source, track);
       else this.seek(0);
       return;
     }
@@ -1140,6 +1161,7 @@ export class PlayerService implements OnDestroy {
     if (this.blockedByBusyOutput()) return;
     const q = this.queue();
     if (index >= 0 && index < q.length) {
+      this.markTransition('user');
       this.failedEntryIds.delete(q[index].id);
       this.external.set(null);
       this.currentIndex.set(index);
@@ -1157,6 +1179,12 @@ export class PlayerService implements OnDestroy {
    */
   async playExternal(source: ExternalSource, track: Track): Promise<void> {
     if (this.blockedByBusyOutput()) return;
+    this.markTransition('user');
+    await this.startExternal(source, track);
+  }
+
+  private async startExternal(source: ExternalSource, track: Track): Promise<void> {
+    if (this.blockedByBusyOutput()) return;
     const current = this.external();
     const resumeAt = current ? current.resumeAt : this.currentQueueEntry() ? this.currentTime() : 0;
     this.external.set({ source, item: this.externalItem(track), resumeAt });
@@ -1167,6 +1195,7 @@ export class PlayerService implements OnDestroy {
   async backToQueue(): Promise<void> {
     const current = this.external();
     if (!current || this.blockedByBusyOutput()) return;
+    this.markTransition('user');
     let resumeAt = current.resumeAt;
     if (!this.currentQueueEntry()) {
       if (!this.queue().length) {
@@ -1319,7 +1348,7 @@ export class PlayerService implements OnDestroy {
     if (this.transitioning) return;
     const candidate = this.nextCandidate();
     if (!candidate) {
-      await this.next();
+      await this.advance();
       return;
     }
 
@@ -1338,7 +1367,7 @@ export class PlayerService implements OnDestroy {
       }
     }
 
-    await this.next();
+    await this.advance();
   }
 
   private automaticNextIndex(): number {
