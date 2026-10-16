@@ -19,7 +19,7 @@
         </div>
       }
 
-      @if (!isDesktop) {
+      @if (!isDesktop && !isAndroid) {
         <div class="integration-notice-card">
           <div class="notice-icon">
             <app-icon name="info" [size]="18" />
@@ -182,7 +182,7 @@
           <div class="folder-actions">
             <button type="button" class="btn btn-primary" (click)="onAddFolder()">
               <app-icon name="plus" [size]="16" />
-              Add folder
+              {{ isAndroid ? 'Choose folders' : 'Add folder' }}
             </button>
             <button type="button" class="btn btn-secondary" (click)="onRescanLibrary()">
               Rescan library

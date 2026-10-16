@@ -1,6 +1,7 @@
 import '@angular/compiler';
 import { describe, expect, it } from 'vitest';
 import { MediaStoreTrack, libraryQueue, snapshotFrom } from '../src/app/core/android/android-library.gateway';
+import { AndroidFolderNode, FolderGrant, folderCheckState, readablePath, selectedBranches, toggleFolder } from '../src/app/core/android/android-folder-selection';
 
 const row = (id: string, changes: Partial<MediaStoreTrack> = {}): MediaStoreTrack => ({
   id, uri: id, fileName: null, title: null, artist: null, album: null,
@@ -43,5 +44,38 @@ describe('Android MediaStore snapshot', () => {
       row('b1', { album: 'HVL', trackNumber: 1 }), row('a2', { album: '99%', trackNumber: 2 }),
     ]);
     expect(libraryQueue(tracks).map(track => track.id)).toEqual(['a2', 'a10', 'b1', 'b2']);
+  });
+});
+
+describe('Android folder selection', () => {
+  const auth = 'com.android.externalstorage.documents';
+  const key = (documentId: string) => `${auth.length}:${auth}${documentId}`;
+  const treeUri = `content://${auth}/tree/3066-6139%3AMusic`;
+  const node = (documentId: string, parent: string | null): AndroidFolderNode => ({
+    key: key(documentId), name: documentId.split('/').at(-1)!.replace(/^.*:/, ''),
+    parentKey: parent && key(parent), treeUri, documentId, available: true,
+  });
+  const nodes = [
+    node('3066-6139:Music', null), node('3066-6139:Music/VN', '3066-6139:Music'),
+    node('3066-6139:Music/VN/MCK', '3066-6139:Music/VN'), node('3066-6139:Music/US-UK', '3066-6139:Music'),
+  ];
+  const grants: FolderGrant[] = [{ treeUri, key: key('3066-6139:Music'), volumeLabel: 'SanDisk SD card' }];
+
+  it('names a branch by its volume and folders instead of the document URI', () => {
+    expect(readablePath('3066-6139:Music/VN/MCK', grants)).toBe('SanDisk SD card/Music/VN/MCK');
+    expect(readablePath('primary:Music', grants)).toBe('primary/Music');
+    const rules = [{ key: key('3066-6139:Music/VN/MCK'), selected: true }];
+    expect(selectedBranches(nodes, rules, grants)).toEqual([
+      { id: key('3066-6139:Music/VN/MCK'), name: 'MCK', path: 'SanDisk SD card/Music/VN/MCK', addedAt: 0 },
+    ]);
+  });
+
+  it('ticking a parent replaces the rules below it, and unticking a child leaves it out', () => {
+    let rules = [{ key: key('3066-6139:Music/VN/MCK'), selected: true }];
+    rules = toggleFolder(nodes, rules, key('3066-6139:Music'), true);
+    expect(rules).toEqual([{ key: key('3066-6139:Music'), selected: true }]);
+    rules = toggleFolder(nodes, rules, key('3066-6139:Music/VN/MCK'), false);
+    expect(folderCheckState(nodes, rules, key('3066-6139:Music'))).toBe('mixed');
+    expect(selectedBranches(nodes, rules).map(folder => folder.name)).toEqual(['Music']);
   });
 });

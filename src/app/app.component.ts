@@ -10,6 +10,8 @@ import { QueueDrawerComponent } from './shared/components/queue-drawer/queue-dra
 import { TrackDetailsPanelComponent } from './shared/components/track-details-panel/track-details-panel.component';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { CoverArtComponent } from './shared/components/cover-art/cover-art.component';
+import { AndroidFolderPickerComponent } from './shared/components/android-folder-picker/android-folder-picker.component';
+import { folderPickerRequest } from './core/android/android-folder-selection';
 import { RightPanelService } from './core/layout/right-panel.service';
 import { PlayerService } from './core/player/player.service';
 import { SmartShuffleService } from './core/smart-shuffle/smart-shuffle.service';
@@ -47,6 +49,7 @@ const RAIL_RESERVED_WIDTH = 514;
     TrackDetailsPanelComponent,
     IconComponent,
     CoverArtComponent,
+    AndroidFolderPickerComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
@@ -73,6 +76,7 @@ export class AppComponent implements AfterViewChecked {
   private needsShortcutsFocus = false;
   private needsShortcutsFocusRestore = false;
   private focusBeforeShortcuts: HTMLElement | null = null;
+  readonly folderPickerRequest = folderPickerRequest;
   readonly showOnboarding = signal(false);
   readonly onboardingBusy = signal(false);
   readonly onboardingError = signal<string | null>(null);

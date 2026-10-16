@@ -14,6 +14,7 @@ import { DevModeService } from '../../core/settings/dev-mode.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { getDesktopApi } from '../../core/desktop/desktop-api';
+import { Capacitor } from '@capacitor/core';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { RangeSliderComponent } from '../../shared/components/range-slider/range-slider.component';
 import { SongColumnsSettingsComponent } from './song-columns-settings.component';
@@ -93,6 +94,7 @@ export class SettingsComponent implements OnInit {
   readonly showDevModeDialog = signal(false);
   private readonly queueActions = inject(QueueActionsService);
   readonly isDesktop = Boolean(getDesktopApi());
+  readonly isAndroid = Capacitor.getPlatform() === 'android';
 
   onDevModeUnlocked(): void {
     this.showDevModeDialog.set(false);

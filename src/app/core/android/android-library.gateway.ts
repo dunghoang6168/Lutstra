@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LibraryGateway, LibrarySnapshot } from '../contracts/library.gateway';
 import { Album, Artist, FolderNode, MusicFolder, ScanProgress, Track, TrackDetails } from '../models';
 import { compareAlbumTracks } from '../models/album-track-order';
-import { AndroidFolderNode, androidFolders, selectedBranches, toggleFolder } from './android-folder-selection';
+import { AndroidFolderNode, androidFolders, openFolderPicker, selectedBranches, toggleFolder } from './android-folder-selection';
 
 export interface MediaStoreTrack {
   id: string;
@@ -93,6 +93,9 @@ export class AndroidLibraryGateway implements LibraryGateway {
   private rows: MediaStoreTrack[] = [];
   private folderNodes: AndroidFolderNode[] = [];
   private loaded = false;
+  private running: Promise<void> | null = null;
+  private pass: Promise<void> | null = null;
+  private rescanQueued = false;
   private readonly progress = new BehaviorSubject<ScanProgress>({
     isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null,
   });
@@ -100,8 +103,22 @@ export class AndroidLibraryGateway implements LibraryGateway {
   private readonly changed = new Subject<void>();
   readonly libraryChanged$ = this.changed.asObservable();
 
+  constructor(private readonly zone?: NgZone) {
+    void androidFolders.addListener('scanProgress', ({ tracks }) => {
+      const update = () => {
+        if (this.progress.value.isScanning) this.progress.next({ ...this.progress.value, scannedFiles: tracks, audioFiles: tracks });
+      };
+      if (this.zone) this.zone.run(update); else update();
+    }).catch(() => undefined);
+  }
+
   async getLibrary(): Promise<LibrarySnapshot> {
-    if (!this.loaded) await this.requestScan();
+    // Callers arriving during the first scan wait for it instead of getting an empty library.
+    if (!this.loaded) {
+      // The error, if any, arrives through the pass below.
+      if (!this.pass) this.requestScan().catch(() => undefined);
+      await this.pass;
+    }
     return this.snapshot;
   }
 
@@ -114,10 +131,25 @@ export class AndroidLibraryGateway implements LibraryGateway {
     await this.requestScan([folderId]);
   }
 
-  async requestScan(folderIds?: string[]): Promise<void> {
-    if (this.progress.value.isScanning) return;
+  /** A request during a scan queues one more pass, so a selection saved mid-scan is not dropped. */
+  requestScan(folderIds?: string[]): Promise<void> {
+    if (this.running) { this.rescanQueued = true; return this.running; }
+    this.running = (async () => {
+      try {
+        await (this.pass = this.scanOnce(folderIds));
+        while (this.rescanQueued) { this.rescanQueued = false; await (this.pass = this.scanOnce()); }
+      } finally {
+        this.rescanQueued = false;
+        this.pass = null;
+        this.running = null;
+      }
+    })();
+    return this.running;
+  }
+
+  private async scanOnce(folderIds?: string[]): Promise<void> {
     const [tree, selection] = await Promise.all([androidFolders.listTree(), androidFolders.getSelection()]);
-    const folders = selectedBranches(tree.folders, selection.rules);
+    const folders = selectedBranches(tree.folders, selection.rules, tree.grants);
     if (folderIds?.length && folderIds.some(id => !folders.some(folder => folder.id === id))) {
       throw new Error('Unknown Android folder');
     }
@@ -206,10 +238,11 @@ export class AndroidLibraryGateway implements LibraryGateway {
     };
   }
 
+  // Opens the folder picker dialog (AndroidFolderPickerComponent), which saves the ticked branches.
   async selectAndAddMusicFolders(): Promise<MusicFolder[]> {
-    // Granting access does not change the active scan selection until Save & Scan.
-    await androidFolders.choose();
-    return [];
+    if (!(await openFolderPicker())) return [];
+    await this.requestScan();
+    return this.snapshot.folders;
   }
 
   async removeMusicFolder(folderId: string): Promise<void> {

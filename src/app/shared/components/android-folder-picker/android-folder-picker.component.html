@@ -1,0 +1,70 @@
+<dialog #dialog class="modal-card" role="dialog" aria-modal="true"
+  aria-labelledby="folderPickerTitle" aria-describedby="folderPickerDescription"
+  [attr.aria-busy]="busy()" (cancel)="onCancel($event)" (keydown)="onKeyDown($event)"
+  (click)="onBackdropClick($event)">
+  <h3 id="folderPickerTitle">Choose folders</h3>
+  <p id="folderPickerDescription" class="modal-desc">
+    Tick the folders to scan. A ticked folder includes its subfolders; untick any of them to leave it out.
+  </p>
+
+  <div class="folder-tree" role="tree" aria-label="Music folders">
+    @for (row of rows(); track row.node.key) {
+      <div class="folder-row" role="treeitem" [attr.aria-level]="row.depth + 1"
+        [attr.aria-expanded]="row.hasChildren ? row.expanded : null"
+        [style.padding-left]="'calc(var(--space-4) * ' + row.depth + ')'">
+        @if (row.hasChildren) {
+          <button type="button" class="btn-expand" [class.open]="row.expanded" (click)="toggleExpanded(row.node.key)"
+            [attr.aria-label]="(row.expanded ? 'Collapse ' : 'Expand ') + row.node.name">
+            <app-icon name="chevron-right" [size]="16" />
+          </button>
+        } @else {
+          <span class="expand-spacer"></span>
+        }
+        <label class="folder-label">
+          <span class="folder-text">
+            <span class="folder-name">{{ row.node.name }}</span>
+            @if (!row.node.available) {
+              <span class="folder-note unavailable">Can’t be reached</span>
+            } @else if (row.depth === 0 && row.grant) {
+              <span class="folder-note">{{ row.grant.volumeLabel }}</span>
+            }
+          </span>
+          <input type="checkbox" [checked]="row.state === 'checked'" [indeterminate]="row.state === 'mixed'"
+            [disabled]="!row.node.available || busy()" (change)="toggleCheck(row.node.key, $event)">
+        </label>
+        @if (row.grant) {
+          <button type="button" class="btn-release" [disabled]="busy()" (click)="pendingRelease.set({ grant: row.grant, name: row.node.name })"
+            [attr.aria-label]="'Remove access to ' + row.node.name">
+            <app-icon name="x" [size]="16" />
+          </button>
+        } @else {
+          <span class="expand-spacer"></span>
+        }
+      </div>
+    } @empty {
+      <p class="list-note" role="status">{{ busy() ? 'Loading folders…' : 'No folder access yet. Add a folder or storage to start.' }}</p>
+    }
+  </div>
+
+  <p class="hint">Android can’t grant some folders, such as the root of internal storage or Download. Add a folder inside them instead.</p>
+  @if (error(); as message) { <p class="dialog-error" role="alert">{{ message }}</p> }
+
+  @if (pendingRelease(); as pending) {
+    <div class="release-confirm" role="group" aria-labelledby="releaseTitle">
+      <p id="releaseTitle">Remove access to <strong>{{ pending.name }}</strong>? Tracks Lutstra can only reach through it leave the library. Files on the device are not deleted.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="pendingRelease.set(null)">Keep</button>
+        <button type="button" class="btn-danger" [disabled]="busy()" (click)="releaseGrant()">Remove access</button>
+      </div>
+    </div>
+  } @else {
+    <button type="button" class="btn-add" [disabled]="busy()" (click)="addFolder()">
+      <app-icon name="plus" [size]="16" />Add folder or storage
+    </button>
+    <div class="modal-actions">
+      <span class="branch-count"><span class="count">{{ branchCount() }}</span> {{ branchCount() === 1 ? 'folder' : 'folders' }} ticked</span>
+      <button type="button" class="btn-cancel" (click)="cancel()">Cancel</button>
+      <button type="button" class="btn-confirm" [disabled]="busy()" (click)="save()">Save &amp; scan</button>
+    </div>
+  }
+</dialog>

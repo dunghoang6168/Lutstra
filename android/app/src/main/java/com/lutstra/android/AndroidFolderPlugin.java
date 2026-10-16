@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.DocumentsContract;
 import android.util.AtomicFile;
 import androidx.activity.result.ActivityResult;
@@ -45,6 +47,8 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final String CACHE_FILE = "library-metadata.json";
     private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year" };
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Listing must not queue behind a long first scan, or the folder picker waits for it.
+    private final ExecutorService treeExecutor = Executors.newSingleThreadExecutor();
 
     private static final class Node {
         String key, name, parentKey, treeUri, documentId;
@@ -103,7 +107,7 @@ public final class AndroidFolderPlugin extends Plugin {
 
     @PluginMethod
     public void listTree(PluginCall call) {
-        executor.execute(() -> {
+        treeExecutor.execute(() -> {
             try {
                 Map<String, Node> nodes = new LinkedHashMap<>();
                 collect(nodes, null);
@@ -114,9 +118,35 @@ public final class AndroidFolderPlugin extends Plugin {
                     row.put("treeUri", node.treeUri); row.put("documentId", node.documentId); row.put("available", node.available);
                     folders.put(row);
                 }
-                JSObject response = new JSObject(); response.put("folders", folders); call.resolve(response);
+                JSONArray grants = new JSONArray();
+                JSONArray saved = savedUris();
+                for (int i = 0; i < saved.length(); i++) {
+                    Uri tree = Uri.parse(saved.getString(i));
+                    String rootId = DocumentsContract.getTreeDocumentId(tree);
+                    JSObject grant = new JSObject();
+                    grant.put("treeUri", tree.toString()); grant.put("key", keyOf(tree.getAuthority(), rootId));
+                    grant.put("volumeLabel", volumeLabel(rootId));
+                    grants.put(grant);
+                }
+                JSObject response = new JSObject(); response.put("folders", folders); response.put("grants", grants); call.resolve(response);
             } catch (Exception error) { call.reject("Could not list folders", error); }
         });
+    }
+
+    /** Forgets a granted tree. Rules under it stay saved and apply again if the tree is granted later. */
+    @PluginMethod
+    public void releaseGrant(PluginCall call) {
+        String treeUri = call.getString("treeUri");
+        if (treeUri == null) { call.reject("treeUri required"); return; }
+        try {
+            JSONArray saved = savedUris();
+            JSONArray kept = new JSONArray();
+            for (int i = 0; i < saved.length(); i++) if (!treeUri.equals(saved.getString(i))) kept.put(saved.getString(i));
+            prefs().edit().putString(KEY_URIS, kept.toString()).apply();
+            try { getContext().getContentResolver().releasePersistableUriPermission(Uri.parse(treeUri), Intent.FLAG_GRANT_READ_URI_PERMISSION); }
+            catch (SecurityException ignored) { /* Already gone, e.g. revoked by the system. */ }
+            call.resolve();
+        } catch (JSONException error) { call.reject("Could not release folder access", error); }
     }
 
     @PluginMethod
@@ -157,6 +187,10 @@ public final class AndroidFolderPlugin extends Plugin {
                     nextCache.put(key, meta);
                     for (String field : METADATA_FIELDS) if (meta.has(field)) row.put(field, meta.get(field));
                     tracks.put(row);
+                    if (tracks.length() % 25 == 0) {
+                        JSObject progress = new JSObject(); progress.put("tracks", tracks.length()); progress.put("folder", file.folderKey);
+                        notifyListeners("scanProgress", progress);
+                    }
                 }
                 writeCache(nextCache);
                 JSObject response = new JSObject(); response.put("tracks", tracks); call.resolve(response);
@@ -269,6 +303,17 @@ public final class AndroidFolderPlugin extends Plugin {
 
     private static long orMinus(Long value) { return value == null ? -1 : value; }
 
+    /** "primary:Music" or "3066-6139:Music" names its volume before the colon; the system describes it ("SanDisk SD card"). */
+    private String volumeLabel(String documentId) {
+        int colon = documentId.indexOf(':');
+        String uuid = colon < 0 ? documentId : documentId.substring(0, colon);
+        StorageManager storage = (StorageManager) getContext().getSystemService(android.content.Context.STORAGE_SERVICE);
+        for (StorageVolume volume : storage.getStorageVolumes()) {
+            if ("primary".equals(uuid) ? volume.isPrimary() : uuid.equalsIgnoreCase(volume.getUuid())) return volume.getDescription(getContext());
+        }
+        return uuid;
+    }
+
     private static String keyOf(String authority, String documentId) {
         return authority.length() + ":" + authority + documentId;
     }
@@ -319,5 +364,5 @@ public final class AndroidFolderPlugin extends Plugin {
     }
 
     @Override
-    protected void handleOnDestroy() { executor.shutdown(); super.handleOnDestroy(); }
+    protected void handleOnDestroy() { executor.shutdown(); treeExecutor.shutdown(); super.handleOnDestroy(); }
 }

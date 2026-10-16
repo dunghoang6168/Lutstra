@@ -1,0 +1,82 @@
+.modal-card {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  border: var(--dialog-border);
+  border-radius: var(--dialog-radius);
+  padding: var(--space-5);
+  width: min(480px, calc(100vw - var(--space-4) * 2));
+  max-height: calc(100dvh - var(--space-4) * 2);
+  overflow: hidden;
+  box-shadow: var(--dialog-shadow);
+  backdrop-filter: var(--dialog-filter);
+  -webkit-backdrop-filter: var(--dialog-filter);
+}
+.modal-card:not([open]) { display: none; }
+.modal-card:focus { outline: none; }
+.modal-card::backdrop { background: var(--scrim-heavy); }
+.modal-card h3 { font-size: var(--font-size-lg); font-weight: 700; margin-bottom: var(--space-2); }
+.modal-desc { font-size: var(--font-size-sm); color: var(--text-secondary); margin-bottom: var(--space-3); }
+
+.folder-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 calc(var(--space-2) * -1);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.folder-row { display: flex; align-items: center; min-height: 48px; padding-right: var(--space-1); }
+.btn-expand, .btn-release, .expand-spacer {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+.btn-expand, .btn-release {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--dialog-control-radius);
+  color: var(--text-secondary);
+}
+.btn-expand app-icon { transition: transform var(--motion-dur, 0ms) ease; }
+.btn-expand.open app-icon { transform: rotate(90deg); }
+.btn-release:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-surface-hover); }
+.folder-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-3); min-height: 48px; cursor: pointer; }
+.folder-text { flex: 1; min-width: 0; display: grid; }
+.folder-name { font-size: var(--font-size-base); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-note { font-size: var(--font-size-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-note.unavailable { color: var(--status-warning-text); }
+.folder-label input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent-primary); }
+.list-note { padding: var(--space-4) var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+.hint { margin-top: var(--space-3); font-size: var(--font-size-xs); color: var(--text-muted); }
+.dialog-error { color: var(--status-error); font-size: var(--font-size-sm); margin-top: var(--space-2); }
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin-top: var(--space-3);
+  border-radius: var(--dialog-control-radius);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-3); }
+.branch-count { margin-right: auto; font-size: var(--font-size-xs); color: var(--text-secondary); }
+.branch-count .count { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+.btn-cancel, .btn-confirm, .btn-danger { min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--dialog-control-radius); }
+.btn-cancel { background: var(--bg-elevated); color: var(--text-secondary); font-weight: 500; }
+.btn-cancel:hover { color: var(--text-primary); }
+.btn-confirm { background: var(--color-accent-fill); color: var(--color-on-accent); font-weight: 600; }
+.btn-danger { background: var(--status-error-fill); color: var(--color-on-error); font-weight: 600; }
+.btn-danger:hover:not(:disabled) { background: var(--status-error-fill-hover); }
+.release-confirm { margin-top: var(--space-3); font-size: var(--font-size-sm); color: var(--text-secondary); }
+.release-confirm strong { color: var(--text-primary); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+button:disabled, input:disabled { opacity: 0.5; cursor: default; }

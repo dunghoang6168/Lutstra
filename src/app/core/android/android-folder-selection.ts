@@ -1,4 +1,5 @@
-import { registerPlugin } from '@capacitor/core';
+import { signal } from '@angular/core';
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { MusicFolder } from '../models';
 
 export interface AndroidFolderNode {
@@ -12,15 +13,37 @@ export interface AndroidFolderNode {
 
 export interface FolderRule { key: string; selected: boolean }
 
+/** A tree the user granted through the system picker; its root may sit inside a wider grant. */
+export interface FolderGrant { treeUri: string; key: string; volumeLabel: string }
+
 interface NativeFolders {
   choose(): Promise<{ chosenUri: string; key: string }>;
   getSelection(): Promise<{ rules: FolderRule[] }>;
   saveSelection(options: { rules: FolderRule[] }): Promise<void>;
-  listTree(): Promise<{ folders: AndroidFolderNode[] }>;
+  listTree(): Promise<{ folders: AndroidFolderNode[]; grants?: FolderGrant[] }>;
+  releaseGrant(options: { treeUri: string }): Promise<void>;
+  addListener(event: 'scanProgress', listener: (progress: { tracks: number; folder: string }) => void): Promise<PluginListenerHandle>;
   scan(): Promise<{ tracks: import('./android-library.gateway').MediaStoreTrack[] }>;
 }
 
 export const androidFolders = registerPlugin<NativeFolders>('AndroidFolders');
+
+/** Resolves the open folder picker: true when the selection or the grants changed and the library needs a scan. */
+export const folderPickerRequest = signal<((changed: boolean) => void) | null>(null);
+
+export function openFolderPicker(): Promise<boolean> {
+  folderPickerRequest()?.(false);
+  return new Promise(resolve => folderPickerRequest.set(resolve));
+}
+
+/** "3066-6139:Music/VN" under the "SanDisk SD card" grant reads "SanDisk SD card/Music/VN". */
+export function readablePath(documentId: string, grants: FolderGrant[] = []): string {
+  const colon = documentId.indexOf(':');
+  const volume = colon < 0 ? documentId : documentId.slice(0, colon);
+  const label = grants.find(grant => grant.key.includes(`${volume}:`))?.volumeLabel || volume;
+  const rest = colon < 0 ? '' : documentId.slice(colon + 1);
+  return rest ? `${label}/${rest}` : label;
+}
 
 export function childrenOf(nodes: AndroidFolderNode[], parentKey: string | null): AndroidFolderNode[] {
   const keys = new Set(nodes.map(node => node.key));
@@ -65,13 +88,13 @@ export function folderCheckState(nodes: AndroidFolderNode[], rules: FolderRule[]
   return active ? 'checked' : 'unchecked';
 }
 
-export function selectedBranches(nodes: AndroidFolderNode[], rules: FolderRule[]): MusicFolder[] {
+export function selectedBranches(nodes: AndroidFolderNode[], rules: FolderRule[], grants: FolderGrant[] = []): MusicFolder[] {
   const result: MusicFolder[] = [];
   const walk = (node: AndroidFolderNode, inherited: boolean): void => {
     const selected = rules.find(rule => rule.key === node.key)?.selected ?? inherited;
     if (selected && !inherited) {
       result.push({ id: node.key, name: node.name,
-        path: `${node.treeUri}/document/${encodeURIComponent(node.documentId)}`, addedAt: 0 });
+        path: readablePath(node.documentId, grants), addedAt: 0 });
     }
     for (const child of childrenOf(nodes, node.key)) walk(child, selected);
   };
