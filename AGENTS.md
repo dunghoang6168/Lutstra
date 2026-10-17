@@ -39,7 +39,7 @@ Lutstra is a local-first desktop music player for lossless and Hi-Res libraries:
   - It lists only the track and when it was played, grouped by day. It is a log, not statistics: never show played time, skip reasons or sources.
   - `shownInHistory` leaves out roulette listens and removed suggestions; they stay in the database for the analysis.
   - Settings > Playback has **Clear history** behind a confirmation.
-- **Storage.** IPC is `history:record`, `history:list`, `history:events` (everything, for the analysis) and `history:clear`. Browser and Android keep the log in memory (`MockListeningHistoryGateway`).
+- **Storage.** IPC is `history:record`, `history:list`, `history:events` (everything, for the analysis) and `history:clear`. Android keeps it in an app-private SQLite database with the same table (`AndroidListeningHistoryGateway` / `AndroidHistoryPlugin`); the browser keeps it in memory (`MockListeningHistoryGateway`).
 - `node scripts/listening-report.mjs` reads the database read-only and writes skip rates by source and week, 30-day library coverage and 3-day repeats to `plan/reports/listening-report.md`.
 
 ## Smart Shuffle

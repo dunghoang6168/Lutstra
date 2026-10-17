@@ -26,6 +26,7 @@ import { AndroidLibraryGateway } from './core/android/android-library.gateway';
 import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway';
 import { AndroidPlaybackEngine } from './core/android/android-playback.engine';
 import { AndroidSettingsGateway } from './core/android/android-settings.gateway';
+import { AndroidListeningHistoryGateway } from './core/android/android-listening-history.gateway';
 
 const isDesktop = () => Boolean(getDesktopApi());
 const isAndroid = () => Capacitor.getPlatform() === 'android';
@@ -42,7 +43,7 @@ export const appConfig: ApplicationConfig = {
     { provide: ARTIST_METADATA_GATEWAY, useFactory: () => isDesktop() ? new ElectronArtistMetadataGateway() : new MockArtistMetadataGateway() },
     { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : new MockLyricsGateway() },
     { provide: POPULARITY_GATEWAY, useFactory: () => isDesktop() ? new ElectronPopularityGateway() : new MockPopularityGateway() },
-    { provide: LISTENING_HISTORY_GATEWAY, useFactory: () => isDesktop() ? new ElectronListeningHistoryGateway() : new MockListeningHistoryGateway() },
+    { provide: LISTENING_HISTORY_GATEWAY, useFactory: () => isDesktop() ? new ElectronListeningHistoryGateway() : isAndroid() ? new AndroidListeningHistoryGateway() : new MockListeningHistoryGateway() },
     { provide: ACTIVE_AUDIO_ENGINE, useFactory: () => isDesktop()
       ? new SwitchingPlaybackEngine(new HtmlAudioPlaybackEngine(), new NativeAudioPlaybackEngine(inject(NgZone)))
       : isAndroid() ? new AndroidPlaybackEngine(inject(NgZone)) : new MockPlaybackEngine() },

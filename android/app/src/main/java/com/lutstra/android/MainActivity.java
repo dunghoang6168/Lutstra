@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AndroidLibraryPlugin.class);
         registerPlugin(AndroidFolderPlugin.class);
         registerPlugin(AndroidPlaylistPlugin.class);
+        registerPlugin(AndroidHistoryPlugin.class);
         registerPlugin(AppShellPlugin.class);
         super.onCreate(savedInstanceState);
         // The web shell decides what Back does (close a sheet, go back a page) and calls moveToBack at its root.

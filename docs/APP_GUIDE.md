@@ -43,7 +43,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Repeat One: mỗi vòng là một lượt nghe.
       - Lượt dưới 1 giây không được ghi.
       - Lượt đang nghe dở được lưu tạm ở `lutstra.history.openListen`; lần mở app sau ghi lại với lý do `app_closed`.
-    - **IPC:** `history:record`, `history:list`, `history:events` (toàn bộ, cho phân tích) và `history:clear`, có validate. Trên trình duyệt và Android, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
+    - **IPC:** `history:record`, `history:list`, `history:events` (toàn bộ, cho phân tích) và `history:clear`, có validate. Android lưu vào SQLite riêng của app với cùng bảng `play_events` (`AndroidListeningHistoryGateway` / `AndroidHistoryPlugin`); trên trình duyệt, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
     - **Trang History** (`/history`, sau Folders ở sidebar và tab):
       - Chỉ là lịch sử, không phải thống kê. Mỗi dòng gồm bài, nghệ sĩ, album, giờ nghe và thời lượng bài, chia nhóm theo ngày.
       - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ Roulette và bài gợi ý bị xóa (`shownInHistory`). Các lượt này vẫn được lưu để phân tích.

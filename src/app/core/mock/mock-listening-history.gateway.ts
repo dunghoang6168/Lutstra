@@ -1,7 +1,7 @@
 import { ListeningHistoryGateway } from '../contracts';
 import { HistoryEntry, HistoryPageRequest, PlayEvent, shownInHistory } from '../models';
 
-/** Browser and Android: kept in memory, so the log starts empty on every launch. */
+/** Browser: kept in memory, so the log starts empty on every launch. */
 export class MockListeningHistoryGateway implements ListeningHistoryGateway {
   private log: Array<PlayEvent & { id: number }> = [];
   private nextId = 1;
