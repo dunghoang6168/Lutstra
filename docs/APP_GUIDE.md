@@ -34,6 +34,11 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Bài gợi ý sau bài kế tiếp hiện nhạt hơn, vì có thể đổi.
       - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
       - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).
+    - **Daily Mix** (desktop, `/daily-mix`, `DailyMixService` trong `core/smart-shuffle`):
+      - Mỗi ngày một danh sách 30 bài do Smart Shuffle chọn (`SmartShuffleService.picks()`, cùng logic với lúc khởi động nguội nên người dùng mới vẫn có mix). Lưu ở `lutstra.dailyMix` kèm ngày; sang ngày mới thì tạo mix mới, nút **New mix** tạo lại ngay.
+      - Phát như một queue thường: Smart Shuffle tự tắt, skip không làm đổi bài trong mix nhưng vẫn được ghi vào lịch sử để học.
+      - Gỡ một bài khỏi mix được ghi là `removed` như bài gợi ý.
+      - Vào từ Home: thẻ Daily Mix trong mục "Made for you" (Gallery, Ambient), nút Daily Mix cạnh Shuffle library (Console).
     - **Báo cáo:** `node scripts/listening-report.mjs` ghi ra `plan/reports/listening-report.md` gồm tỉ lệ nghe hết và skip sớm theo nguồn và theo tuần, độ phủ thư viện trong 30 ngày, và tỉ lệ lặp bài trong 3 ngày.
   - **Lịch sử nghe** (nền cho Smart Shuffle):
     - **Ghi ngầm.** `ListeningHistoryService` (`core/history`, khởi động trong `app.config.ts`) ghi ngầm mọi lượt nghe vào bảng `play_events`: bài, lúc bắt đầu, số giây thật sự phát (không tính phần tua), vị trí xa nhất, số giây tua qua, cách bắt đầu (`user` / `auto` / `next` / `previous` / `resume`), lý do kết thúc (`ended` / `skip_next` / `skip_previous` / `picked_other` / `app_closed` / `other` / `removed`) và nguồn (`queue` / `roulette` / `smart-shuffle`).

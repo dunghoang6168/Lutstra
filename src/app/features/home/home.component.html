@@ -53,6 +53,11 @@
     <header class="console-home-header">
       <h1>Recently modified</h1>
       <span class="console-home-count">{{ recentTracks().length }} of {{ tracksCount() | number }} tracks</span>
+      @if (mix.tracks().length > 0) {
+        <a routerLink="/daily-mix" class="btn btn-secondary btn-sm console-mix-link">
+          <app-icon name="smart-shuffle" [size]="15" /> Daily Mix
+        </a>
+      }
       <button type="button" class="btn btn-secondary btn-sm" (click)="shuffleAll()">
         <app-icon name="shuffle" [size]="15" /> Shuffle library
       </button>
@@ -125,6 +130,26 @@
       </ul>
       <p class="health-caption">Hi-Res: lossless at 24-bit or above 48 kHz</p>
     </nav>
+
+    @if (mix.tracks().length > 0) {
+      <section class="home-section" aria-labelledby="daily-mix-title">
+        <div class="section-header"><h2 id="daily-mix-title">Made for you</h2></div>
+        <div class="albums-grid" #albumGrid>
+          <app-album-card
+            [item]="mix"
+            title="Daily Mix"
+            subtitle="Picked for today"
+            [subtext]="mix.tracks().length + ' tracks'"
+            [showDetails]="true"
+            [imageUrls]="mixCovers()"
+            fallbackIcon="smart-shuffle"
+            [link]="['/daily-mix']"
+            (play)="mix.play()"
+            (queue)="onAddMixToQueue()">
+          </app-album-card>
+        </div>
+      </section>
+    }
 
     @if (recentlyPlayed().length > 0) {
       <section class="home-section" aria-labelledby="recently-played-title">

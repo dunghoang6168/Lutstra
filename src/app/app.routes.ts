@@ -37,6 +37,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/history/history.component').then((m) => m.HistoryComponent),
   },
   {
+    path: 'daily-mix',
+    loadComponent: () => import('./features/daily-mix/daily-mix.component').then((m) => m.DailyMixComponent),
+  },
+  {
     path: 'playlists',
     loadComponent: () => import('./features/playlists/playlists.component').then((m) => m.PlaylistsComponent),
   },

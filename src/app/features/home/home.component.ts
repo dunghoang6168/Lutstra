@@ -14,6 +14,7 @@ import { AlbumCardComponent } from '../../shared/components/album-card/album-car
 import { albumFormatMap, formatCount, formatTrackFormat as trackFormatLabel, summarizeQuality, formatQualityLine } from './library-quality';
 import { RecentPlaysService, findRecentPlayableTrack, recentlyPlayedAlbums, recentTrackCollection } from '../../core/layout/recent-plays.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
+import { DailyMixService } from '../../core/smart-shuffle/daily-mix.service';
 
 @Component({
   selector: 'app-home',
@@ -34,6 +35,9 @@ export class HomeComponent implements OnInit {
   private readonly rowsContainer = viewChild<ElementRef<HTMLElement>>('rowsContainer');
   readonly activeId = signal<string | null>(null);
   private readonly queueActions = inject(QueueActionsService);
+  readonly mix = inject(DailyMixService);
+  /** Four distinct covers make the card a mosaic; fewer show the first one. */
+  readonly mixCovers = computed(() => [...new Set(this.mix.tracks().map((track) => track.artwork).filter((art): art is string => !!art))].slice(0, 4));
   readonly errorMessage = signal<string | null>(null);
   readonly addingFolder = signal(false);
   readonly isLoading = signal(true);
@@ -203,6 +207,7 @@ export class HomeComponent implements OnInit {
       this.foldersCount.set(lib.folders.length);
       this.allAlbums.set(lib.albums);
       this.playlists.set(pls);
+      if (lib.tracks.some((track) => track.isAvailable)) void this.mix.ensure();
     } catch (error) {
       this.libraryLoadError.set(error instanceof Error ? error.message : 'Failed to load music library');
     } finally {
@@ -254,6 +259,10 @@ export class HomeComponent implements OnInit {
   onPlayPlaylist(playlist: Playlist): void {
     const tracks = this.tracksForIds(playlist.entries.map((entry) => entry.trackId));
     if (tracks.length > 0) void this.player.playCollection(tracks, 0);
+  }
+
+  onAddMixToQueue(): void {
+    this.queueActions.add(this.mix.tracks());
   }
 
   onAddPlaylistToQueue(playlist: Playlist): void {

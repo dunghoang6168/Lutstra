@@ -81,6 +81,12 @@ export class SmartShuffleService {
     return this.coldPlan();
   }
 
+  /** A cold-start run of `count` picks, linked track to track (the Daily Mix). */
+  async picks(count: number): Promise<Track[]> {
+    await this.ensureLoaded();
+    return this.coldPlan(count);
+  }
+
   /** The phone Home's quick start: Smart Shuffle plays its own picks (the shown preview, if given) in place of the queue. */
   async playSuggestions(picks?: readonly Track[]): Promise<void> {
     if (this.player.modesLocked()) return;
@@ -104,9 +110,9 @@ export class SmartShuffleService {
     await this.player.startSuggestions(plan.map((track) => this.player.createSuggestedEntry(track)));
   }
 
-  private coldPlan(): Track[] {
+  private coldPlan(window = SUGGESTION_WINDOW): Track[] {
     return planUpcoming({
-      upcoming: [], recent: [], userRun: 0, every: suggestionSpacing(this.events), window: SUGGESTION_WINDOW,
+      upcoming: [], recent: [], userRun: 0, every: suggestionSpacing(this.events), window,
       refresh: false, reorder: false, exclude: this.sessionExclude,
     }, this.context()).map((item) => this.tracks.get(item.trackId)!);
   }

@@ -190,6 +190,8 @@
   letter-spacing: var(--type-display-tracking);
 }
 .console-home-header .btn { margin-left: auto; }
+.console-mix-link { text-decoration: none; }
+.console-mix-link + .btn { margin-left: 0; }
 .console-home-count { color: var(--text-muted); font-size: var(--font-size-xs); font-variant-numeric: tabular-nums; }
 
 .console-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--font-size-sm); }
