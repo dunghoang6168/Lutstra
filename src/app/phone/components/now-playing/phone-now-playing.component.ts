@@ -2,6 +2,7 @@ import { Component, ElementRef, Injector, afterNextRender, computed, effect, inj
 import { PlayerService } from '../../../core/player/player.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
+import { CoverToneService } from '../../cover-tone.service';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
@@ -15,7 +16,8 @@ type TransportButton = 'prev' | 'play' | 'next';
 
 /**
  * Full-screen player over the shell, after PixelPlayer's: the blurred cover as ground, a cover that swipes to
- * change track, the file's measurements between the times, three transport pills and the shuffle/repeat toggles.
+ * change track, the output path between the times, three transport pills and the shuffle/repeat toggles, all
+ * tinted from the cover (`cover-tinted` in _base.scss).
  */
 @Component({
   selector: 'app-phone-now-playing',
@@ -50,6 +52,8 @@ export class PhoneNowPlayingComponent {
   readonly scrubTime = signal<number | null>(null);
   private scrubbing = false;
   readonly position = computed(() => this.scrubTime() ?? this.player.currentTime());
+  /** The cover's hue and chroma, which tint the controls as PixelPlayer's album scheme does; null without a cover. */
+  readonly tone = inject(CoverToneService).tone;
   /** Where the sound goes: the mixer's rate. The file's own format is in the ⋯ sheet and the mini player. */
   readonly output = computed(() => outputPath(this.player.currentTrack()?.sampleRate ?? null, mixerRate()));
 

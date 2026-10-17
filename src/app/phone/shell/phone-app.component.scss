@@ -57,17 +57,46 @@
 
 .mini-player {
   position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex: none;
   height: var(--phone-mini-player-height);
   margin: 0 var(--space-2) var(--space-2);
-  padding-right: var(--space-1);
+  padding-right: var(--space-2);
   overflow: hidden;
-  border-radius: var(--surface-radius);
-  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  background: var(--np-base);
   box-shadow: var(--shadow-md);
+  transition: background-color var(--np-tint-dur) var(--motion-ease);
+}
+
+/* The cover, blurred, as the ground; a scrim from the left keeps the title readable on any cover. */
+.mini-ground {
+  --cover-fade-dur: var(--np-tint-dur);
+  position: absolute;
+  left: -20%;
+  top: -150%;
+  z-index: -1;
+  width: 140%;
+  height: 400%;
+  filter: blur(28px) saturate(1.3);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.mini-player::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--np-base) 70%, transparent), color-mix(in srgb, var(--np-base) 25%, transparent));
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .mini-ground { display: none; }
 }
 
 .mini-progress {
@@ -75,8 +104,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
-  background: linear-gradient(to right, var(--accent-primary) var(--progress, 0%), transparent 0);
+  height: 3px;
+  background: linear-gradient(to right, var(--np-on) var(--progress, 0%), transparent 0);
   pointer-events: none;
 }
 
@@ -84,7 +113,7 @@
 .mini-open:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
-  border-radius: var(--surface-radius);
+  border-radius: var(--radius-xl);
 }
 
 .mini-open {
@@ -95,7 +124,7 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding-left: var(--space-2);
+  padding-left: var(--space-3);
   text-align: left;
   color: inherit;
   touch-action: pan-y; /* sideways is the swipe to change track */
@@ -122,36 +151,41 @@
   white-space: nowrap;
 }
 
-.mini-title { font-size: var(--font-size-base); font-weight: 600; }
+.mini-title { font-size: var(--font-size-base); font-weight: 700; }
+.mini-artist { font-size: var(--font-size-sm); color: var(--np-text-2); }
 
-.mini-meta {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  min-width: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-.mini-format {
-  flex: none;
-  font-family: var(--font-family-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-}
-
-.mini-format.hires { color: var(--text-accent); }
-
-/* Ink play: primary text fill, inverse icon. */
+/* As on Now Playing: round skips in the cover's dark tone, Play a rounded square in its light one. */
+.mini-skip,
 .mini-play {
   display: grid;
   place-items: center;
   flex: none;
-  width: var(--touch-target);
-  height: var(--touch-target);
+  transition: background-color var(--np-tint-dur) var(--motion-ease), color var(--np-tint-dur) var(--motion-ease);
+}
+
+.mini-skip {
+  width: var(--phone-mini-skip-size);
+  height: var(--phone-mini-skip-size);
   border-radius: var(--radius-full);
-  color: var(--text-inverse);
-  background: var(--text-primary);
+  color: var(--np-on-skip);
+  background: var(--np-skip);
+}
+
+.mini-play {
+  width: var(--phone-mini-play-width);
+  height: var(--touch-target);
+  border-radius: var(--radius-xl);
+  color: var(--np-on-play);
+  background: var(--np-play);
+}
+
+.mini-skip:active,
+.mini-play:active { filter: brightness(1.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-player,
+  .mini-skip,
+  .mini-play { transition: none; }
 }
 
 .bottom-nav {

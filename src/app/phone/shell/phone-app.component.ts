@@ -6,7 +6,6 @@ import { filter, map } from 'rxjs';
 import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
 import { folderPickerRequest } from '../../core/android/android-folder-selection';
-import { formatTrackFormat } from '../../features/home/library-quality';
 import { IconComponent, IconName } from '../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../shared/components/cover-art/cover-art.component';
 import { AndroidFolderPickerComponent } from '../../shared/components/android-folder-picker/android-folder-picker.component';
@@ -15,6 +14,7 @@ import { PhoneQueueSheetComponent } from '../components/queue-sheet/phone-queue-
 import { PhoneTrackActionsSheetComponent } from '../components/track-actions-sheet/phone-track-actions-sheet.component';
 import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { PhoneLibraryService } from '../phone-library.service';
+import { CoverToneService } from '../cover-tone.service';
 import { SwipeDirection, SwipeDirective } from '../swipe.directive';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
@@ -78,10 +78,7 @@ export class PhoneAppComponent {
     while (route.firstChild) route = route.firstChild;
     return (route.data['title'] as string | undefined) ?? '';
   });
-  readonly format = computed(() => {
-    const track = this.player.currentTrack();
-    return track ? formatTrackFormat(track) : null;
-  });
+  readonly tone = inject(CoverToneService).tone;
 
   constructor() {
     // Records what plays, for Home's continue listening and recently played.

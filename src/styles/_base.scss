@@ -23,6 +23,35 @@ html[data-layout='phone'] :where(a, button, select, [tabindex]):focus-visible {
   outline-offset: 2px;
 }
 
+/*
+ * Cover colours for the mini player and Now Playing, after PixelPlayer's album scheme: an element with --np-hue and
+ * --np-chroma (CoverToneService) gets one OKLCH tone per role at a fixed lightness per theme, so each label keeps
+ * 4.5:1 whatever the hue; chroma 0 (a grey cover) gives greys. The rest of the phone keeps the accent.
+ */
+html[data-layout='phone'] .cover-tinted {
+  --np-base: oklch(0.28 min(var(--np-chroma), 0.05) var(--np-hue));
+  --np-play: oklch(0.86 min(var(--np-chroma), 0.11) var(--np-hue));
+  --np-on-play: oklch(0.26 min(var(--np-chroma), 0.05) var(--np-hue));
+  --np-skip: oklch(0.33 min(var(--np-chroma), 0.06) var(--np-hue));
+  --np-on-skip: oklch(0.92 min(var(--np-chroma), 0.04) var(--np-hue));
+  --np-on: oklch(0.8 min(var(--np-chroma), 0.12) var(--np-hue));
+  --np-on-on: oklch(0.25 min(var(--np-chroma), 0.05) var(--np-hue));
+  --np-track: oklch(0.24 min(var(--np-chroma), 0.03) var(--np-hue));
+  --np-text-2: oklch(0.8 min(var(--np-chroma), 0.03) var(--np-hue));
+}
+
+html[data-layout='phone'][data-theme='light'] .cover-tinted {
+  --np-base: oklch(0.94 min(var(--np-chroma), 0.03) var(--np-hue));
+  --np-play: oklch(0.42 min(var(--np-chroma), 0.12) var(--np-hue));
+  --np-on-play: oklch(0.98 min(var(--np-chroma), 0.02) var(--np-hue));
+  --np-skip: oklch(0.9 min(var(--np-chroma), 0.05) var(--np-hue));
+  --np-on-skip: oklch(0.25 min(var(--np-chroma), 0.05) var(--np-hue));
+  --np-on: oklch(0.45 min(var(--np-chroma), 0.12) var(--np-hue));
+  --np-on-on: oklch(0.98 min(var(--np-chroma), 0.02) var(--np-hue));
+  --np-track: oklch(0.92 min(var(--np-chroma), 0.03) var(--np-hue));
+  --np-text-2: oklch(0.4 min(var(--np-chroma), 0.04) var(--np-hue));
+}
+
 html, body, app-root {
   height: 100%;
   width: 100%;

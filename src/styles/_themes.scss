@@ -370,7 +370,9 @@ html[data-layout='phone'] {
   --touch-target: 48px;
   --phone-app-bar-height: 64px;
   --phone-nav-height: 64px;
-  --phone-mini-player-height: 64px;
+  --phone-mini-player-height: 72px;
+  --phone-mini-skip-size: 44px;
+  --phone-mini-play-width: 60px;
   --phone-cover-thumb: 48px;
   --phone-transport-size: 56px;
   --phone-play-size: 72px;
@@ -384,6 +386,8 @@ html[data-layout='phone'] {
   --phone-queue-cover: 44px;
   /* A pressed transport pill widens for this long (PixelPlayer's release delay). */
   --phone-press-dur: 220ms;
+  /* Now Playing's cover colours change with the cover's crossfade. */
+  --np-tint-dur: 1200ms;
   --sheet-radius: 28px;
 }
 

@@ -1,4 +1,5 @@
 <section class="now-playing phone-sheet" role="dialog" aria-modal="true" aria-label="Now Playing"
+  [class.cover-tinted]="!!tone()" [style.--np-hue]="tone()?.hue" [style.--np-chroma]="tone()?.chroma"
   [attr.inert]="covered() ? '' : null" (keydown.escape)="close.emit()">
   <div class="np-ground" aria-hidden="true">
     <app-cover-art class="np-ground-art" [src]="player.currentTrack()?.artwork" [icon]="null" />

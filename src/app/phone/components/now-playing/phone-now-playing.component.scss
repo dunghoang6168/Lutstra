@@ -230,3 +230,41 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
+
+/*
+ * Cover colours, after PixelPlayer's album scheme: the cover's hue (--np-hue, --np-chroma from cover-tone.ts) tints
+ * every control here, Play included; the Ink Play Rule gives way on this one sheet. Tones are fixed per role so the
+ * text on each keeps 4.5:1 whatever the hue; a grey cover (chroma 0) gives grey controls. The rest of the app keeps the accent.
+ */
+.now-playing.cover-tinted {
+  .tonal-btn,
+  .transport-btn,
+  .toggle,
+  .np-toggles,
+  .np-output {
+    transition-property: background-color, color, flex-grow, border-radius;
+    transition-duration: var(--np-tint-dur), var(--np-tint-dur), var(--phone-press-dur), var(--phone-press-dur);
+    transition-timing-function: var(--motion-ease);
+  }
+
+  .tonal-btn,
+  .transport-btn { color: var(--np-on-skip); background: var(--np-skip); }
+  .transport-btn.play { color: var(--np-on-play); background: var(--np-play); }
+  .np-artist,
+  .np-times { color: var(--np-text-2); }
+  .np-output { color: var(--np-text-2); background: var(--np-track); }
+  .np-toggles { background: var(--np-track); }
+  .toggle { color: var(--np-text-2); background: transparent; }
+  .toggle.on { color: var(--np-on-on); background: var(--np-on); }
+  .tonal-btn:active,
+  .transport-btn:active { filter: brightness(1.15); }
+
+  .np-timeline app-range-slider {
+    --range-fill-color: var(--np-on);
+    --color-border: var(--np-track);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .now-playing.cover-tinted * { transition-duration: 0s !important; }
+}

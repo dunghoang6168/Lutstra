@@ -18,7 +18,9 @@
   </main>
 
   @if (player.currentTrack(); as track) {
-    <div class="mini-player">
+    <!-- After PixelPlayer's mini player: the cover blurred as its ground, and controls tinted from it as on Now Playing. -->
+    <div class="mini-player cover-tinted" [style.--np-hue]="tone()?.hue ?? 0" [style.--np-chroma]="tone()?.chroma ?? 0">
+      <app-cover-art class="mini-ground" [src]="track.artwork" [icon]="null" aria-hidden="true" />
       <span class="mini-progress" aria-hidden="true" [style.--progress.%]="player.progressPercent()"></span>
       <button #miniOpen type="button" class="mini-open" appSwipe (swiped)="miniSwiped($event)" (click)="openNowPlaying()"
         aria-haspopup="dialog" aria-description="Swipe left for the next track, right for the previous one"
@@ -26,20 +28,18 @@
         <app-cover-art class="mini-cover" [src]="track.artwork" [iconSize]="20" />
         <span class="mini-text">
           <span class="mini-title">{{ track.title }}</span>
-          <span class="mini-meta">
-            <span class="mini-artist">{{ track.artist ?? 'Unknown artist' }}</span>
-            @if (format(); as format) {
-              <span class="mini-format" [class.hires]="format.hires">{{ format.label }}</span>
-            }
-          </span>
+          <span class="mini-artist">{{ track.artist ?? 'Unknown artist' }}</span>
         </span>
+      </button>
+      <button type="button" class="mini-skip" (click)="player.previous()" aria-label="Previous track">
+        <app-icon name="skip-back" [size]="20" />
       </button>
       <button type="button" class="mini-play" (click)="player.togglePlayPause()"
         [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
         <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="22" />
       </button>
-      <button type="button" class="icon-btn" (click)="player.next()" aria-label="Next track">
-        <app-icon name="skip-forward" [size]="22" />
+      <button type="button" class="mini-skip" (click)="player.next()" aria-label="Next track">
+        <app-icon name="skip-forward" [size]="20" />
       </button>
     </div>
   }
