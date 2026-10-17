@@ -75,7 +75,7 @@ export class PhoneLibraryService {
 
   playNext(tracks: Track[]): void {
     this.player.playNext(tracks);
-    this.queueActions.notify(tracks.length === 1 ? 'Added 1 track to play next' : `Added ${tracks.length} tracks to play next`);
+    this.queueActions.notify(tracks.length === 1 ? `“${tracks[0].title}” plays next` : `${tracks.length} tracks play next`);
   }
 
   addToQueue(tracks: Track[]): void {

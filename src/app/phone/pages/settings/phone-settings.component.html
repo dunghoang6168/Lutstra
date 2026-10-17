@@ -39,7 +39,7 @@
   </div>
 
   <h3 class="sub-title">Accent</h3>
-  <p class="sub-desc">Marks Hi-Res files, what is playing or on, progress and focus.</p>
+  <p class="sub-desc">Marks Hi-Res files, the playing track, modes that are on, progress and focus.</p>
   <div class="swatches" role="radiogroup" aria-label="Accent color">
     @if (theme.dynamicAvailable()) {
       <button type="button" role="radio" class="swatch" [attr.aria-checked]="theme.dynamicAccent()"
@@ -61,7 +61,7 @@
     }
   </div>
   @if (theme.dynamicAvailable()) {
-    <p class="sub-desc">Wallpaper follows your phone’s Material You colors and changes with the wallpaper.</p>
+    <p class="sub-desc">Wallpaper takes the accent from your phone’s wallpaper (Material You) and changes with it.</p>
   }
 </section>
 
@@ -71,8 +71,9 @@
   @if (confirmClear()) {
     <div class="confirm" role="group" aria-label="Clear listening history?">
       <span>Clear all listening history?</span>
+      <p class="confirm-note">Smart Shuffle forgets what you play and starts learning again. This can’t be undone.</p>
       <button type="button" class="btn" (click)="confirmClear.set(false)">Cancel</button>
-      <button type="button" class="btn danger" (click)="clearHistory()">Clear</button>
+      <button type="button" class="btn danger" (click)="clearHistory()">Clear history</button>
     </div>
   } @else {
     <div class="actions">

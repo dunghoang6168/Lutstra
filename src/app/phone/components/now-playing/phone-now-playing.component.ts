@@ -41,7 +41,7 @@ export class PhoneNowPlayingComponent {
   readonly shuffleLabel = computed(() => this.player.smartShuffle() ? 'Shuffle: Smart Shuffle. Tap to turn off'
     : this.player.isShuffle() ? 'Shuffle: on. Tap for Smart Shuffle' : 'Shuffle: off. Tap to turn on');
   readonly repeatLabel = computed(() => this.player.smartShuffle() ? 'Repeat: off while Smart Shuffle is on'
-    : `Repeat: ${{ off: 'off', all: 'all', one: 'one' }[this.player.repeatMode()]}`);
+    : { off: 'Repeat: off. Tap to repeat all', all: 'Repeat: all. Tap to repeat one', one: 'Repeat: one. Tap to turn off' }[this.player.repeatMode()]);
   readonly close = output<void>();
   readonly openQueue = output<void>();
   /** While the thumb is held the times follow it; the seek happens on release. */

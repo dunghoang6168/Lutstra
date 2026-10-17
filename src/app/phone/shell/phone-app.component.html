@@ -22,7 +22,7 @@
       <span class="mini-progress" aria-hidden="true" [style.--progress.%]="player.progressPercent()"></span>
       <button #miniOpen type="button" class="mini-open" appSwipe (swiped)="miniSwiped($event)" (click)="openNowPlaying()"
         aria-haspopup="dialog" aria-description="Swipe left for the next track, right for the previous one"
-        [attr.aria-label]="'Open Now Playing: ' + track.title">
+        [attr.aria-label]="'Open Now Playing: ' + track.title + ', ' + (track.artist ?? 'Unknown artist')">
         <app-cover-art class="mini-cover" [src]="track.artwork" [iconSize]="20" />
         <span class="mini-text">
           <span class="mini-title">{{ track.title }}</span>

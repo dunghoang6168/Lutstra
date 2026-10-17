@@ -26,7 +26,7 @@
         <p class="np-artist">{{ track.artist ?? 'Unknown artist' }}</p>
       </div>
       <button type="button" class="tonal-btn round" (click)="library.openActions([track])" aria-haspopup="dialog"
-        [attr.aria-label]="'More for ' + track.title">
+        [attr.aria-label]="'More actions for ' + track.title">
         <app-icon name="more-horizontal" [size]="22" />
       </button>
     </div>

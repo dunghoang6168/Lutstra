@@ -66,7 +66,8 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
   const artistMap = new Map<string, Artist>();
   for (const track of tracks) {
     // Same grouping as the desktop library: album artist first.
-    const artistName = track.albumArtist || track.artist || 'Unknown Artist';
+    // Sentence case, as everywhere on the phone; ids are lower-cased, so they do not change.
+    const artistName = track.albumArtist || track.artist || 'Unknown artist';
     const artistId = `android:artist:${artistName.toLocaleLowerCase()}`;
     let artist = artistMap.get(artistId);
     if (!artist) {

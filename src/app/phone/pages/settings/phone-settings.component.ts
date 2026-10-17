@@ -42,7 +42,7 @@ export class PhoneSettingsComponent {
     try {
       await this.gateway.selectAndAddMusicFolders();
     } catch (error) {
-      this.folderError.set(error instanceof Error ? error.message : 'Couldn’t open the folder picker.');
+      this.folderError.set(error instanceof Error ? error.message : 'Couldn’t open the folder picker. Try again.');
     } finally {
       this.choosing.set(false);
     }
