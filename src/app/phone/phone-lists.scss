@@ -87,14 +87,20 @@
   border-radius: var(--cover-radius);
 }
 
-.album-title,
 .album-artist {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Two lines: series often differ only at the end ("… Part 1", "… Part 2"). */
 .album-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
   margin-top: var(--space-2);
   font-size: var(--card-title-size);
   font-weight: var(--card-title-weight);

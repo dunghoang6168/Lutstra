@@ -58,7 +58,10 @@
   color: var(--text-muted);
 }
 
+/* One width for every tab's sort, so the toolbar does not jump when the tab changes. */
 .sort {
+  flex: none;
+  width: calc(var(--space-10) * 5); /* fits "Recently added" and the arrow */
   min-height: var(--space-10);
   padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
