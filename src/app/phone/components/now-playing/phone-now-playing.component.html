@@ -38,18 +38,12 @@
         (valueChange)="onSeekInput($event)" (adjustingChange)="onScrubbing($event)" />
       <div class="np-times">
         <span class="np-time">{{ position() | duration }}</span>
-        @if (quality(); as quality) {
-          <span class="np-quality" [class.hires]="quality.hires">{{ quality.label }}</span>
+        @if (output(); as output) {
+          <!-- Honest about the phone: Android mixes everything at one rate, so this is never bit-perfect. -->
+          <span class="np-output">Android mixer · <span class="measure">{{ output.khz }}</span> kHz</span>
         }
         <span class="np-time">{{ player.duration() | duration }}</span>
       </div>
-      @if (output(); as output) {
-        <!-- Honest about the phone: Android mixes everything at one rate, so this is never bit-perfect. -->
-        <p class="np-output">
-          <app-icon name="chevron-right" [size]="14" />
-          <span>Android mixer · <span class="measure">{{ output.khz }} kHz</span>@if (output.resampled) { · resampled }</span>
-        </p>
-      }
     </div>
 
     <div class="np-transport" [attr.data-pressed]="pressed()">
@@ -70,15 +64,20 @@
         <button type="button" class="toggle" [class.on]="player.isShuffle() || player.smartShuffle()"
           [attr.aria-pressed]="player.isShuffle() || player.smartShuffle()" (click)="cycleShuffle()"
           [attr.aria-label]="shuffleLabel()">
-          <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="22" />
+          <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="20" />
+          <span aria-hidden="true">{{ shuffleText() }}</span>
         </button>
         <!-- Smart Shuffle never runs out, so repeat does not apply while it is on. -->
         <button type="button" class="toggle" [class.on]="player.repeatMode() !== 'off' && !player.smartShuffle()"
           [attr.aria-pressed]="player.repeatMode() !== 'off' && !player.smartShuffle()" [disabled]="player.smartShuffle()"
           (click)="player.cycleRepeatMode()" [attr.aria-label]="repeatLabel()">
-          <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="22" />
+          <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="20" />
+          <span aria-hidden="true">{{ repeatText() }}</span>
         </button>
       </div>
+      @if (player.smartShuffle()) {
+        <p class="np-toggle-note">Smart Shuffle keeps the music going, so repeat is off.</p>
+      }
     }
   }
 </section>

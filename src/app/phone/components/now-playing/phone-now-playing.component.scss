@@ -138,31 +138,21 @@
   color: var(--text-secondary);
 }
 
-.np-quality {
+/* The output path between the times: secondary, never accent, since the phone is never bit-perfect. Only the number is mono. */
+.np-output {
   min-width: 0;
   padding: var(--space-1) var(--space-3);
   overflow: hidden;
   border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  font-family: var(--font-family-base);
   font-size: var(--font-size-xs);
-  font-weight: 400;
+  font-weight: 500;
+  color: var(--text-secondary);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
 
-.np-quality.hires { color: var(--text-accent); }
-
-/* The output path: secondary, never accent, since the phone is never bit-perfect. */
-.np-output {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  margin: var(--space-2) 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-
-  .measure { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+  .measure { font-family: var(--font-family-mono); }
 }
 
 /* Three pills that share the row; the one pressed widens and the others give way for a moment. */
@@ -212,9 +202,14 @@
 }
 
 .toggle {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   height: var(--touch-target);
   border-radius: var(--radius-full);
   color: var(--text-secondary);
@@ -226,4 +221,12 @@
   background: var(--accent-muted);
 }
 
-.toggle:disabled { opacity: 0.4; }
+.toggle.on { font-weight: 700; }
+.toggle:disabled { opacity: 0.5; }
+
+.np-toggle-note {
+  margin: calc(var(--space-3) * -1) 0 0;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

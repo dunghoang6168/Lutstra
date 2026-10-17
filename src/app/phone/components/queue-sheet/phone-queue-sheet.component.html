@@ -3,7 +3,7 @@
   (keydown.escape)="close.emit()">
   <span class="grabber" aria-hidden="true"></span>
   <header class="sheet-header">
-    <h2 id="queueSheetTitle">Next up</h2>
+    <h2 id="queueSheetTitle">Queue</h2>
     <span class="count">{{ player.queue().length }} {{ player.queue().length === 1 ? 'track' : 'tracks' }} · {{ remaining() | duration }} left</span>
     <button type="button" class="text-btn" (click)="queueActions.clearWithUndo()" [disabled]="!player.queue().length">Clear</button>
     <button #closeButton type="button" class="icon-btn" (click)="close.emit()" aria-label="Close queue">
@@ -14,6 +14,11 @@
   @if (player.queue().length) {
     <ol #list class="queue-list" [class.reordering]="!!drag()">
       @for (entry of player.queue(); track entry.id; let i = $index) {
+        @if (i === suggestedFrom()) {
+          <li class="queue-divider" aria-hidden="true">
+            <app-icon name="smart-shuffle" [size]="16" /> Suggested by Smart Shuffle
+          </li>
+        }
         <li class="queue-row" appSwipe swipeMode="dismiss" [swipeThreshold]="0.4"
           [swipeDisabled]="i === player.currentIndex() || !!drag()" (swiped)="remove(entry)"
           [attr.data-entry-id]="entry.id"
@@ -23,24 +28,29 @@
           [class.tentative]="entry.suggested && i > player.currentIndex() + 1"
           [class.unavailable]="!entry.track.isAvailable"
           [attr.aria-current]="i === player.currentIndex() ? 'true' : null">
-          <button type="button" class="icon-btn drag-handle" [attr.aria-label]="'Reorder ' + entry.track.title"
-            aria-description="Drag, or use the up and down arrow keys" (pointerdown)="dragStart($event, entry.id)"
-            (keydown)="handleKeydown($event, entry.id)">
-            <app-icon name="grip-vertical" [size]="18" />
-          </button>
-          <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)">
+          @if (i !== player.currentIndex()) {
+            <button type="button" class="drag-handle" [attr.aria-label]="'Reorder ' + entry.track.title"
+              aria-description="Drag, or use the up and down arrow keys" (pointerdown)="dragStart($event, entry.id)"
+              (keydown)="handleKeydown($event, entry.id)">
+              <app-icon name="grip-vertical" [size]="18" />
+            </button>
+          }
+          <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)"
+            [attr.aria-description]="entry.suggested && i > player.currentIndex() ? 'Suggested by Smart Shuffle' : null">
+            <app-cover-art class="row-cover" [src]="entry.track.artwork" [iconSize]="18" />
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>
               @if (entry.track.isAvailable) {
-                <span class="row-artist">@if (entry.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
+                <span class="row-artist">{{ entry.track.artist ?? 'Unknown artist' }}</span>
               } @else {
                 <span class="row-artist missing"><app-icon name="alert-triangle" [size]="14" /> File unavailable</span>
               }
             </span>
             <span class="row-time">{{ entry.track.duration | duration }}</span>
           </button>
-          <button type="button" class="icon-btn" (click)="remove(entry)" [attr.aria-label]="'Remove ' + entry.track.title + ' from queue'">
-            <app-icon name="x" [size]="18" />
+          <button type="button" class="row-more" (click)="library.openActions([entry.track], entry)" aria-haspopup="dialog"
+            [attr.aria-label]="'More actions for ' + entry.track.title">
+            <app-icon name="more-horizontal" [size]="20" />
           </button>
         </li>
       }

@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { LIBRARY_GATEWAY, LibrarySnapshot, PLAYLIST_GATEWAY } from '../core/contracts';
-import { FolderNode, Playlist, Track } from '../core/models';
+import { ListeningHistoryService } from '../core/history/listening-history.service';
+import { FolderNode, Playlist, QueueEntry, Track } from '../core/models';
 import { PlayerService } from '../core/player/player.service';
 import { QueueActionsService } from '../core/player/queue-actions.service';
 import { AlbumSort, ArtistSort, SongSort } from './library-sort';
@@ -12,6 +13,7 @@ export class PhoneLibraryService {
   private readonly playlistGateway = inject(PLAYLIST_GATEWAY);
   private readonly player = inject(PlayerService);
   private readonly queueActions = inject(QueueActionsService);
+  private readonly history = inject(ListeningHistoryService);
   private loading: Promise<void> | null = null;
 
   readonly snapshot = signal<LibrarySnapshot | null>(null);
@@ -20,6 +22,8 @@ export class PhoneLibraryService {
   readonly trackById = computed(() => new Map((this.snapshot()?.tracks ?? []).map((track) => [track.id, track] as const)));
   /** Tracks the ⋯ sheet acts on, and the tracks waiting for the Add to playlist dialog. */
   readonly actionTracks = signal<Track[] | null>(null);
+  /** Set when the ⋯ sheet was opened from a queue row, so it acts on that entry. */
+  readonly actionEntry = signal<QueueEntry | null>(null);
   readonly playlistTracks = signal<Track[] | null>(null);
   /** Library sorts last for the session, so a detail page and Back keep them. */
   readonly songSort = signal<SongSort>('title');
@@ -69,8 +73,14 @@ export class PhoneLibraryService {
     void this.player.playCollection([...tracks], Math.floor(Math.random() * tracks.length));
   }
 
-  openActions(tracks: Track[]): void {
+  openActions(tracks: Track[], entry: QueueEntry | null = null): void {
+    this.actionEntry.set(entry);
     this.actionTracks.set(tracks);
+  }
+
+  /** Removes a queue entry with Undo; a suggestion taken out tells Smart Shuffle it was not wanted, once the Undo has passed. */
+  removeFromQueue(entry: QueueEntry): void {
+    this.queueActions.removeWithUndo(entry, entry.suggested ? () => this.history.recordRemoval(entry.track) : undefined);
   }
 
   playNext(tracks: Track[]): void {

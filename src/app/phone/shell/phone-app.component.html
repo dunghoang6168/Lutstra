@@ -46,7 +46,8 @@
 
   <nav class="bottom-nav" aria-label="Main">
     @for (tab of tabs; track tab.path) {
-      <a class="nav-item" [routerLink]="tab.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <a class="nav-item" [routerLink]="tab.path" [class.active]="activeTab() === tab.path"
+        [attr.aria-current]="activeTab() === tab.path && onOwnTab() ? 'page' : null">
         <span class="nav-indicator"><app-icon [name]="tab.icon" [size]="22" /></span>
         <span class="nav-label">{{ tab.label }}</span>
       </a>
@@ -58,7 +59,7 @@
   <app-phone-now-playing [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
 }
 @if (queueOpen()) {
-  <app-phone-queue-sheet (close)="queueOpen.set(false)" />
+  <app-phone-queue-sheet [attr.inert]="library.actionTracks() ? '' : null" (close)="queueOpen.set(false)" />
 }
 
 @if (queueActions.notice(); as notice) {

@@ -1,6 +1,6 @@
-import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, linkedSignal, signal, viewChild } from '@angular/core';
 import { Location } from '@angular/common';
-import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { PlayerService } from '../../core/player/player.service';
@@ -31,7 +31,7 @@ const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, CoverArtComponent, AndroidFolderPickerComponent,
+  imports: [RouterOutlet, RouterLink, IconComponent, CoverArtComponent, AndroidFolderPickerComponent,
     PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, AddToPlaylistDialogComponent, SwipeDirective],
   templateUrl: './phone-app.component.html',
   styleUrl: './phone-app.component.scss',
@@ -65,6 +65,13 @@ export class PhoneAppComponent {
     { initialValue: this.router.url.split(/[?#]/, 1)[0] },
   );
   readonly onTab = computed(() => this.tabs.some((tab) => tab.path === this.path()));
+  /** The tab a page belongs to; Settings, which belongs to none, keeps the one it was opened from lit. */
+  readonly activeTab = linkedSignal<string, string>({
+    source: this.path,
+    computation: (path, previous) =>
+      this.tabs.find((tab) => path === tab.path || path.startsWith(tab.path + '/'))?.path ?? previous?.value ?? '/home',
+  });
+  readonly onOwnTab = computed(() => this.path() === this.activeTab() || this.path().startsWith(this.activeTab() + '/'));
   readonly title = computed(() => {
     this.path();
     let route = this.router.routerState.snapshot.root;

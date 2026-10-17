@@ -379,6 +379,9 @@ html[data-layout='phone'] {
   --phone-np-cover-max: 440px;
   --phone-detail-cover-max: 260px;
   --phone-detail-placeholder-max: 160px;
+  --phone-sheet-cover: 64px;
+  --phone-sheet-action-height: 56px;
+  --phone-queue-cover: 44px;
   /* A pressed transport pill widens for this long (PixelPlayer's release delay). */
   --phone-press-dur: 220ms;
   --sheet-radius: 28px;

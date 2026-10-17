@@ -1,7 +1,6 @@
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
-import { formatTrackQualityLine } from '../../../features/home/library-quality';
 import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -40,6 +39,9 @@ export class PhoneNowPlayingComponent {
   private pressTimer: ReturnType<typeof setTimeout> | undefined;
   readonly shuffleLabel = computed(() => this.player.smartShuffle() ? 'Shuffle: Smart Shuffle. Tap to turn off'
     : this.player.isShuffle() ? 'Shuffle: on. Tap for Smart Shuffle' : 'Shuffle: off. Tap to turn on');
+  readonly shuffleText = computed(() => this.player.smartShuffle() ? 'Smart Shuffle' : this.player.isShuffle() ? 'Shuffle' : 'Shuffle off');
+  readonly repeatText = computed(() => this.player.smartShuffle() ? 'Repeat off'
+    : { off: 'Repeat off', all: 'Repeat all', one: 'Repeat one' }[this.player.repeatMode()]);
   readonly repeatLabel = computed(() => this.player.smartShuffle() ? 'Repeat: off while Smart Shuffle is on'
     : { off: 'Repeat: off. Tap to repeat all', all: 'Repeat: all. Tap to repeat one', one: 'Repeat: one. Tap to turn off' }[this.player.repeatMode()]);
   readonly close = output<void>();
@@ -48,12 +50,7 @@ export class PhoneNowPlayingComponent {
   readonly scrubTime = signal<number | null>(null);
   private scrubbing = false;
   readonly position = computed(() => this.scrubTime() ?? this.player.currentTime());
-  readonly quality = computed(() => {
-    const track = this.player.currentTrack();
-    return track ? formatTrackQualityLine(track) : null;
-  });
-
-  /** Where the sound goes: the mixer's rate, and whether this file is resampled to reach it. */
+  /** Where the sound goes: the mixer's rate. The file's own format is in the ⋯ sheet and the mini player. */
   readonly output = computed(() => outputPath(this.player.currentTrack()?.sampleRate ?? null, mixerRate()));
 
   constructor() {

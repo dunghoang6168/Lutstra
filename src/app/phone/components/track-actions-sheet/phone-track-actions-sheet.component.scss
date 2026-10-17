@@ -13,7 +13,8 @@
   z-index: 1151;
   display: flex;
   flex-direction: column;
-  padding: 0 0 calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  gap: var(--space-3);
+  padding: 0 var(--page-pad-x) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
   color: var(--text-primary);
   background: var(--bg-elevated);
@@ -30,61 +31,128 @@
 
 .grabber {
   align-self: center;
+  flex: none;
   width: var(--space-8);
   height: var(--space-1);
-  margin: var(--space-2) 0 var(--space-3);
+  margin-top: var(--space-2);
   border-radius: var(--radius-full);
   background: var(--border-default);
 }
 
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+.sheet-cover {
+  flex: none;
+  width: var(--phone-sheet-cover);
+  height: var(--phone-sheet-cover);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.sheet-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .sheet-title,
-.sheet-subtitle {
+.sheet-subtitle,
+.sheet-format {
   margin: 0;
-  padding: 0 var(--page-pad-x);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sheet-title { font-size: var(--font-size-lg); font-weight: 700; }
-.sheet-subtitle { margin-top: var(--space-1); font-size: var(--font-size-sm); color: var(--text-secondary); }
+.sheet-title { font-size: var(--font-size-xl); font-weight: 700; }
+.sheet-subtitle { font-size: var(--font-size-sm); color: var(--text-secondary); }
+.sheet-format { font-size: var(--font-size-xs); color: var(--text-muted); }
 
+/* Tonal pills two by two; an odd last one takes the whole row. */
 .actions {
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
 }
 
 .action {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-4);
-  min-height: var(--row-height);
-  padding: 0 var(--page-pad-x);
-  text-align: left;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: var(--phone-sheet-action-height);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
   color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   font-size: var(--font-size-base);
   font-weight: 600;
+  text-decoration: none;
+  transition: border-radius var(--phone-press-dur) var(--motion-ease);
+}
+
+.action:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.action:active { border-radius: var(--radius-lg); background: var(--bg-surface-hover); }
+
+/* Ink play, as everywhere; Play next is the one accent pill, since it changes what plays. */
+.action.play { color: var(--text-inverse); background: var(--text-primary); font-weight: 700; }
+.action.next { color: var(--text-accent); background: var(--accent-muted); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .action { transition: none; }
+}
+
+.info-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-align: left;
 
   app-icon { color: var(--text-secondary); }
 }
 
-.action:active { background: var(--bg-surface-hover); }
+.info-toggle-label { flex: none; }
 
-.action:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
+.info-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
-a.action { text-decoration: none; }
+.info-chevron { transition: rotate var(--motion-dur) var(--motion-ease); }
+.info-toggle[aria-expanded='true'] .info-chevron { rotate: 90deg; }
 
 /* File and Output: label and value in two columns; measurements in mono, Hi-Res in accent. */
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+}
+
 .info-title {
   margin: var(--space-2) 0 0;
-  padding: var(--space-3) var(--page-pad-x) var(--space-1);
-  border-top: 1px solid var(--border-subtle);
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--text-secondary);
@@ -92,10 +160,9 @@ a.action { text-decoration: none; }
 
 .info {
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr);
+  grid-template-columns: 6rem minmax(0, 1fr);
   row-gap: var(--space-2);
   margin: 0;
-  padding: 0 var(--page-pad-x);
   font-size: var(--font-size-sm);
 
   dt { color: var(--text-secondary); }
@@ -107,7 +174,7 @@ a.action { text-decoration: none; }
 .path { font-size: var(--font-size-xs); color: var(--text-secondary); overflow-wrap: anywhere; }
 
 .info-note {
-  margin: var(--space-3) var(--page-pad-x) 0;
+  margin: var(--space-1) 0 0;
   font-size: var(--font-size-xs);
   line-height: 1.45;
   color: var(--text-muted);

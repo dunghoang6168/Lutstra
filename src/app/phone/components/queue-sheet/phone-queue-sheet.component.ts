@@ -1,10 +1,11 @@
 import { Component, ElementRef, Injector, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
-import { ListeningHistoryService } from '../../../core/history/listening-history.service';
 import { QueueEntry } from '../../../core/models';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
+import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { PhoneLibraryService } from '../../phone-library.service';
 import { haptic } from '../../haptics';
 import { SwipeDirective } from '../../swipe.directive';
 import { dropSlot } from '../../queue-drag';
@@ -33,18 +34,18 @@ interface DragLayout {
   shifted: HTMLElement[];
 }
 
-/** The queue as a bottom sheet: tap a row to play it; drag its handle to move it; swipe it or tap ✕ to remove it. */
+/** The queue as a bottom sheet: tap a row to play it; drag its handle to move it; swipe it away or use its ⋯ sheet. */
 @Component({
   selector: 'app-phone-queue-sheet',
   standalone: true,
-  imports: [DurationPipe, IconComponent, SwipeDirective],
+  imports: [CoverArtComponent, DurationPipe, IconComponent, SwipeDirective],
   templateUrl: './phone-queue-sheet.component.html',
   styleUrl: './phone-queue-sheet.component.scss',
 })
 export class PhoneQueueSheetComponent {
   readonly player = inject(PlayerService);
   readonly queueActions = inject(QueueActionsService);
-  private readonly history = inject(ListeningHistoryService);
+  readonly library = inject(PhoneLibraryService);
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');
   private readonly closeButton = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
   private readonly injector = inject(Injector);
@@ -61,6 +62,13 @@ export class PhoneQueueSheetComponent {
     return current >= 0 ? Math.max(0, seconds - Math.min(this.player.currentTime(), queue[current]?.track.duration || 0)) : seconds;
   });
 
+  /** Where Smart Shuffle's picks start after the current track, marked once instead of on every row. */
+  readonly suggestedFrom = computed(() => {
+    const queue = this.player.queue();
+    for (let i = this.player.currentIndex() + 1; i < queue.length; i++) if (queue[i].suggested) return i;
+    return -1;
+  });
+
   constructor() {
     afterNextRender(() => {
       this.list()?.nativeElement.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
@@ -70,8 +78,7 @@ export class PhoneQueueSheetComponent {
 
   /** Every removal comes with an Undo; removing the current entry moves playback on. */
   remove(entry: QueueEntry): void {
-    // Taking a suggestion out before it plays tells Smart Shuffle it was not wanted, once the Undo has passed.
-    this.queueActions.removeWithUndo(entry, entry.suggested ? () => this.history.recordRemoval(entry.track) : undefined);
+    this.library.removeFromQueue(entry);
   }
 
   /** Drag by the handle (after PixelPlayer's queue): the row lifts and follows the finger, the others make room, and the list scrolls at its edges. */
@@ -82,11 +89,13 @@ export class PhoneQueueSheetComponent {
     const handle = event.currentTarget as HTMLElement;
     handle.setPointerCapture(event.pointerId);
     // Measured once: a long queue is not re-measured on every finger move (offsetTop ignores the shifts below).
-    const rows = [...(this.list()?.nativeElement.querySelectorAll<HTMLElement>('.queue-row') ?? [])];
+    const list = this.list()?.nativeElement;
+    const rows = [...(list?.querySelectorAll<HTMLElement>('.queue-row') ?? [])];
     const source = rows.findIndex((r) => r.dataset['entryId'] === id);
     if (source < 0) return;
     this.layout = {
-      row: rows[source], source, height: rows[source].offsetHeight, shifted: [],
+      // A row makes room for the dragged one's height plus the gap between cards.
+      row: rows[source], source, height: rows[source].offsetHeight + parseFloat(getComputedStyle(list!).rowGap || '0'), shifted: [],
       others: rows.filter((_, i) => i !== source)
         .map((el) => ({ el, id: el.dataset['entryId']!, middle: el.offsetTop + el.offsetHeight / 2 })),
     };

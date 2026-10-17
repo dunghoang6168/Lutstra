@@ -33,7 +33,7 @@
     <div class="collage">
       @for (item of collage(); track item.album.id) {
         <a class="collage-item" [class]="'slot-' + item.slot + ' shape-' + item.shape"
-          [routerLink]="['/library/albums', item.album.id]" [attr.aria-label]="item.album.title">
+          [routerLink]="['/library/albums', item.album.id]" [attr.aria-label]="'Album: ' + item.album.title + (item.album.artist ? ', ' + item.album.artist : '')">
           <app-cover-art [src]="item.album.artwork" [alt]="''" [iconSize]="28" />
         </a>
       }
@@ -45,7 +45,7 @@
       <header class="mix-header">
         <div class="mix-heading">
           <h2 id="mixCardTitle" class="mix-title">Up next in your mix</h2>
-          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'In your queue') : 'Based on your listening' }}</p>
+          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'Paused') : 'Based on your listening' }}</p>
         </div>
         @if (mixCovers().length) {
           <span class="mix-covers" aria-hidden="true">

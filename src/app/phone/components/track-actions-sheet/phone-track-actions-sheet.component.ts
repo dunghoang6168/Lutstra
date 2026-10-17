@@ -1,7 +1,9 @@
-import { Component, ElementRef, EnvironmentInjector, afterNextRender, computed, inject } from '@angular/core';
+import { Component, ElementRef, EnvironmentInjector, afterNextRender, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PlayerService } from '../../../core/player/player.service';
+import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { formatKhz, formatTrackFormat } from '../../../features/home/library-quality';
+import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
 import { PhoneLibraryService } from '../../phone-library.service';
@@ -13,19 +15,22 @@ function readablePath(path: string): string {
 }
 
 /**
- * The ⋯ bottom sheet: Play next, Add to queue (not for the track that is playing), Go to album or artist,
- * Add to playlist, and for one track its file and where its sound goes. It closes on Escape, which Android Back sends.
+ * The ⋯ bottom sheet, as tonal pills after PixelPlayer's: Play next and Add to queue (not for the track that is
+ * playing), Playlist, Album, Artist, and a File info row that opens the file and where its sound goes. Opened from a
+ * queue row it acts on that entry instead: Play now, Play next (moves it) and Remove.
+ * It closes on Escape, which Android Back sends.
  */
 @Component({
   selector: 'app-phone-track-actions-sheet',
   standalone: true,
-  imports: [IconComponent, RouterLink],
+  imports: [CoverArtComponent, IconComponent, RouterLink],
   templateUrl: './phone-track-actions-sheet.component.html',
   styleUrl: './phone-track-actions-sheet.component.scss',
 })
 export class PhoneTrackActionsSheetComponent {
   readonly library = inject(PhoneLibraryService);
   private readonly player = inject(PlayerService);
+  private readonly queueActions = inject(QueueActionsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly opener = document.activeElement as HTMLElement | null;
   private readonly rootInjector = inject(EnvironmentInjector);
@@ -34,6 +39,21 @@ export class PhoneTrackActionsSheetComponent {
   readonly title = computed(() => this.track()?.title ?? `${this.tracks().length} tracks`);
   /** Queueing the track that is already playing would only duplicate it. */
   readonly isCurrent = computed(() => !!this.track() && this.track()!.id === this.player.currentTrack()?.id);
+  /** The queue entry when the sheet was opened from a queue row; null once that entry leaves the queue. */
+  readonly entry = computed(() => {
+    const entry = this.library.actionEntry();
+    return entry && this.player.queue().some((item) => item.id === entry.id) ? entry : null;
+  });
+  private readonly entryIndex = computed(() => {
+    const id = this.entry()?.id;
+    return id ? this.player.queue().findIndex((item) => item.id === id) : -1;
+  });
+  readonly canPlayNow = computed(() => !!this.entry()?.track.isAvailable && this.entryIndex() !== this.player.currentIndex());
+  /** From a queue row: not the current entry, nor the one already next. Elsewhere: any track but the playing one. */
+  readonly canPlayNext = computed(() => this.entry()
+    ? this.entryIndex() !== this.player.currentIndex() && this.entryIndex() !== this.player.currentIndex() + 1
+    : !this.isCurrent());
+  readonly infoOpen = signal(false);
   readonly albumId = computed(() => {
     const id = this.track()?.id;
     return id ? this.library.snapshot()?.albums.find((album) => album.trackIds.includes(id))?.id ?? null : null;
@@ -45,11 +65,14 @@ export class PhoneTrackActionsSheetComponent {
   readonly info = computed(() => {
     const track = this.track();
     if (!track) return null;
+    const bitrate = track.bitrate ? `${Math.round(track.bitrate / 1000)} kbps` : null;
+    const size = track.fileSize ? `${(track.fileSize / 1048576).toFixed(1)} MB` : null;
     return {
       format: formatTrackFormat(track),
-      bitrate: track.bitrate ? `${Math.round(track.bitrate / 1000)} kbps` : null,
+      bitrate,
       channels: track.channels,
-      size: track.fileSize ? `${(track.fileSize / 1048576).toFixed(1)} MB` : null,
+      size,
+      summary: [bitrate, size].filter(Boolean).join(' · '),
       path: readablePath(track.path),
       fileKhz: track.sampleRate ? formatKhz(track.sampleRate) : null,
       output: outputPath(track.sampleRate, mixerRate()),
@@ -64,7 +87,8 @@ export class PhoneTrackActionsSheetComponent {
   /** `then` runs once focus is back on the opener. */
   close(then?: () => void): void {
     this.library.actionTracks.set(null);
-    // Now Playing stays inert until the next render, and this sheet is gone by then, so the root injector waits.
+    this.library.actionEntry.set(null);
+    // Now Playing and the queue stay inert until the next render, and this sheet is gone by then, so the root injector waits.
     const opener = this.opener;
     afterNextRender(() => {
       if (opener?.isConnected) focusQuietly(opener);
@@ -72,8 +96,27 @@ export class PhoneTrackActionsSheetComponent {
     }, { injector: this.rootInjector });
   }
 
+  playNow(): void {
+    const index = this.entryIndex();
+    if (index >= 0) void this.player.jumpToQueueIndex(index);
+    this.close();
+  }
+
   playNext(): void {
-    this.library.playNext(this.tracks());
+    const entry = this.entry();
+    const current = this.player.currentQueueEntry();
+    if (entry && current) {
+      if (this.player.moveQueueEntry(entry.id, current.id, 'after')) this.queueActions.notify(`“${entry.track.title}” plays next`);
+    } else {
+      this.library.playNext(this.tracks());
+    }
+    this.close();
+  }
+
+  /** Same as swiping the row away. */
+  remove(): void {
+    const entry = this.entry();
+    if (entry) this.library.removeFromQueue(entry);
     this.close();
   }
 
