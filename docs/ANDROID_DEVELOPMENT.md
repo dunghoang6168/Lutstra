@@ -253,6 +253,32 @@ On the Motorola (2026-10-17): Home showed the paused track, the Smart Shuffle ca
 On the Motorola (Android 15, 2026-10-17): Settings listed `Thẻ SD SanDisk/Music` and 459 tracks and offered Wallpaper (a blue palette). Wallpaper gave `#a6c8ff` on Dark (accent text 11:1 on the canvas, 9.8:1 on surfaces, 11:1 on the fill) and `#005eb1` with `#004787` text on Light (8.46:1, 9.33:1, 6.49:1); the choice was saved as `dynamicAccent`. Returning from the home screen read the palette again. Picking Rose cleared the inline tokens and saved `dynamicAccent: false`. Choose folders opened the picker and Back closed it; Clear history asked first and Cancel left it. The wallpaper itself was not changed.
 - The six fixed swatches now come from `ACCENT_SWATCHES` (`core/models/settings.model.ts`), shared with the desktop Settings page.
 
+## Edge to edge
+
+`index.html` declares `viewport-fit=cover`. With it (and WebView 140+), Capacitor's `SystemBars` passes the status and navigation bar insets to the page instead of padding the WebView, so the app's own background runs under both bars and the shell keeps its content clear with `env(safe-area-inset-top|bottom)`. Without it the bars sat on the native window background, a grey strip above the app bar. `ThemeService` sets the bar icons with `SystemBars.setStyle` (light icons on Graphite, dark on Cloud).
+
+## Now Playing
+
+Laid out after PixelPlayer's full player (`FullPlayerContent`, `AnimatedPlaybackControls`, `BottomToggleRow`) in Lutstra's palette:
+- **Ground:** the current cover blurred (80 px, saturate 1.25, 55 % dark / 42 % light) behind the whole sheet, crossfading over 1.2 s, as the Ambient Ground Rule does on the desktop; removed under reduced transparency or forced colours. Controls sit on translucent tonal surfaces (`color-mix` of `--bg-elevated`).
+- **Bar:** a round collapse button, "Now Playing" and a queue pill.
+- **Cover:** `--sheet-radius`, as large as the height allows; it swipes like the mini player (left next, right previous).
+- **Heading:** title (800, `--font-size-3xl`) and artist on one line each, with a ⋯ button that opens the track actions sheet.
+- **Timeline:** the seek slider, the times in mono and the quality chip between them.
+- **Transport:** three pills sharing the row (`--phone-np-transport-height` 88 px); the pressed one widens to 1.1 while the others give way to 0.65 for 220 ms. Play stays ink (the Ink Play Rule) and turns from a pill into a soft square (`--phone-np-play-radius`) while playing.
+- **Toggles:** Shuffle (Off → Shuffle → Smart Shuffle) and Repeat (Off → All → One) as segments of one pill; on is accent. Repeat is disabled while Smart Shuffle is on, and the row is hidden while the roulette plays.
+
+## Gestures and haptics
+
+Tuned after PixelPlayer's `QueueBottomSheet`, `MiniPlayerSkipGestureHandler` and `QueueItemDismissGestureHandler`.
+
+- **Queue drag:** each row has a grip handle (`touch-action: none`). Dragging it lifts the row (`scale: 1.015`, large shadow) under the finger, the rows between its old and new place slide to make room (`dropSlot` in `src/app/phone/queue-drag.ts`, measured on layout positions so the shifts never move the goal), the list scrolls while the finger moves near its top or bottom edge, and the drop calls `moveQueueEntry`. Under Smart Shuffle the moved entry is pinned, and a pinned suggestion survives a re-plan. The handle also moves the row with the up and down arrow keys, and a live region announces the new position.
+- **Queue remove:** swipe a row left (not the current one). The first 60 px move it only 20 px, so a scroll never removes a row; past 40 % of the screen it commits, slides out and is removed. Swipe and ✕ on an upcoming row show "Removed “title” · Undo"; Undo (`PlayerService.insertQueueEntry`) puts it back in place without touching playback. A removed suggestion is recorded for Smart Shuffle only when the Undo window passes (`QueueActionsService.removeWithUndo`). ✕ on the current row moves playback on, as before.
+- **Mini player:** swipe left for the next track, right for the previous one. It follows the finger with resistance (never past half the screen), commits at 22 % of the screen or on a flick (300 CSS px/s over at least 5 %), leaves fading, changes the track while invisible and comes back in from the other side. A tap still opens Now Playing.
+- **Swipe:** `SwipeDirective` (`src/app/phone/swipe.directive.ts`, `swipeMode` `skip` or `dismiss`) takes the gesture after 10 px of mostly sideways movement; vertical moves stay with scrolling (`touch-action: pan-y`), and the click that ends a swipe is swallowed.
+- **Haptics:** `haptic()` (`src/app/phone/haptics.ts`) calls `AppShell.haptic`, which runs `performHapticFeedback` on the WebView, so it follows the system touch-vibration setting and needs no `VIBRATE` permission (`navigator.vibrate` is not used). Kinds follow PixelPlayer: `start`/`end` (`GESTURE_START`/`GESTURE_END`, Android 11+) when a drag or swipe begins and ends, `activate`/`deactivate` (`GESTURE_THRESHOLD_*`, Android 14+) when a swipe crosses its threshold either way, `tick` (`CLOCK_TICK`) per drop slot and when a dismiss leaves its tension; older versions fall back to `CLOCK_TICK` or `LONG_PRESS`.
+- **Motion:** sheets slide in over `--motion-dur`, rows make room over 60 % of it, swipes use their own short timings (Web Animations); `prefers-reduced-motion` sets `--motion-dur` to 0 ms and the swipe animations jump straight to their end.
+
 ## Covers on Android
 
 `readMetadata` keeps the file's embedded picture (`getEmbeddedPicture`); a track without one takes its folder's `cover.jpg`, `folder.jpg` or `front.jpg` (found during the walk). Each image is scaled once to at most `ARTWORK_SIZE` (1024 px) and written as `files/artwork/<sha1>-1024.jpg`; embedded pictures are named by their bytes, so an album's tracks share one file, and folder covers by their key and modified time. The cache keeps the embedded file name (`art`); `METADATA_VERSION` 4 makes older entries read again once. Rows carry the absolute path as `artwork`, which the gateway turns into a WebView URL with `Capacitor.convertFileSrc` (same origin, so the CSP's `img-src 'self'` allows it); an album takes the first cover among its tracks. Unused cover files are not pruned yet.

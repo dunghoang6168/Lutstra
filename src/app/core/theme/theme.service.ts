@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { SETTINGS_GATEWAY } from '../contracts';
 import { LayoutPreferenceService } from '../layout/layout-preference.service';
@@ -66,6 +66,10 @@ export class ThemeService {
       // The Android app has its own phone shell; the desktop layouts do not apply there.
       root.setAttribute('data-layout', Capacitor.getPlatform() === 'android' ? 'phone' : this.layoutPreference.mode());
       root.style.colorScheme = themePreset;
+      // The phone draws under the status and navigation bars (viewport-fit=cover), so their icons follow the preset.
+      if (Capacitor.getPlatform() === 'android') {
+        SystemBars.setStyle({ style: themePreset === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => undefined);
+      }
     });
   }
 

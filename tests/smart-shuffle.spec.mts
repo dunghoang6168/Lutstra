@@ -153,6 +153,12 @@ describe('smart shuffle picks', () => {
     expect(plan.filter((item) => !item.suggested).map((item) => item.trackId)).toEqual(['a1', 'b1', 'c1', 'd1']);
   });
 
+  it('keeps a suggestion the user dragged into place on refresh', () => {
+    const upcoming = [user('a1'), user('b1'), user('d5', { suggested: true, pinned: true }), user('c1')];
+    const plan = planUpcoming({ upcoming, recent: ['a0'], userRun: 0, every: 99, window: 4, refresh: true, reorder: false, exclude: new Set() }, context(library()));
+    expect(plan.map((item) => item.entryId)).toEqual(['e-a1', 'e-b1', 'e-d5', 'e-c1']);
+  });
+
   it('reorders the user tracks by taste but leaves pinned ones in their slots', () => {
     const facts = library();
     const liked = Array.from({ length: 8 }, (_, i) => listen('e3', { startedAt: NOW - (i + 2) * DAY, startedBy: 'user' }));

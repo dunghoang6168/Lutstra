@@ -1,18 +1,34 @@
 <section class="now-playing phone-sheet" role="dialog" aria-modal="true" aria-label="Now Playing"
-  [attr.inert]="queueOpen() ? '' : null" (keydown.escape)="close.emit()">
+  [attr.inert]="covered() ? '' : null" (keydown.escape)="close.emit()">
+  <div class="np-ground" aria-hidden="true">
+    <app-cover-art class="np-ground-art" [src]="player.currentTrack()?.artwork" [icon]="null" />
+  </div>
+
   <header class="np-bar">
-    <button #closeButton type="button" class="icon-btn collapse" (click)="close.emit()" aria-label="Close Now Playing">
-      <app-icon name="chevron-left" [size]="26" />
+    <button #closeButton type="button" class="tonal-btn round" (click)="close.emit()" aria-label="Close Now Playing">
+      <app-icon name="chevron-left" class="collapse" [size]="24" />
     </button>
     <span class="np-bar-title">Now Playing</span>
+    <button #queueButton type="button" class="tonal-btn pill" (click)="openQueue.emit()" aria-haspopup="dialog" aria-label="Open queue">
+      <app-icon name="queue" [size]="22" />
+    </button>
   </header>
 
   @if (player.currentTrack(); as track) {
-    <app-cover-art class="np-cover" [src]="track.artwork" [iconSize]="64" />
+    <div class="np-cover-frame">
+      <app-cover-art class="np-cover" appSwipe (swiped)="coverSwiped($event)" [src]="track.artwork" [iconSize]="64"
+        aria-description="Swipe left for the next track, right for the previous one" />
+    </div>
 
     <div class="np-heading">
-      <h2 class="np-title">{{ track.title }}</h2>
-      <p class="np-artist">{{ track.artist ?? 'Unknown artist' }}@if (track.album) { · {{ track.album }} }</p>
+      <div class="np-heading-text">
+        <h2 class="np-title">{{ track.title }}</h2>
+        <p class="np-artist">{{ track.artist ?? 'Unknown artist' }}</p>
+      </div>
+      <button type="button" class="tonal-btn round" (click)="library.openActions([track])" aria-haspopup="dialog"
+        [attr.aria-label]="'More for ' + track.title">
+        <app-icon name="more-horizontal" [size]="22" />
+      </button>
     </div>
 
     <div class="np-timeline">
@@ -29,29 +45,33 @@
       </div>
     </div>
 
-    <div class="np-transport">
-      <button type="button" class="transport-btn" (click)="player.previous()" aria-label="Previous track">
-        <app-icon name="skip-back" [size]="28" />
+    <div class="np-transport" [attr.data-pressed]="pressed()">
+      <button type="button" class="transport-btn prev" (click)="press('prev'); player.previous()" aria-label="Previous track">
+        <app-icon name="skip-back" [size]="30" />
       </button>
-      <button type="button" class="play-btn" (click)="player.togglePlayPause()"
-        [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
-        <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="32" />
+      <button type="button" class="transport-btn play" [class.playing]="player.isPlaybackActive()"
+        (click)="press('play'); player.togglePlayPause()" [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
+        <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="34" />
       </button>
-      <button type="button" class="transport-btn" (click)="player.next()" aria-label="Next track">
-        <app-icon name="skip-forward" [size]="28" />
+      <button type="button" class="transport-btn next" (click)="press('next'); player.next()" aria-label="Next track">
+        <app-icon name="skip-forward" [size]="30" />
       </button>
     </div>
 
-    <div class="np-secondary">
-      @if (!player.modesLocked()) {
-        <button type="button" class="icon-btn mode-btn" [class.on]="player.playbackMode() !== 'off'"
-          (click)="cyclePlaybackMode()" [attr.aria-label]="player.playbackModeLabel()">
-          <app-icon [name]="player.playbackModeIcon()" [size]="22" />
+    @if (!player.modesLocked()) {
+      <div class="np-toggles" role="group" aria-label="Playback modes">
+        <button type="button" class="toggle" [class.on]="player.isShuffle() || player.smartShuffle()"
+          [attr.aria-pressed]="player.isShuffle() || player.smartShuffle()" (click)="cycleShuffle()"
+          [attr.aria-label]="shuffleLabel()">
+          <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="22" />
         </button>
-      }
-      <button #queueButton type="button" class="icon-btn" (click)="openQueue.emit()" aria-haspopup="dialog" aria-label="Open queue">
-        <app-icon name="queue" [size]="22" />
-      </button>
-    </div>
+        <!-- Smart Shuffle never runs out, so repeat does not apply while it is on. -->
+        <button type="button" class="toggle" [class.on]="player.repeatMode() !== 'off' && !player.smartShuffle()"
+          [attr.aria-pressed]="player.repeatMode() !== 'off' && !player.smartShuffle()" [disabled]="player.smartShuffle()"
+          (click)="player.cycleRepeatMode()" [attr.aria-label]="repeatLabel()">
+          <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="22" />
+        </button>
+      </div>
+    }
   }
 </section>

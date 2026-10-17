@@ -194,7 +194,8 @@ export function planUpcoming(input: PlanInput, context: ScoreContext): PlanEntry
   // The next entry is already prepared for gapless playback; it moves only when the whole queue is reordered.
   const head = !input.reorder && input.upcoming.length ? [input.upcoming[0]] : [];
   let rest = input.upcoming.slice(head.length);
-  if (input.refresh || input.reorder) rest = rest.filter((entry) => !entry.suggested);
+  // A suggestion the user dragged into place is theirs now, so a fresh plan keeps it.
+  if (input.refresh || input.reorder) rest = rest.filter((entry) => !entry.suggested || entry.pinned);
 
   const trail: (TrackFacts | undefined)[] = input.recent.map(factsOf);
   if (input.reorder) {

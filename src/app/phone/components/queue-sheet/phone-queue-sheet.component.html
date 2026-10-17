@@ -12,13 +12,22 @@
   </header>
 
   @if (player.queue().length) {
-    <ol #list class="queue-list">
+    <ol #list class="queue-list" [class.reordering]="!!drag()">
       @for (entry of player.queue(); track entry.id; let i = $index) {
-        <li class="queue-row" [class.current]="i === player.currentIndex()"
+        <li class="queue-row" appSwipe swipeMode="dismiss" [swipeThreshold]="0.4"
+          [swipeDisabled]="i === player.currentIndex() || !!drag()" (swiped)="remove(entry)"
+          [attr.data-entry-id]="entry.id"
+          [class.current]="i === player.currentIndex()"
+          [class.dragging]="drag()?.id === entry.id"
           [class.played]="i < player.currentIndex()"
           [class.tentative]="entry.suggested && i > player.currentIndex() + 1"
           [class.unavailable]="!entry.track.isAvailable"
           [attr.aria-current]="i === player.currentIndex() ? 'true' : null">
+          <button type="button" class="icon-btn drag-handle" [attr.aria-label]="'Reorder ' + entry.track.title"
+            aria-description="Drag, or use the up and down arrow keys" (pointerdown)="dragStart($event, entry.id)"
+            (keydown)="handleKeydown($event, entry.id)">
+            <app-icon name="grip-vertical" [size]="18" />
+          </button>
           <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)">
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>
@@ -35,4 +44,5 @@
   } @else {
     <p class="empty">Queue is empty. Play something from Library.</p>
   }
+  <p class="sr-only" aria-live="polite">{{ announcement() }}</p>
 </section>

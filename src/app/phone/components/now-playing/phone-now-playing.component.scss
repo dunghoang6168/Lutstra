@@ -1,12 +1,13 @@
+/* After PixelPlayer's full player (FullPlayerContent, AnimatedPlaybackControls, BottomToggleRow), in Lutstra's palette. */
 .now-playing {
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-5);
-  padding: env(safe-area-inset-top, 0px) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  padding: env(safe-area-inset-top, 0px) var(--page-pad-x) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
   overflow-y: auto;
   color: var(--text-primary);
   background: var(--bg-app);
@@ -17,18 +18,48 @@
   from { transform: translateY(100%); }
 }
 
-.icon-btn {
+/* The Ambient Ground Rule, borrowed: the cover, blurred, tints the whole sheet and crossfades with the track. */
+.np-ground {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.np-ground-art {
+  --cover-fade-dur: 1200ms;
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  filter: blur(80px) saturate(1.25);
+  opacity: 0.55;
+}
+
+:host-context(html[data-theme='light']) .np-ground-art { opacity: 0.42; }
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .np-ground { display: none; }
+}
+
+.now-playing { isolation: isolate; }
+
+/* Tonal: a translucent surface over the ground, like PixelPlayer's container buttons. */
+.tonal-btn {
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: var(--touch-target);
   height: var(--touch-target);
   border-radius: var(--radius-full);
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
 }
 
-.icon-btn:active,
-.transport-btn:active { background: var(--bg-surface-hover); }
+.tonal-btn.round { width: var(--touch-target); }
+.tonal-btn.pill { width: calc(var(--touch-target) * 1.5); }
+.tonal-btn:active { background: var(--bg-surface-hover); }
+.collapse { transform: rotate(-90deg); }
 
 button:focus-visible {
   outline: 2px solid var(--accent-primary);
@@ -36,120 +67,155 @@ button:focus-visible {
 }
 
 .np-bar {
-  position: relative;
   display: flex;
   align-items: center;
-  align-self: stretch;
+  gap: var(--space-3);
   min-height: var(--phone-app-bar-height);
-  margin: 0 calc(-1 * var(--space-4));
 }
 
-.collapse app-icon { transform: rotate(-90deg); }
-
 .np-bar-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-secondary);
-  pointer-events: none;
+  flex: 1;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.np-cover-frame {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .np-cover {
   width: 100%;
   max-width: 440px;
-  height: auto;
+  max-height: 100%;
   aspect-ratio: 1;
-  flex: none;
   overflow: hidden;
-  border-radius: var(--surface-radius);
+  border-radius: var(--sheet-radius);
   box-shadow: var(--cover-shadow);
+  touch-action: pan-y; /* sideways is the swipe to change track */
 }
 
 .np-heading {
-  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.np-heading-text {
+  flex: 1;
   min-width: 0;
+}
+
+.np-title,
+.np-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .np-title {
   margin: 0;
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .np-artist {
   margin: var(--space-1) 0 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-lg);
   color: var(--text-secondary);
-  overflow-wrap: anywhere;
 }
 
-.np-timeline {
-  align-self: stretch;
-
-  app-range-slider { --range-hit-height: var(--touch-target); }
-}
+.np-timeline app-range-slider { --range-hit-height: var(--touch-target); }
 
 .np-times {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 0 var(--space-1);
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .np-quality {
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
   overflow: hidden;
   border-radius: var(--radius-full);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .np-quality.hires { color: var(--text-accent); }
 
+/* Three pills that share the row; the one pressed widens and the others give way for a moment. */
 .np-transport {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
+  gap: var(--space-2);
+  height: var(--phone-np-transport-height);
 }
 
 .transport-btn {
   display: grid;
   place-items: center;
-  width: var(--phone-transport-size);
-  height: var(--phone-transport-size);
+  flex: 1 1 0;
+  min-width: 0;
   border-radius: var(--radius-full);
   color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  transition: flex-grow 220ms var(--motion-ease), border-radius 220ms var(--motion-ease);
 }
 
-/* Ink play: primary text fill, inverse icon; never accent. */
-.play-btn {
-  display: grid;
-  place-items: center;
-  width: var(--phone-play-size);
-  height: var(--phone-play-size);
-  border-radius: var(--radius-full);
+.np-transport[data-pressed] .transport-btn { flex-grow: 0.65; }
+.np-transport[data-pressed='prev'] .prev,
+.np-transport[data-pressed='play'] .play,
+.np-transport[data-pressed='next'] .next { flex-grow: 1.1; }
+
+.transport-btn:active { background: var(--bg-surface-hover); }
+
+/* Ink play: primary text fill, inverse icon, never accent. A pill while paused, a soft square while playing. */
+.transport-btn.play {
   color: var(--text-inverse);
   background: var(--text-primary);
 }
 
-.np-secondary {
-  display: flex;
-  justify-content: space-between;
-  align-self: stretch;
+.transport-btn.play.playing { border-radius: var(--phone-np-play-radius); }
+
+@media (prefers-reduced-motion: reduce) {
+  .transport-btn { transition: none; }
 }
 
-.mode-btn { color: var(--text-muted); }
-.mode-btn.on { color: var(--text-accent); }
+/* Shuffle and repeat as one pill of segments; on is accent, the only colour that means something here. */
+.np-toggles {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
+}
+
+.toggle {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.toggle.on {
+  color: var(--text-accent);
+  background: var(--accent-muted);
+}
+
+.toggle:disabled { opacity: 0.4; }

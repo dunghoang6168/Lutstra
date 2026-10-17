@@ -26,13 +26,30 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    /** Shell services for the web layer: leaving at the root screen, and the wallpaper palette. */
+    /** Shell services for the web layer: leaving at the root screen, haptics and the wallpaper palette. */
     @CapacitorPlugin(name = "AppShell")
     public static final class AppShellPlugin extends Plugin {
         /** Leaves the app the way the system Back does at a root screen: the task moves back and playback keeps going. */
         @PluginMethod
         public void moveToBack(PluginCall call) {
             getActivity().runOnUiThread(() -> getActivity().moveTaskToBack(true));
+            call.resolve();
+        }
+
+        /** A gesture's buzz through the view's haptic feedback, so it follows the system touch-vibration setting. */
+        @PluginMethod
+        public void haptic(PluginCall call) {
+            int sdk = android.os.Build.VERSION.SDK_INT;
+            String kind = call.getString("kind", "tick");
+            int feedback;
+            switch (kind) {
+                case "start": feedback = sdk >= 30 ? android.view.HapticFeedbackConstants.GESTURE_START : android.view.HapticFeedbackConstants.LONG_PRESS; break;
+                case "end": feedback = sdk >= 30 ? android.view.HapticFeedbackConstants.GESTURE_END : android.view.HapticFeedbackConstants.CLOCK_TICK; break;
+                case "activate": feedback = sdk >= 34 ? android.view.HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE : android.view.HapticFeedbackConstants.CLOCK_TICK; break;
+                case "deactivate": feedback = sdk >= 34 ? android.view.HapticFeedbackConstants.GESTURE_THRESHOLD_DEACTIVATE : android.view.HapticFeedbackConstants.CLOCK_TICK; break;
+                default: feedback = android.view.HapticFeedbackConstants.CLOCK_TICK;
+            }
+            getActivity().runOnUiThread(() -> getBridge().getWebView().performHapticFeedback(feedback));
             call.resolve();
         }
 

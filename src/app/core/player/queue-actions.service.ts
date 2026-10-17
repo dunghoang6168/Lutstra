@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy, inject, signal } from '@angular/core';
-import { Track } from '../models';
+import { QueueEntry, Track } from '../models';
 import { PlayerService, QueueAddResult } from './player.service';
 
 export interface QueueNotice {
@@ -11,6 +11,8 @@ export interface QueueNotice {
 export class QueueActionsService implements OnDestroy {
   private readonly player = inject(PlayerService);
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Runs once the current notice goes without its Undo (timed out, replaced or cleared). */
+  private settle: (() => void) | null = null;
 
   readonly notice = signal<QueueNotice | null>(null);
 
@@ -34,6 +36,7 @@ export class QueueActionsService implements OnDestroy {
   }
 
   clear(): void {
+    this.runSettle();
     if (this.dismissTimer) clearTimeout(this.dismissTimer);
     this.dismissTimer = null;
     this.notice.set(null);
@@ -55,17 +58,45 @@ export class QueueActionsService implements OnDestroy {
     });
   }
 
+  /**
+   * Removes an upcoming entry with an Undo that puts it back in place. `kept` runs only if the removal stands,
+   * so a suggestion taken out by mistake never tells Smart Shuffle it was unwanted.
+   */
+  removeWithUndo(entry: QueueEntry, kept?: () => void): void {
+    const index = this.player.queue().findIndex((item) => item.id === entry.id);
+    if (index < 0) return;
+    this.player.removeFromQueue(entry.id);
+    const notice = this.show(`Removed “${entry.track.title}”`, {
+      label: 'Undo',
+      run: () => {
+        if (this.notice() !== notice) return;
+        this.settle = null;
+        this.clear();
+        this.player.insertQueueEntry(entry, index);
+      },
+    });
+    this.settle = kept ?? null;
+  }
+
+  private runSettle(): void {
+    const settle = this.settle;
+    this.settle = null;
+    settle?.();
+  }
+
   ngOnDestroy(): void {
     this.clear();
   }
 
   private show(message: string, action?: QueueNotice['action']): QueueNotice {
+    this.runSettle();
     if (this.dismissTimer) clearTimeout(this.dismissTimer);
     const notice = { message, action };
     this.notice.set(notice);
     this.dismissTimer = setTimeout(() => {
       this.dismissTimer = null;
       this.notice.set(null);
+      this.runSettle();
     }, action ? 6000 : 3000);
     return notice;
   }

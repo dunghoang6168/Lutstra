@@ -6,22 +6,39 @@ import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { RangeSliderComponent } from '../../../shared/components/range-slider/range-slider.component';
+import { PhoneLibraryService } from '../../phone-library.service';
+import { SwipeDirection, SwipeDirective } from '../../swipe.directive';
 
-/** Full-screen player over the shell: cover, the file's full measurements between the times, transport and mode. */
+type TransportButton = 'prev' | 'play' | 'next';
+
+/**
+ * Full-screen player over the shell, after PixelPlayer's: the blurred cover as ground, a cover that swipes to
+ * change track, the file's measurements between the times, three transport pills and the shuffle/repeat toggles.
+ */
 @Component({
   selector: 'app-phone-now-playing',
   standalone: true,
-  imports: [DurationPipe, IconComponent, CoverArtComponent, RangeSliderComponent],
+  imports: [DurationPipe, IconComponent, CoverArtComponent, RangeSliderComponent, SwipeDirective],
   templateUrl: './phone-now-playing.component.html',
   styleUrl: './phone-now-playing.component.scss',
 })
 export class PhoneNowPlayingComponent {
   readonly player = inject(PlayerService);
+  readonly library = inject(PhoneLibraryService);
   private readonly smartShuffle = inject(SmartShuffleService);
   private readonly closeButton = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
   private readonly queueButton = viewChild<ElementRef<HTMLButtonElement>>('queueButton');
   private readonly injector = inject(Injector);
   readonly queueOpen = input(false);
+  /** Inert under the queue or the track actions sheet, which sit above it. */
+  readonly covered = computed(() => this.queueOpen() || this.library.actionTracks() !== null);
+  /** The transport pill just pressed, which widens for a moment while the others give way. */
+  readonly pressed = signal<TransportButton | null>(null);
+  private pressTimer: ReturnType<typeof setTimeout> | undefined;
+  readonly shuffleLabel = computed(() => this.player.smartShuffle() ? 'Shuffle: Smart Shuffle. Tap to turn off'
+    : this.player.isShuffle() ? 'Shuffle: on. Tap for Smart Shuffle' : 'Shuffle: off. Tap to turn on');
+  readonly repeatLabel = computed(() => this.player.smartShuffle() ? 'Repeat: off while Smart Shuffle is on'
+    : `Repeat: ${{ off: 'off', all: 'all', one: 'one' }[this.player.repeatMode()]}`);
   readonly close = output<void>();
   readonly openQueue = output<void>();
   /** While the thumb is held the times follow it; the seek happens on release. */
@@ -57,7 +74,18 @@ export class PhoneNowPlayingComponent {
     if (seconds !== null) this.player.seek(seconds);
   }
 
-  cyclePlaybackMode(): void {
-    void this.smartShuffle.cyclePlaybackMode();
+  /** Off → Shuffle → Smart Shuffle → Off, as on the desktop shuffle button. */
+  cycleShuffle(): void {
+    void this.smartShuffle.cycleShuffle();
+  }
+
+  coverSwiped(direction: SwipeDirection): void {
+    if (direction === 'left') this.player.next(); else this.player.previous();
+  }
+
+  press(button: TransportButton): void {
+    this.pressed.set(button);
+    clearTimeout(this.pressTimer);
+    this.pressTimer = setTimeout(() => this.pressed.set(null), 220);
   }
 }

@@ -1183,6 +1183,19 @@ export class PlayerService implements OnDestroy {
     this.refreshPreparedCandidate();
   }
 
+  /** Undo for one removal: puts the entry back at `index` while the current track keeps playing. */
+  insertQueueEntry(entry: QueueEntry, index: number): void {
+    const queue = [...this.queue()];
+    if (queue.some((item) => item.id === entry.id)) return;
+    const at = Math.min(Math.max(index, 0), queue.length);
+    queue.splice(at, 0, entry);
+    this.queue.set(queue);
+    if (at <= this.currentIndex()) this.currentIndex.update((idx) => idx + 1);
+    // ponytail: the unshuffled order gets it at the end; place it by its neighbours if turning shuffle off after an Undo matters.
+    if (!entry.suggested) this.originalQueue.push(entry);
+    this.refreshPreparedCandidate();
+  }
+
   moveQueueEntry(sourceId: string, targetId: string, placement: 'before' | 'after'): boolean {
     const current = this.queue();
     const sourceIndex = current.findIndex((entry) => entry.id === sourceId);

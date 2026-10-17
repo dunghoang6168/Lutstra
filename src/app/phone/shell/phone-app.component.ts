@@ -16,6 +16,7 @@ import { PhoneQueueSheetComponent } from '../components/queue-sheet/phone-queue-
 import { PhoneTrackActionsSheetComponent } from '../components/track-actions-sheet/phone-track-actions-sheet.component';
 import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { PhoneLibraryService } from '../phone-library.service';
+import { SwipeDirection, SwipeDirective } from '../swipe.directive';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { DynamicPalette } from '../../core/theme/dynamic-accent';
@@ -33,7 +34,7 @@ const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, CoverArtComponent, AndroidFolderPickerComponent,
-    PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, AddToPlaylistDialogComponent],
+    PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, AddToPlaylistDialogComponent, SwipeDirective],
   templateUrl: './phone-app.component.html',
   styleUrl: './phone-app.component.scss',
 })
@@ -105,6 +106,11 @@ export class PhoneAppComponent {
 
   openNowPlaying(): void {
     this.nowPlayingOpen.set(true);
+  }
+
+  /** The mini player swipes like PixelPlayer's: left brings the next track, right the previous one. */
+  miniSwiped(direction: SwipeDirection): void {
+    if (direction === 'left') this.player.next(); else this.player.previous();
   }
 
   closeNowPlaying(): void {

@@ -85,6 +85,7 @@ button:focus-visible {
 }
 
 .queue-list {
+  position: relative; /* rows' offsetTop is measured from the list */
   flex: 1;
   margin: 0;
   padding: 0 0 var(--space-2);
@@ -94,13 +95,33 @@ button:focus-visible {
 }
 
 .queue-row {
+  position: relative;
   display: flex;
   align-items: center;
   min-height: var(--row-height);
   padding-right: var(--space-2);
+  background: var(--bg-elevated);
+  touch-action: pan-y; /* sideways moves are the swipe to remove */
 }
 
-.queue-row.current { background: var(--accent-muted); }
+.drag-handle {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+  touch-action: none;
+}
+
+.queue-row.dragging {
+  z-index: 1;
+  scale: 1.015;
+  box-shadow: var(--shadow-lg);
+}
+
+/* While a row is dragged, the others slide to make room. */
+.queue-list.reordering .queue-row:not(.dragging) {
+  transition: translate calc(var(--motion-dur) * 0.6) var(--motion-ease);
+}
+
+.queue-row.current { background: linear-gradient(var(--accent-muted), var(--accent-muted)), var(--bg-elevated); }
 .queue-row.played .row-main,
 .queue-row.tentative .row-main { opacity: 0.6; }
 
@@ -112,7 +133,6 @@ button:focus-visible {
   flex: 1;
   min-width: 0;
   min-height: var(--row-height);
-  padding-left: var(--page-pad-x);
   text-align: left;
   color: inherit;
 }
