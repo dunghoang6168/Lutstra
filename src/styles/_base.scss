@@ -17,6 +17,12 @@ html[data-layout='phone'] {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Every phone control's focus ring; full-width rows override the offset to keep the ring inside their edges. */
+html[data-layout='phone'] :where(a, button, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 html, body, app-root {
   height: 100%;
   width: 100%;

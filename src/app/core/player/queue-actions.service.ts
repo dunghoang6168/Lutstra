@@ -59,20 +59,24 @@ export class QueueActionsService implements OnDestroy {
   }
 
   /**
-   * Removes an upcoming entry with an Undo that puts it back in place. `kept` runs only if the removal stands,
-   * so a suggestion taken out by mistake never tells Smart Shuffle it was unwanted.
+   * Removes an entry with an Undo that puts it back in place; removing the current one moves playback on, and
+   * its Undo plays it again from the start. `kept` runs only if the removal stands, so a suggestion taken out by
+   * mistake never tells Smart Shuffle it was unwanted.
    */
   removeWithUndo(entry: QueueEntry, kept?: () => void): void {
     const index = this.player.queue().findIndex((item) => item.id === entry.id);
     if (index < 0) return;
+    const wasCurrent = index === this.player.currentIndex();
     this.player.removeFromQueue(entry.id);
-    const notice = this.show(`Removed “${entry.track.title}”`, {
+    const message = `Removed “${entry.track.title}”${wasCurrent && this.player.queue().length ? ', playing the next track' : ''}`;
+    const notice = this.show(message, {
       label: 'Undo',
       run: () => {
         if (this.notice() !== notice) return;
         this.settle = null;
         this.clear();
         this.player.insertQueueEntry(entry, index);
+        if (wasCurrent) void this.player.jumpToQueueIndex(index);
       },
     });
     this.settle = kept ?? null;

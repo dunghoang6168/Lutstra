@@ -8,7 +8,7 @@
 
 .detail-cover {
   width: 60%;
-  max-width: 260px;
+  max-width: var(--phone-detail-cover-max);
   height: auto;
   aspect-ratio: 1;
   overflow: hidden;
@@ -19,7 +19,7 @@
 .detail-cover.round { border-radius: var(--radius-full); }
 
 /* Without artwork the glyph only labels the page, so it takes less room. */
-.detail-cover.placeholder { width: 36%; max-width: 160px; }
+.detail-cover.placeholder { width: 36%; max-width: var(--phone-detail-placeholder-max); }
 
 .detail-title {
   margin: var(--space-4) 0 0;
@@ -64,10 +64,6 @@
 
   button:disabled { opacity: 0.5; }
 
-  button:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-  }
 }
 
 /* Ink play: primary text fill, inverse label. */

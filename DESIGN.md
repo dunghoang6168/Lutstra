@@ -236,7 +236,7 @@ The palette is cool graphite or cloud paper, with exactly one user-chosen hue on
 
 **The Absence Rule.** Amber means a file or output is not there. If nothing is missing or disconnected, no amber appears on screen.
 
-**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player, the Home hero and Now Playing.
+**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player, the Home hero and Now Playing. On the phone, a page's one primary action (Settings › Choose folders) is ink too, by the owner's choice (2026-10-17): the phone keeps accent for meaning only, so it never fills a button there.
 
 ## Typography
 

@@ -9,7 +9,11 @@
     <span class="row-text">
       <span class="row-title">{{ track().title }}</span>
       <span class="row-meta">
-        <span class="row-artist">{{ track().isAvailable ? (track().artist ?? 'Unknown artist') : 'File unavailable' }}</span>
+        @if (track().isAvailable) {
+          <span class="row-artist">{{ track().artist ?? 'Unknown artist' }}</span>
+        } @else {
+          <span class="row-artist missing"><app-icon name="alert-triangle" [size]="14" /> File unavailable</span>
+        }
         @if (format(); as format) {
           <span class="row-format" [class.hires]="format.hires">{{ format.label }}</span>
         }

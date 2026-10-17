@@ -11,6 +11,8 @@ const FLING_MIN = 0.05;
 /** Dismiss: the first `TENSION_PX` of travel move the row only `TENSION_SHOWN_PX`. */
 const TENSION_PX = 60;
 const TENSION_SHOWN_PX = 20;
+/** Lutstra's ease-out (--motion-ease), with no overshoot: a released swipe glides home. */
+const SETTLE_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 /**
  * Horizontal swipe on a touch target, tuned after PixelPlayer's mini player and queue gestures
@@ -112,14 +114,14 @@ export class SwipeDirective {
         this.swiped.emit(direction);
         // The row normally goes away with its entry; if it is still here, it slides back.
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (this.host.isConnected) await this.animate({ translate: '0 0' }, 300, 'cubic-bezier(0.16, 1, 0.3, 1)');
+        if (this.host.isConnected) await this.animate({ translate: '0 0' }, 300, SETTLE_EASE);
         return;
       }
       // Shared-axis swap: leave fading, change the track while invisible, come in from the other side.
       await this.animate({ translate: `${sign * innerWidth * 0.34}px 0`, opacity: 0 }, 130, 'cubic-bezier(0.4, 0, 1, 1)');
       this.swiped.emit(direction);
       this.host.style.translate = `${-sign * innerWidth * 0.26}px 0`;
-      await this.animate({ translate: '0 0', opacity: 1 }, 260, 'cubic-bezier(0.16, 1, 0.3, 1)');
+      await this.animate({ translate: '0 0', opacity: 1 }, 260, SETTLE_EASE);
     } finally {
       this.busy = false;
     }
@@ -128,7 +130,7 @@ export class SwipeDirective {
   private settle(): void {
     this.start = null;
     this.swiping = this.armed = false;
-    void this.animate({ translate: '0 0' }, 300, 'cubic-bezier(0.34, 1.4, 0.64, 1)');
+    void this.animate({ translate: '0 0' }, 300, SETTLE_EASE);
   }
 
   /** Animates the host to `to` and keeps it there as inline style; reduced motion jumps straight there. */

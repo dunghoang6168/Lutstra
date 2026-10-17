@@ -61,11 +61,6 @@
 .tonal-btn:active { background: var(--bg-surface-hover); }
 .collapse { transform: rotate(-90deg); }
 
-button:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
 .np-bar {
   display: flex;
   align-items: center;
@@ -88,7 +83,7 @@ button:focus-visible {
 
 .np-cover {
   width: 100%;
-  max-width: 440px;
+  max-width: var(--phone-np-cover-max);
   max-height: 100%;
   aspect-ratio: 1;
   overflow: hidden;
@@ -185,7 +180,7 @@ button:focus-visible {
   border-radius: var(--radius-full);
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
-  transition: flex-grow 220ms var(--motion-ease), border-radius 220ms var(--motion-ease);
+  transition: flex-grow var(--phone-press-dur) var(--motion-ease), border-radius var(--phone-press-dur) var(--motion-ease);
 }
 
 .np-transport[data-pressed] .transport-btn { flex-grow: 0.65; }

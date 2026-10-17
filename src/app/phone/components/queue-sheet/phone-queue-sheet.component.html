@@ -4,7 +4,7 @@
   <span class="grabber" aria-hidden="true"></span>
   <header class="sheet-header">
     <h2 id="queueSheetTitle">Next up</h2>
-    <span class="count">{{ player.queue().length }} {{ player.queue().length === 1 ? 'track' : 'tracks' }}</span>
+    <span class="count">{{ player.queue().length }} {{ player.queue().length === 1 ? 'track' : 'tracks' }} · {{ remaining() | duration }} left</span>
     <button type="button" class="text-btn" (click)="queueActions.clearWithUndo()" [disabled]="!player.queue().length">Clear</button>
     <button #closeButton type="button" class="icon-btn" (click)="close.emit()" aria-label="Close queue">
       <app-icon name="x" [size]="20" />
@@ -31,7 +31,11 @@
           <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)">
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>
-              <span class="row-artist">@if (entry.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
+              @if (entry.track.isAvailable) {
+                <span class="row-artist">@if (entry.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
+              } @else {
+                <span class="row-artist missing"><app-icon name="alert-triangle" [size]="14" /> File unavailable</span>
+              }
             </span>
             <span class="row-time">{{ entry.track.duration | duration }}</span>
           </button>

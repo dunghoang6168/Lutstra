@@ -376,6 +376,11 @@ html[data-layout='phone'] {
   --phone-play-size: 72px;
   --phone-np-transport-height: 88px;
   --phone-np-play-radius: 26px;
+  --phone-np-cover-max: 440px;
+  --phone-detail-cover-max: 260px;
+  --phone-detail-placeholder-max: 160px;
+  /* A pressed transport pill widens for this long (PixelPlayer's release delay). */
+  --phone-press-dur: 220ms;
   --sheet-radius: 28px;
 }
 

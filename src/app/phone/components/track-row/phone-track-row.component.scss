@@ -80,7 +80,7 @@
 
 /* Amber means absence. */
 .unavailable .row-title { color: var(--text-muted); }
-.unavailable .row-artist { color: var(--status-warning-text); }
+.row-artist.missing { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--status-warning-text); }
 
 .row-more {
   display: grid;

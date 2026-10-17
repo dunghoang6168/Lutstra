@@ -94,6 +94,6 @@ export class PhoneNowPlayingComponent {
   press(button: TransportButton): void {
     this.pressed.set(button);
     clearTimeout(this.pressTimer);
-    this.pressTimer = setTimeout(() => this.pressed.set(null), 220);
+    this.pressTimer = setTimeout(() => this.pressed.set(null), 220); // --phone-press-dur
   }
 }

@@ -28,13 +28,6 @@
   background: var(--accent-muted);
 }
 
-.chip:focus-visible,
-button:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
 .toolbar {
   display: flex;
   align-items: center;

@@ -55,6 +55,18 @@ describe('queue remove with undo', () => {
     expect(kept).not.toHaveBeenCalled();
   });
 
+  it('removing the current entry plays the next one, and its undo puts it back and plays it again', () => {
+    const { player, actions } = setup();
+    const jump = vi.spyOn(player, 'jumpToQueueIndex').mockResolvedValue();
+    actions.removeWithUndo(player.queue()[2]);
+    expect(ids(player)).toEqual(['a', 'b', 'd']);
+    expect(actions.notice()!.message).toBe('Removed “c”, playing the next track');
+
+    actions.notice()!.action!.run();
+    expect(ids(player)).toEqual(['a', 'b', 'c', 'd']);
+    expect(jump).toHaveBeenCalledExactlyOnceWith(2);
+  });
+
   it('counts the removal once when the undo window ends or another notice replaces it', () => {
     const { player, actions } = setup();
     const first = vi.fn();

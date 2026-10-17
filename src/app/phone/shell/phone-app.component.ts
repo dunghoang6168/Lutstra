@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { Location } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -22,6 +22,9 @@ import { appShell } from '../app-shell';
 import { focusQuietly } from '../focus';
 
 /** Modals other than the shell's own sheets: the folder picker and the dialogs pages open. */
+/** Set once the mini player has shown, by a nudge, that it swipes. */
+const SWIPE_HINT_KEY = 'lutstra.phone.swipeHintShown';
+
 const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal-backdrop, .metadata-modal-backdrop';
 
 /** The Android app's root: app bar, page, mini player and bottom navigation, with Now Playing and the queue as sheets. */
@@ -76,6 +79,7 @@ export class PhoneAppComponent {
   constructor() {
     // Records what plays, for Home's continue listening and recently played.
     inject(RecentPlaysService);
+    this.hintSwipeOnce();
     void this.loadPalette();
     let restoring = false;
     this.router.events.subscribe((event) => {
@@ -103,6 +107,29 @@ export class PhoneAppComponent {
 
   openNowPlaying(): void {
     this.nowPlayingOpen.set(true);
+  }
+
+  /**
+   * The first time the mini player appears it nudges left and back, once, so its swipe can be found without
+   * words. Reduced motion skips the nudge; the swipe stays described for screen readers.
+   */
+  private hintSwipeOnce(): void {
+    let shown = true;
+    try { shown = localStorage.getItem(SWIPE_HINT_KEY) === '1'; } catch { /* no storage: never nudge */ }
+    if (shown) return;
+    const watch = effect(() => {
+      if (!this.player.currentTrack() || this.nowPlayingOpen()) return;
+      watch.destroy();
+      setTimeout(() => {
+        try { localStorage.setItem(SWIPE_HINT_KEY, '1'); } catch { /* best effort */ }
+        const mini = this.miniOpen()?.nativeElement;
+        if (!mini || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        mini.animate(
+          [{ translate: '0 0' }, { translate: '-28px 0', offset: 0.35 }, { translate: '0 0' }],
+          { duration: 900, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+        );
+      }, 1200);
+    }, { injector: this.injector });
   }
 
   /** The mini player swipes like PixelPlayer's: left brings the next track, right the previous one. */

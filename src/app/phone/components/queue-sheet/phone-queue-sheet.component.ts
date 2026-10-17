@@ -1,4 +1,4 @@
-import { Component, ElementRef, Injector, afterNextRender, inject, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { ListeningHistoryService } from '../../../core/history/listening-history.service';
@@ -23,6 +23,16 @@ interface QueueDrag {
 const EDGE_PX = 64;
 const EDGE_STEP_PX = 12;
 
+/** The rows other than the dragged one, measured once when a drag starts (positions inside the list's content). */
+interface DragLayout {
+  row: HTMLElement;
+  source: number;
+  height: number;
+  others: { el: HTMLElement; id: string; middle: number }[];
+  /** The rows shifted for the current slot, so a new slot only touches what changes. */
+  shifted: HTMLElement[];
+}
+
 /** The queue as a bottom sheet: tap a row to play it; drag its handle to move it; swipe it or tap ✕ to remove it. */
 @Component({
   selector: 'app-phone-queue-sheet',
@@ -41,6 +51,15 @@ export class PhoneQueueSheetComponent {
   readonly close = output<void>();
   readonly drag = signal<QueueDrag | null>(null);
   readonly announcement = signal('');
+  private layout: DragLayout | null = null;
+  /** Listening time left: the rest of the current track and everything after it. */
+  readonly remaining = computed(() => {
+    const queue = this.player.queue();
+    const current = this.player.currentIndex();
+    let seconds = 0;
+    for (let i = Math.max(current, 0); i < queue.length; i++) seconds += queue[i].track.duration || 0;
+    return current >= 0 ? Math.max(0, seconds - Math.min(this.player.currentTime(), queue[current]?.track.duration || 0)) : seconds;
+  });
 
   constructor() {
     afterNextRender(() => {
@@ -49,12 +68,8 @@ export class PhoneQueueSheetComponent {
     });
   }
 
-  /** An upcoming entry goes with an Undo; the current one moves playback on, as before. */
+  /** Every removal comes with an Undo; removing the current entry moves playback on. */
   remove(entry: QueueEntry): void {
-    if (entry.id === this.player.currentQueueEntry()?.id) {
-      this.player.removeFromQueue(entry.id);
-      return;
-    }
     // Taking a suggestion out before it plays tells Smart Shuffle it was not wanted, once the Undo has passed.
     this.queueActions.removeWithUndo(entry, entry.suggested ? () => this.history.recordRemoval(entry.track) : undefined);
   }
@@ -66,6 +81,16 @@ export class PhoneQueueSheetComponent {
     event.stopPropagation(); // the row's swipe must not see it
     const handle = event.currentTarget as HTMLElement;
     handle.setPointerCapture(event.pointerId);
+    // Measured once: a long queue is not re-measured on every finger move (offsetTop ignores the shifts below).
+    const rows = [...(this.list()?.nativeElement.querySelectorAll<HTMLElement>('.queue-row') ?? [])];
+    const source = rows.findIndex((r) => r.dataset['entryId'] === id);
+    if (source < 0) return;
+    this.layout = {
+      row: rows[source], source, height: rows[source].offsetHeight, shifted: [],
+      others: rows.filter((_, i) => i !== source)
+        .map((el) => ({ el, id: el.dataset['entryId']!, middle: el.offsetTop + el.offsetHeight / 2 })),
+    };
+    rows[source].style.transition = 'none';
     this.drag.set({
       id, pointerId: event.pointerId, startY: event.clientY, startScroll: this.list()?.nativeElement.scrollTop ?? 0,
       targetId: null, placement: 'before',
@@ -98,33 +123,28 @@ export class PhoneQueueSheetComponent {
 
   private dragMove(event: PointerEvent): void {
     const drag = this.drag();
+    const layout = this.layout;
     const list = this.list()?.nativeElement;
-    if (!drag || !list) return;
+    if (!drag || !layout || !list) return;
     const bounds = list.getBoundingClientRect();
     if (event.clientY < bounds.top + EDGE_PX) list.scrollTop -= EDGE_STEP_PX;
     else if (event.clientY > bounds.bottom - EDGE_PX) list.scrollTop += EDGE_STEP_PX;
 
-    const row = this.rowOf(drag.id);
     // ponytail: the edges scroll only while the finger moves; add a timer loop if holding still at an edge feels stuck.
-    if (row) row.style.transition = 'none';
-    if (row) row.style.translate = `0 ${event.clientY - drag.startY + list.scrollTop - drag.startScroll}px`;
+    layout.row.style.translate = `0 ${event.clientY - drag.startY + list.scrollTop - drag.startScroll}px`;
 
-    // Layout positions (offsetTop) ignore the shifts below, so making room never moves the goal posts.
-    const rows = [...list.querySelectorAll<HTMLElement>('.queue-row')];
-    const source = rows.findIndex((r) => r.dataset['entryId'] === drag.id);
-    const others = rows.filter((_, i) => i !== source);
-    const top = bounds.top - list.scrollTop;
-    const next = dropSlot(others.map((r) => ({ id: r.dataset['entryId']!, middle: top + r.offsetTop + r.offsetHeight / 2 })), event.clientY);
+    const next = dropSlot(layout.others, event.clientY - bounds.top + list.scrollTop);
     if (next.targetId === drag.targetId && next.placement === drag.placement) return;
     this.drag.set({ ...drag, ...next });
     haptic('tick');
     // Rows between the dragged row's old and new place slide one row toward the gap it left.
-    const slot = next.placement === 'after' ? others.length : others.findIndex((r) => r.dataset['entryId'] === next.targetId);
-    const height = rows[source]?.offsetHeight ?? 0;
-    others.forEach((r, j) => {
-      const shift = j < source && j >= slot ? height : j >= source && j < slot ? -height : 0;
-      r.style.translate = shift ? `0 ${shift}px` : '';
-    });
+    for (const el of layout.shifted) el.style.translate = '';
+    const slot = next.placement === 'after' ? layout.others.length : layout.others.findIndex((r) => r.id === next.targetId);
+    const from = Math.min(slot, layout.source);
+    const to = Math.max(slot, layout.source);
+    const shift = slot < layout.source ? layout.height : -layout.height;
+    layout.shifted = layout.others.slice(from, to).map(({ el }) => el);
+    for (const el of layout.shifted) el.style.translate = `0 ${shift}px`;
   }
 
   private dragEnd(drop: boolean): void {
@@ -132,7 +152,8 @@ export class PhoneQueueSheetComponent {
     this.drag.set(null);
     if (!drag) return;
     // Drop the shifts without animating: the rows take their new places in the same frame.
-    const rows = [...(this.list()?.nativeElement.querySelectorAll<HTMLElement>('.queue-row') ?? [])];
+    const rows = [this.layout?.row, ...(this.layout?.shifted ?? [])].filter((row): row is HTMLElement => !!row);
+    this.layout = null;
     for (const row of rows) { row.style.transition = 'none'; row.style.translate = ''; }
     afterNextRender(() => rows.forEach((row) => row.style.transition = ''), { injector: this.injector });
     if (drop && drag.targetId) this.move(drag.id, drag.targetId, drag.placement);

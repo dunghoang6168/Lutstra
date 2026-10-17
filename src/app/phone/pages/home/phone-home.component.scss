@@ -3,12 +3,6 @@
   padding-bottom: var(--space-6);
 }
 
-a:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
 /* Your mix: display type with one big ink button, as PixelPlayer's "Your Mix". */
 .hero {
   display: flex;
