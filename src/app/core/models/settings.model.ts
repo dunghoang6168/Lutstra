@@ -15,6 +15,15 @@ export type AccentColor = (typeof ACCENT_COLORS)[number];
 
 export const DEFAULT_THEME_PRESET: ThemePreset = 'dark';
 export const DEFAULT_ACCENT_COLOR: AccentColor = 'violet';
+/** Picker swatches: each accent's dark-preset colour, so the choice reads before it is applied. */
+export const ACCENT_SWATCHES: readonly { id: AccentColor; label: string; hex: string }[] = [
+  { id: 'violet', label: 'Violet', hex: '#8b5cf6' },
+  { id: 'blue', label: 'Blue', hex: '#3b82f6' },
+  { id: 'cyan', label: 'Cyan', hex: '#06b6d4' },
+  { id: 'emerald', label: 'Emerald', hex: '#10b981' },
+  { id: 'amber', label: 'Amber', hex: '#f59e0b' },
+  { id: 'rose', label: 'Rose', hex: '#f43f5e' },
+];
 export const DEFAULT_LIQUID_GLASS_ACCENT_COLOR: AccentColor = 'rose';
 
 export const LAYOUT_MODES = ['inset', 'classic', 'liquid-glass'] as const;
@@ -111,4 +120,6 @@ export interface Settings {
   hiddenSongColumns: SongColumn[];
   songColumnOrder: ReorderableSongColumn[];
   addTracksTab: AddTracksTab;
+  /** Android 12+: take the accent from the wallpaper (Material You) instead of accentColor. */
+  dynamicAccent?: boolean;
 }

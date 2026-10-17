@@ -2,6 +2,7 @@ package com.lutstra.android;
 
 import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -24,13 +25,34 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    /** Leaves the app the way the system Back does at a root screen: the task moves back and playback keeps going. */
+    /** Shell services for the web layer: leaving at the root screen, and the wallpaper palette. */
     @CapacitorPlugin(name = "AppShell")
     public static final class AppShellPlugin extends Plugin {
+        /** Leaves the app the way the system Back does at a root screen: the task moves back and playback keeps going. */
         @PluginMethod
         public void moveToBack(PluginCall call) {
             getActivity().runOnUiThread(() -> getActivity().moveTaskToBack(true));
             call.resolve();
+        }
+
+        /** Material You: the system_accent1 tones from the wallpaper, keyed by tone (Android 12+). */
+        @PluginMethod
+        public void getDynamicColors(PluginCall call) {
+            if (android.os.Build.VERSION.SDK_INT < 31) { call.reject("UNSUPPORTED", "UNSUPPORTED"); return; }
+            int[] tones = { 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900 };
+            int[] ids = {
+                android.R.color.system_accent1_10, android.R.color.system_accent1_50, android.R.color.system_accent1_100,
+                android.R.color.system_accent1_200, android.R.color.system_accent1_300, android.R.color.system_accent1_400,
+                android.R.color.system_accent1_500, android.R.color.system_accent1_600, android.R.color.system_accent1_700,
+                android.R.color.system_accent1_800, android.R.color.system_accent1_900,
+            };
+            JSObject palette = new JSObject();
+            for (int i = 0; i < tones.length; i++) {
+                palette.put(String.valueOf(tones[i]), String.format("#%06x", getContext().getColor(ids[i]) & 0xffffff));
+            }
+            JSObject result = new JSObject();
+            result.put("palette", palette);
+            call.resolve(result);
         }
     }
 }

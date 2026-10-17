@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LIBRARY_GATEWAY, SETTINGS_GATEWAY } from '../../core/contracts';
-import { AccentColor, AudioEngineBackend, AudioHostState, MusicFolder, RepeatMode, SYSTEM_DEFAULT_OUTPUT_ID, ThemePreset } from '../../core/models';
+import { AccentColor, AudioEngineBackend, AudioHostState, MusicFolder, RepeatMode, SYSTEM_DEFAULT_OUTPUT_ID, ThemePreset, ACCENT_SWATCHES } from '../../core/models';
 import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
 import { DevModeService } from '../../core/settings/dev-mode.service';
@@ -129,14 +129,7 @@ export class SettingsComponent implements OnInit {
     },
   ];
 
-  readonly accentColors: { id: AccentColor; label: string; hex: string }[] = [
-    { id: 'violet', label: 'Violet', hex: '#8b5cf6' },
-    { id: 'blue', label: 'Blue', hex: '#3b82f6' },
-    { id: 'cyan', label: 'Cyan', hex: '#06b6d4' },
-    { id: 'emerald', label: 'Emerald', hex: '#10b981' },
-    { id: 'amber', label: 'Amber', hex: '#f59e0b' },
-    { id: 'rose', label: 'Rose', hex: '#f43f5e' },
-  ];
+  readonly accentColors = ACCENT_SWATCHES;
 
   readonly folders = signal<MusicFolder[]>([]);
   readonly pendingRemoveFolder = signal<MusicFolder | null>(null);

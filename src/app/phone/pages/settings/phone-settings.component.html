@@ -1,0 +1,83 @@
+<section class="group" aria-labelledby="foldersTitle">
+  <h2 id="foldersTitle" class="section-title">Music folders</h2>
+  <ul class="list">
+    @for (folder of folders(); track folder.id) {
+      <li class="nav-row static">
+        <span class="row-icon"><app-icon name="folder" [size]="22" /></span>
+        <span class="row-text">
+          <span class="row-title">{{ folder.name }}</span>
+          <span class="row-path">{{ folder.path }}</span>
+        </span>
+      </li>
+    } @empty {
+      <li class="page-note">No folders yet.</li>
+    }
+  </ul>
+  <p class="status" role="status">
+    @if (scan()?.isScanning) {
+      Scanning · <span class="measure">{{ scan()!.scannedFiles }}</span>
+    } @else if (scan()?.error) {
+      <span class="warning">{{ scan()!.error }}</span>
+    } @else {
+      <span class="measure">{{ trackCount() }}</span> tracks
+    }
+  </p>
+  @if (folderError(); as error) { <p class="status warning" role="alert">{{ error }}</p> }
+  <div class="actions">
+    <button type="button" class="btn primary" (click)="chooseFolders()" [disabled]="choosing()">Choose folders</button>
+    <button type="button" class="btn" (click)="rescan()" [disabled]="scan()?.isScanning">Rescan</button>
+  </div>
+</section>
+
+<section class="group" aria-labelledby="appearanceTitle">
+  <h2 id="appearanceTitle" class="section-title">Appearance</h2>
+  <div class="segmented" role="radiogroup" aria-label="Theme">
+    @for (preset of presets; track preset.id) {
+      <button type="button" role="radio" class="segment" [attr.aria-checked]="theme.themePreset() === preset.id"
+        (click)="theme.setThemePreset(preset.id)">{{ preset.label }}</button>
+    }
+  </div>
+
+  <h3 class="sub-title">Accent</h3>
+  <p class="sub-desc">Marks Hi-Res files, what is playing or on, progress and focus.</p>
+  <div class="swatches" role="radiogroup" aria-label="Accent color">
+    @if (theme.dynamicAvailable()) {
+      <button type="button" role="radio" class="swatch" [attr.aria-checked]="theme.dynamicAccent()"
+        (click)="theme.setDynamicAccent(true)">
+        <span class="swatch-dot" [style.--swatch]="theme.dynamicSwatch()">
+          @if (theme.dynamicAccent()) { <app-icon name="check" [size]="16" /> }
+        </span>
+        <span class="swatch-label">Wallpaper</span>
+      </button>
+    }
+    @for (swatch of swatches; track swatch.id) {
+      <button type="button" role="radio" class="swatch" [attr.aria-checked]="!theme.dynamicAccent() && theme.accentColor() === swatch.id"
+        (click)="setAccent(swatch.id)">
+        <span class="swatch-dot" [style.--swatch]="swatch.hex">
+          @if (!theme.dynamicAccent() && theme.accentColor() === swatch.id) { <app-icon name="check" [size]="16" /> }
+        </span>
+        <span class="swatch-label">{{ swatch.label }}</span>
+      </button>
+    }
+  </div>
+  @if (theme.dynamicAvailable()) {
+    <p class="sub-desc">Wallpaper follows your phone’s Material You colors and changes with the wallpaper.</p>
+  }
+</section>
+
+<section class="group" aria-labelledby="historyTitle">
+  <h2 id="historyTitle" class="section-title">Listening history</h2>
+  <p class="sub-desc">Smart Shuffle learns from the tracks you play. On this phone the history is kept until Lutstra closes.</p>
+  @if (confirmClear()) {
+    <div class="confirm" role="group" aria-label="Clear listening history?">
+      <span>Clear all listening history?</span>
+      <button type="button" class="btn" (click)="confirmClear.set(false)">Cancel</button>
+      <button type="button" class="btn danger" (click)="clearHistory()">Clear</button>
+    </div>
+  } @else {
+    <div class="actions">
+      <button type="button" class="btn" (click)="historyNote.set(null); confirmClear.set(true)">Clear history</button>
+    </div>
+  }
+  @if (historyNote(); as note) { <p class="status" role="status">{{ note }}</p> }
+</section>

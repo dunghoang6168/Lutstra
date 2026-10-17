@@ -39,10 +39,9 @@ export const phoneRoutes: Routes = [
     loadComponent: () => import('./pages/folder/phone-folder.component').then((m) => m.PhoneFolderComponent),
   },
   {
-    // ponytail: the desktop Settings page until the phone Settings page (P3).
     path: 'settings',
     data: { title: 'Settings' },
-    loadComponent: () => import('../features/settings/settings.component').then((m) => m.SettingsComponent),
+    loadComponent: () => import('./pages/settings/phone-settings.component').then((m) => m.PhoneSettingsComponent),
   },
   { path: '**', redirectTo: 'home' },
 ];

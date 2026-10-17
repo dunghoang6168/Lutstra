@@ -17,8 +17,13 @@ import { PhoneTrackActionsSheetComponent } from '../components/track-actions-she
 import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { PhoneLibraryService } from '../phone-library.service';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
+import { ThemeService } from '../../core/theme/theme.service';
+import { DynamicPalette } from '../../core/theme/dynamic-accent';
 
-const appShell = registerPlugin<{ moveToBack(): Promise<void> }>('AppShell');
+const appShell = registerPlugin<{
+  moveToBack(): Promise<void>;
+  getDynamicColors(): Promise<{ palette: DynamicPalette }>;
+}>('AppShell');
 
 /** Modals other than the shell's own sheets: the folder picker and the dialogs pages open. */
 const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal-backdrop, .metadata-modal-backdrop';
@@ -39,6 +44,7 @@ export class PhoneAppComponent {
   private readonly content = viewChild.required<ElementRef<HTMLElement>>('content');
   /** The page scrolls inside the shell, not the window, so the shell keeps each URL's offset for Back. */
   private readonly scrollByUrl = new Map<string, number>();
+  private readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly injector = inject(Injector);
@@ -74,6 +80,7 @@ export class PhoneAppComponent {
   constructor() {
     // Records what plays, for Home's continue listening and recently played.
     inject(RecentPlaysService);
+    void this.loadPalette();
     let restoring = false;
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
@@ -84,6 +91,16 @@ export class PhoneAppComponent {
         afterNextRender(() => { this.content().nativeElement.scrollTop = top; }, { injector: this.injector });
       }
     });
+  }
+
+  /** The wallpaper may have changed while Lutstra was in the background, so the palette is read again on return. */
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (!document.hidden) void this.loadPalette();
+  }
+
+  private async loadPalette(): Promise<void> {
+    try { this.theme.setDynamicPalette((await appShell.getDynamicColors()).palette); } catch { this.theme.setDynamicPalette(null); }
   }
 
   openNowPlaying(): void {
