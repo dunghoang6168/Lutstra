@@ -3,18 +3,56 @@
   (keydown.escape)="close()">
   <span class="grabber" aria-hidden="true"></span>
   <h2 id="trackActionsTitle" class="sheet-title">{{ title() }}</h2>
-  @if (tracks().length === 1) {
-    <p class="sheet-subtitle">{{ tracks()[0].artist ?? 'Unknown artist' }}@if (tracks()[0].album) { · {{ tracks()[0].album }} }</p>
+  @if (track(); as track) {
+    <p class="sheet-subtitle">{{ track.artist ?? 'Unknown artist' }}@if (track.album) { · {{ track.album }} }</p>
   }
   <div class="actions">
-    <button #firstAction type="button" class="action" (click)="playNext()">
-      <app-icon name="skip-forward" [size]="20" /> Play next
-    </button>
-    <button type="button" class="action" (click)="addToQueue()">
-      <app-icon name="queue" [size]="20" /> Add to queue
-    </button>
+    @if (!isCurrent()) {
+      <button type="button" class="action" (click)="playNext()">
+        <app-icon name="skip-forward" [size]="20" /> Play next
+      </button>
+      <button type="button" class="action" (click)="addToQueue()">
+        <app-icon name="queue" [size]="20" /> Add to queue
+      </button>
+    }
+    @if (albumId(); as id) {
+      <a class="action" [routerLink]="['/library/albums', id]" (click)="close()">
+        <app-icon name="disc" [size]="20" /> Go to album
+      </a>
+    }
+    @if (artistId(); as id) {
+      <a class="action" [routerLink]="['/library/artists', id]" (click)="close()">
+        <app-icon name="user" [size]="20" /> Go to artist
+      </a>
+    }
     <button type="button" class="action" (click)="addToPlaylist()">
       <app-icon name="list-music" [size]="20" /> Add to playlist…
     </button>
   </div>
+
+  @if (info(); as info) {
+    <h3 class="info-title">File</h3>
+    <dl class="info">
+      @if (info.format; as format) {
+        <dt>Format</dt><dd class="measure" [class.hires]="format.hires">{{ format.label }}</dd>
+      }
+      @if (info.bitrate) { <dt>Bitrate</dt><dd class="measure">{{ info.bitrate }}</dd> }
+      @if (info.channels) { <dt>Channels</dt><dd class="measure">{{ info.channels }}</dd> }
+      @if (info.size) { <dt>Size</dt><dd class="measure">{{ info.size }}</dd> }
+      <dt>Path</dt><dd class="measure path">{{ info.path }}</dd>
+    </dl>
+    @if (info.output; as output) {
+      <h3 class="info-title">Output</h3>
+      <dl class="info">
+        <dt>Path</dt><dd>Android mixer</dd>
+        <dt>Rate</dt>
+        @if (output.resampled) {
+          <dd><span class="measure">{{ info.fileKhz }} → {{ output.khz }} kHz</span> · resampled</dd>
+        } @else {
+          <dd><span class="measure">{{ output.khz }} kHz</span></dd>
+        }
+      </dl>
+      <p class="info-note">Android mixes every app’s audio, so the phone is not bit-perfect. The file itself is untouched.</p>
+    }
+  }
 </section>

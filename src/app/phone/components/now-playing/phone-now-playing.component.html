@@ -43,6 +43,13 @@
         }
         <span class="np-time">{{ player.duration() | duration }}</span>
       </div>
+      @if (output(); as output) {
+        <!-- Honest about the phone: Android mixes everything at one rate, so this is never bit-perfect. -->
+        <p class="np-output">
+          <app-icon name="chevron-right" [size]="14" />
+          <span>Android mixer · <span class="measure">{{ output.khz }} kHz</span>@if (output.resampled) { · resampled }</span>
+        </p>
+      }
     </div>
 
     <div class="np-transport" [attr.data-pressed]="pressed()">

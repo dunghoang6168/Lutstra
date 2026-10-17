@@ -18,6 +18,9 @@
   color: var(--text-primary);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-lg);
+  max-height: 88dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: sheet-up var(--motion-dur) var(--motion-ease);
 }
 
@@ -73,4 +76,39 @@
 .action:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
+}
+
+a.action { text-decoration: none; }
+
+/* File and Output: label and value in two columns; measurements in mono, Hi-Res in accent. */
+.info-title {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) var(--page-pad-x) var(--space-1);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.info {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  row-gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--page-pad-x);
+  font-size: var(--font-size-sm);
+
+  dt { color: var(--text-secondary); }
+  dd { margin: 0; min-width: 0; }
+}
+
+.measure { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+.measure.hires { color: var(--text-accent); }
+.path { font-size: var(--font-size-xs); color: var(--text-secondary); overflow-wrap: anywhere; }
+
+.info-note {
+  margin: var(--space-3) var(--page-pad-x) 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--text-muted);
 }

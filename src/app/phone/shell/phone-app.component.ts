@@ -2,7 +2,6 @@ import { Component, ElementRef, HostListener, Injector, afterNextRender, compute
 import { Location } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { registerPlugin } from '@capacitor/core';
 import { filter, map } from 'rxjs';
 import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
@@ -19,12 +18,8 @@ import { PhoneLibraryService } from '../phone-library.service';
 import { SwipeDirection, SwipeDirective } from '../swipe.directive';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { DynamicPalette } from '../../core/theme/dynamic-accent';
-
-const appShell = registerPlugin<{
-  moveToBack(): Promise<void>;
-  getDynamicColors(): Promise<{ palette: DynamicPalette }>;
-}>('AppShell');
+import { appShell } from '../app-shell';
+import { focusQuietly } from '../focus';
 
 /** Modals other than the shell's own sheets: the folder picker and the dialogs pages open. */
 const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal-backdrop, .metadata-modal-backdrop';
@@ -88,6 +83,8 @@ export class PhoneAppComponent {
         this.scrollByUrl.set(this.router.url, this.content().nativeElement.scrollTop);
         restoring = event.navigationTrigger === 'popstate';
       } else if (event instanceof NavigationEnd) {
+        // A page link inside a sheet (Go to album from Now Playing) lands on the page, so the sheets give way.
+        if (this.nowPlayingOpen()) { this.queueOpen.set(false); this.nowPlayingOpen.set(false); }
         const top = restoring ? this.scrollByUrl.get(event.urlAfterRedirects) ?? 0 : 0;
         afterNextRender(() => { this.content().nativeElement.scrollTop = top; }, { injector: this.injector });
       }
@@ -116,7 +113,7 @@ export class PhoneAppComponent {
   closeNowPlaying(): void {
     this.queueOpen.set(false);
     this.nowPlayingOpen.set(false);
-    afterNextRender(() => this.miniOpen()?.nativeElement.focus(), { injector: this.injector });
+    afterNextRender(() => focusQuietly(this.miniOpen()?.nativeElement), { injector: this.injector });
   }
 
   goBack(): void {

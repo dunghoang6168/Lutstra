@@ -157,6 +157,19 @@ button:focus-visible {
 
 .np-quality.hires { color: var(--text-accent); }
 
+/* The output path: secondary, never accent, since the phone is never bit-perfect. */
+.np-output {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+
+  .measure { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+}
+
 /* Three pills that share the row; the one pressed widens and the others give way for a moment. */
 .np-transport {
   display: flex;

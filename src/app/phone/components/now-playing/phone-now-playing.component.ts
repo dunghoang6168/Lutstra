@@ -2,14 +2,17 @@ import { Component, ElementRef, Injector, afterNextRender, computed, effect, inj
 import { PlayerService } from '../../../core/player/player.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { formatTrackQualityLine } from '../../../features/home/library-quality';
+import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { RangeSliderComponent } from '../../../shared/components/range-slider/range-slider.component';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { SwipeDirection, SwipeDirective } from '../../swipe.directive';
+import { focusQuietly } from '../../focus';
 
 type TransportButton = 'prev' | 'play' | 'next';
+
 
 /**
  * Full-screen player over the shell, after PixelPlayer's: the blurred cover as ground, a cover that swipes to
@@ -50,13 +53,18 @@ export class PhoneNowPlayingComponent {
     return track ? formatTrackQualityLine(track) : null;
   });
 
+  /** Where the sound goes: the mixer's rate, and whether this file is resampled to reach it. */
+  readonly output = computed(() => outputPath(this.player.currentTrack()?.sampleRate ?? null, mixerRate()));
+
   constructor() {
-    afterNextRender(() => this.closeButton()?.nativeElement.focus());
+    // The output can change while the app is open (headphones, Bluetooth), so it is read on every open.
+    void loadMixerRate();
+    afterNextRender(() => focusQuietly(this.closeButton()?.nativeElement));
     // Focus returns to the queue button once the sheet is gone and this one is no longer inert.
     let queueWasOpen = false;
     effect(() => {
       const open = this.queueOpen();
-      if (queueWasOpen && !open) afterNextRender(() => this.queueButton()?.nativeElement.focus(), { injector: this.injector });
+      if (queueWasOpen && !open) afterNextRender(() => focusQuietly(this.queueButton()?.nativeElement), { injector: this.injector });
       queueWasOpen = open;
     });
   }

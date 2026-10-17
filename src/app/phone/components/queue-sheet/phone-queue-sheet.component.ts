@@ -8,6 +8,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { haptic } from '../../haptics';
 import { SwipeDirective } from '../../swipe.directive';
 import { dropSlot } from '../../queue-drag';
+import { focusQuietly } from '../../focus';
 
 interface QueueDrag {
   id: string;
@@ -44,7 +45,7 @@ export class PhoneQueueSheetComponent {
   constructor() {
     afterNextRender(() => {
       this.list()?.nativeElement.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' });
-      this.closeButton()?.nativeElement.focus();
+      focusQuietly(this.closeButton()?.nativeElement);
     });
   }
 

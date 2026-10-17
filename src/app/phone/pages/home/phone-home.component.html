@@ -1,4 +1,20 @@
-@if (library.snapshot()?.tracks?.length) {
+@if (!library.snapshot()) {
+  <!-- The library is still loading: Home's shapes, quiet, instead of a blank page. -->
+  <div class="skeleton" aria-busy="true">
+    <div class="sk-hero">
+      <span class="sk-lines"><span class="sk sk-title"></span><span class="sk sk-line"></span></span>
+      <span class="sk sk-play"></span>
+    </div>
+    <div class="sk-covers"><span class="sk"></span><span class="sk"></span><span class="sk"></span></div>
+    <div class="sk-card">
+      <span class="sk sk-line"></span>
+      @for (row of [1, 2, 3]; track row) {
+        <span class="sk-row"><span class="sk sk-thumb"></span><span class="sk-lines"><span class="sk sk-line"></span><span class="sk sk-short"></span></span></span>
+      }
+    </div>
+    <p class="page-note" role="status">Loading your library…</p>
+  </div>
+} @else if (library.snapshot()?.tracks?.length) {
   <section class="hero" aria-labelledby="mixHeading">
     <div class="hero-text">
       <h2 id="mixHeading" class="hero-title">Your mix</h2>
@@ -28,7 +44,7 @@
     <section class="mix-card" aria-labelledby="mixCardTitle">
       <header class="mix-header">
         <div class="mix-heading">
-          <h2 id="mixCardTitle" class="mix-title">Smart Shuffle</h2>
+          <h2 id="mixCardTitle" class="mix-title">Up next in your mix</h2>
           <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'In your queue') : 'Based on your listening' }}</p>
         </div>
         @if (mixCovers().length) {

@@ -26,7 +26,7 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    /** Shell services for the web layer: leaving at the root screen, haptics and the wallpaper palette. */
+    /** Shell services for the web layer: leaving at the root screen, haptics, the mixer rate and the wallpaper palette. */
     @CapacitorPlugin(name = "AppShell")
     public static final class AppShellPlugin extends Plugin {
         /** Leaves the app the way the system Back does at a root screen: the task moves back and playback keeps going. */
@@ -51,6 +51,16 @@ public class MainActivity extends BridgeActivity {
             }
             getActivity().runOnUiThread(() -> getBridge().getWebView().performHapticFeedback(feedback));
             call.resolve();
+        }
+
+        /** The rate Android's mixer runs the primary output at; every app's audio is resampled to it. */
+        @PluginMethod
+        public void getOutputInfo(PluginCall call) {
+            android.media.AudioManager audio = (android.media.AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+            String rate = audio == null ? null : audio.getProperty(android.media.AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+            JSObject result = new JSObject();
+            try { result.put("sampleRate", rate == null ? null : Integer.parseInt(rate)); } catch (NumberFormatException error) { result.put("sampleRate", null); }
+            call.resolve(result);
         }
 
         /** Material You: the system_accent1 tones from the wallpaper, keyed by tone (Android 12+). */
