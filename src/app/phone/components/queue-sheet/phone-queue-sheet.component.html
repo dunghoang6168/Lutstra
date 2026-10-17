@@ -31,7 +31,7 @@
           <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)">
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>
-              <span class="row-artist">@if (entry.suggested) { <span class="suggested" aria-label="Suggestion">✦</span> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
+              <span class="row-artist">@if (entry.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ entry.track.artist ?? 'Unknown artist' }}</span>
             </span>
             <span class="row-time">{{ entry.track.duration | duration }}</span>
           </button>

@@ -30,7 +30,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Không để 3 bài liền cùng nghệ sĩ.
       - Skip hai bài liền cùng vùng thì vùng đó bị hạ cho đến hết phiên.
     - **Queue drawer:**
-      - Bài gợi ý có dấu ✦ nhỏ trước tên nghệ sĩ.
+      - Bài gợi ý có icon la bàn nhỏ (icon Smart Shuffle) trước tên nghệ sĩ.
       - Bài gợi ý sau bài kế tiếp hiện nhạt hơn, vì có thể đổi.
       - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
       - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).

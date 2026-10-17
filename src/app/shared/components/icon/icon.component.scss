@@ -13,3 +13,9 @@
       flex-shrink: 0;
       transition: stroke var(--transition-fast), fill var(--transition-fast);
     }
+
+    .compass-mask {
+      display: block;
+      background: currentColor;
+      mask: url('../../../../assets/icons/compass_star.svg') center / contain no-repeat;
+    }

@@ -60,7 +60,7 @@ export class IconComponent {
   readonly isFilled = computed<boolean>(() => {
     const explicit = this.filled();
     if (explicit !== undefined) return explicit;
-    return this.name() === 'play' || this.name() === 'play-fill' || this.name() === 'pause' || this.name() === 'smart-shuffle';
+    return this.name() === 'play' || this.name() === 'play-fill' || this.name() === 'pause';
   });
 
   readonly viewBox = computed<string>(() => '0 0 24 24');

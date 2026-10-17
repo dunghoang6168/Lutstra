@@ -4,7 +4,7 @@
   @if (!player.modesLocked()) {
     <button type="button" class="ctrl-btn playback-mode-btn" [class.active]="player.playbackMode() !== 'off'"
       (click)="smartShuffle.cyclePlaybackMode()" [appTip]="player.playbackModeLabel()" [attr.aria-label]="player.playbackModeLabel()">
-      <app-icon [name]="player.playbackModeIcon()" [size]="16" />
+      <app-icon [name]="player.playbackModeIcon()" [size]="player.smartShuffle() ? 20 : 16" />
       @if (player.playbackMode() === 'combined') { <app-icon name="repeat" [size]="10" class="mode-repeat" /> }
     </button>
   }
@@ -12,11 +12,11 @@
 
 <ng-template #transport let-size="size" let-modes="modes">
   @if (modes && !player.modesLocked()) {
-    <!-- Off → Shuffle → Smart Shuffle (the star) → Off, like repeat. -->
+    <!-- Off → Shuffle → Smart Shuffle (the compass star) → Off, like repeat. -->
     <button type="button" class="ctrl-btn" [class.active]="player.shuffleState() !== 'Off'" (click)="smartShuffle.cycleShuffle()"
       [appTip]="'Shuffle: ' + player.shuffleState() + ' (S)'" [attr.aria-label]="'Shuffle: ' + player.shuffleState()"
       [attr.aria-pressed]="player.shuffleState() !== 'Off'" aria-keyshortcuts="S">
-      <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="player.smartShuffle() ? 14 : 16" />
+      <app-icon [name]="player.smartShuffle() ? 'smart-shuffle' : 'shuffle'" [size]="player.smartShuffle() ? 20 : 16" />
     </button>
   }
   <button type="button" class="ctrl-btn" (click)="player.previous()" [disabled]="!player.currentTrack()"

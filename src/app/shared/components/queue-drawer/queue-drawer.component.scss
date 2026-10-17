@@ -325,7 +325,7 @@
     // Smart Shuffle suggestions: a small star before the artist. Ones after the next track may still change, so they read quieter.
     .suggested-mark {
       display: inline-flex;
-      vertical-align: -1px;
+      vertical-align: -2px;
       margin-right: var(--space-1);
       color: var(--text-muted);
     }

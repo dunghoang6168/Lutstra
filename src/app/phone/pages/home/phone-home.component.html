@@ -7,7 +7,8 @@
     @if (!player.modesLocked()) {
       <button type="button" class="hero-play" (click)="playMix()"
         [attr.aria-label]="mixLive() && player.isPlaybackActive() ? 'Pause your mix' : 'Play your mix'">
-        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'smart-shuffle'" [size]="36" />
+        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'smart-shuffle'"
+          [size]="mixLive() && player.isPlaybackActive() ? 36 : 52" />
       </button>
     }
   </section>
@@ -49,7 +50,7 @@
               <app-cover-art class="mix-row-cover" [src]="row.track.artwork" icon="music" [iconSize]="18" />
               <span class="mix-row-text">
                 <span class="mix-row-title">{{ row.track.title }}</span>
-                <span class="mix-row-artist">@if (row.suggested) { <span class="suggested" aria-label="Suggestion">✦</span> }{{ row.track.artist ?? 'Unknown artist' }}</span>
+                <span class="mix-row-artist">@if (row.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ row.track.artist ?? 'Unknown artist' }}</span>
               </span>
             </button>
           </li>

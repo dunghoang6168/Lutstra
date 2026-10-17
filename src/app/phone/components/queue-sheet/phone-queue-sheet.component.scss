@@ -154,7 +154,7 @@ button:focus-visible {
 .row-title { font-size: var(--font-size-base); font-weight: 600; }
 .queue-row.current .row-title { color: var(--text-accent); }
 .row-artist { font-size: var(--font-size-xs); color: var(--text-secondary); }
-.suggested { margin-right: var(--space-1); color: var(--text-accent); }
+.suggested { vertical-align: -2px; margin-right: var(--space-1); color: var(--text-accent); }
 .queue-row.unavailable .row-title { color: var(--status-warning-text); }
 
 .row-time {
