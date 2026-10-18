@@ -6,6 +6,7 @@ const out = (changes: Partial<NativeOutput> = {}): NativeOutput => ({
   device: { kind: 'speaker' },
   stream: { encoding: 'pcm16', sampleRate: 44100, channels: 2, offload: false },
   mixer: { sampleRate: 48000, matched: false, bitPerfect: false },
+  codecAccess: 'granted',
   usbMode: 'shared',
   usbCapable: true,
   ...changes,
@@ -21,6 +22,20 @@ describe('phone output path', () => {
     const bluetooth = describeOutput(out({ device: { kind: 'bluetooth', name: 'WH-1000XM4' }, mixer: { matched: false, bitPerfect: false } }));
     expect(bluetooth).toMatchObject({ path: 'Bluetooth', device: 'WH-1000XM4', khz: null, resampled: false });
     expect(describeOutput(null)).toBeNull();
+  });
+
+  it('names the Bluetooth codec and the link rate when Android reports them', () => {
+    const headphones = { kind: 'bluetooth' as const, name: 'ROSE Ceramics MK2' };
+    const ldac = describeOutput(out({ device: headphones, stream: { encoding: 'float', sampleRate: 96000, channels: 2, offload: false },
+      bluetooth: { codec: 'LDAC', sampleRate: 96000, bits: 32, ldac: '990' }, mixer: { matched: false, bitPerfect: false } }))!;
+    expect(ldac).toMatchObject({ path: 'Bluetooth LDAC 990', codec: 'LDAC 990 kbps', khz: '96', linkBits: '32-bit', resampled: false });
+    expect(ldac.note).toContain('re-encodes the audio as LDAC');
+    const adaptive = describeOutput(out({ device: headphones, bluetooth: { codec: 'LDAC', sampleRate: 96000, ldac: 'adaptive' }, mixer: { matched: false, bitPerfect: false } }))!;
+    expect(adaptive).toMatchObject({ path: 'Bluetooth LDAC adaptive', resampled: true });
+    expect(adaptive.note).toContain('lowers its bitrate');
+    const unknown = describeOutput(out({ device: headphones, codecAccess: 'needed', mixer: { matched: false, bitPerfect: false } }))!;
+    expect(unknown).toMatchObject({ path: 'Bluetooth', codec: null, khz: null });
+    expect(unknown.note).toContain('Nearby devices');
   });
 
   it('names a screen capture instead of the DAC while another app records playback', () => {

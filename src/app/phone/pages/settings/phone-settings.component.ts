@@ -8,7 +8,7 @@ import { formatCount } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { UsbMode } from '../../../core/android/android-playback.engine';
-import { loadOutput, output, setUsbMode } from '../../app-shell';
+import { loadOutput, output, requestBluetoothAccess, setUsbMode } from '../../app-shell';
 
 const USB_MODES: { id: UsbMode; label: string; note: string }[] = [
   { id: 'shared', label: 'Shared', note: 'Android’s mixer at its own rate, together with every app’s sound.' },
@@ -57,6 +57,15 @@ export class PhoneSettingsComponent {
   chooseUsbMode(mode: UsbMode): void {
     if (mode === this.output()?.usbMode) return;
     if (mode === 'bitperfect') this.confirmBitPerfect.set(true); else void this.applyUsbMode(mode);
+  }
+
+  readonly bluetoothNote = signal<string | null>(null);
+
+  async allowBluetooth(): Promise<void> {
+    this.bluetoothNote.set(null);
+    try { await requestBluetoothAccess(); } catch { /* the note below covers it */ }
+    // Android stops asking after two refusals; then only its app settings can turn it on.
+    if (this.output()?.codecAccess === 'needed') this.bluetoothNote.set('Not allowed. Turn on Nearby devices for Lutstra in Android’s app settings.');
   }
 
   async applyUsbMode(mode: UsbMode): Promise<void> {

@@ -50,6 +50,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- setPreferredMixerAttributes: the USB DAC's File rate and Bit-perfect modes. -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- The Bluetooth codec (LDAC, AAC…) on the output line. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />

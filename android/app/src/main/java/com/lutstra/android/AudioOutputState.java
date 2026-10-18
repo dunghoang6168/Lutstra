@@ -1,6 +1,22 @@
 package com.lutstra.android;
 
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothCodecConfig;
+import android.bluetooth.BluetoothCodecStatus;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.media.AudioRouting;
+import android.media.AudioTrack;
+import android.util.Log;
+import androidx.core.content.ContextCompat;
+import androidx.media3.exoplayer.audio.AudioTrackAudioOutput;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
@@ -49,6 +65,20 @@ final class AudioOutputState implements AudioOutputProvider {
     private volatile String mode;
     /** The AudioTrack ExoPlayer is writing to, or null when none is open. */
     private volatile AudioSink.AudioTrackConfig stream;
+    /** The newest AudioTrack, for the device it is routed to. */
+    private volatile AudioTrack audioTrack;
+    /** The Bluetooth codec, from the system's codec broadcast (needs BLUETOOTH_CONNECT); null until one arrives. */
+    private volatile BluetoothCodecConfig codec;
+    private final BroadcastReceiver codecReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            BluetoothCodecStatus status = Build.VERSION.SDK_INT >= 33
+                ? intent.getParcelableExtra(BluetoothCodecStatus.EXTRA_CODEC_STATUS, BluetoothCodecStatus.class)
+                : intent.getParcelableExtra(BluetoothCodecStatus.EXTRA_CODEC_STATUS);
+            codec = status == null ? null : status.getCodecConfig();
+            publish();
+        }
+    };
     /** The mixer attributes Lutstra asked for, and on which device. */
     private volatile Object requested;
     private volatile AudioDeviceInfo requestedDevice;
@@ -59,7 +89,12 @@ final class AudioOutputState implements AudioOutputProvider {
         @Override
         public void onAudioDevicesAdded(AudioDeviceInfo[] added) {
             boolean usb = false;
-            for (AudioDeviceInfo device : added) usb |= device.isSink() && "usb".equals(kindOf(device));
+            boolean bluetooth = false;
+            for (AudioDeviceInfo device : added) {
+                usb |= device.isSink() && "usb".equals(kindOf(device));
+                bluetooth |= device.isSink() && "bluetooth".equals(kindOf(device));
+            }
+            if (bluetooth && codecWatched) readCodecNow();
             if (usb && !SHARED.equals(mode)) reopen.run(); else publish();
         }
 
@@ -78,11 +113,57 @@ final class AudioOutputState implements AudioOutputProvider {
         delegate = new AudioTrackAudioOutputProvider.Builder(context).build();
         mode = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(MODE_KEY, SHARED);
         audio.registerAudioDeviceCallback(devices, main);
+        enableCodec();
         current = this;
+    }
+
+    private boolean codecWatched;
+
+    /** Starts following the Bluetooth codec once BLUETOOTH_CONNECT is granted (at start, or when Settings asks for it). */
+    void enableCodec() {
+        if (codecWatched || !canReadCodec()) return;
+        codecWatched = true;
+        ContextCompat.registerReceiver(context, codecReceiver, new IntentFilter(CODEC_CHANGED), ContextCompat.RECEIVER_EXPORTED);
+        readCodecNow();
+    }
+
+    /** The A2DP codec broadcast is not in the SDK, but it is sent to apps holding BLUETOOTH_CONNECT. */
+    private static final String CODEC_CHANGED = "android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED";
+
+    private boolean canReadCodec() {
+        return Build.VERSION.SDK_INT >= 31
+            && ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** The codec broadcast only comes on a change; the current one is asked for once (a hidden call, which may be refused). */
+    private void readCodecNow() {
+        BluetoothManager manager = context.getSystemService(BluetoothManager.class);
+        BluetoothAdapter adapter = manager == null ? null : manager.getAdapter();
+        if (adapter == null) return;
+        adapter.getProfileProxy(context, new BluetoothProfile.ServiceListener() {
+            @Override
+            public void onServiceConnected(int profile, BluetoothProfile proxy) {
+                try {
+                    for (BluetoothDevice device : proxy.getConnectedDevices()) {
+                        Object status = proxy.getClass().getMethod("getCodecStatus", BluetoothDevice.class).invoke(proxy, device);
+                        if (status instanceof BluetoothCodecStatus) { codec = ((BluetoothCodecStatus) status).getCodecConfig(); publish(); }
+                    }
+                } catch (ReflectiveOperationException | RuntimeException error) {
+                    // A later Android may close the hidden call; the codec broadcast still updates it on a change.
+                    Log.w("LutstraOutput", "getCodecStatus refused: " + error);
+                } finally {
+                    adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy);
+                }
+            }
+
+            @Override
+            public void onServiceDisconnected(int profile) {}
+        }, BluetoothProfile.A2DP);
     }
 
     void close() {
         audio.unregisterAudioDeviceCallback(devices);
+        if (codecWatched) context.unregisterReceiver(codecReceiver);
         clearRequest();
         if (current == this) current = null;
     }
@@ -123,7 +204,14 @@ final class AudioOutputState implements AudioOutputProvider {
     @Override
     public AudioOutput getAudioOutput(OutputConfig config) throws InitializationException {
         requestMixer(config);
-        return delegate.getAudioOutput(config);
+        AudioOutput output = delegate.getAudioOutput(config);
+        if (output instanceof AudioTrackAudioOutput) {
+            // The track's own route is the truth; the policy's answer can be empty (a direct output) or a capture.
+            AudioTrack track = ((AudioTrackAudioOutput) output).getAudioTrack();
+            track.addOnRoutingChangedListener((AudioRouting.OnRoutingChangedListener) router -> publish(), main);
+            audioTrack = track;
+        }
+        return output;
     }
 
     @Override
@@ -216,6 +304,19 @@ final class AudioOutputState implements AudioOutputProvider {
             if ("usb".equals(kind) || "bluetooth".equals(kind)) json.put("name", device.getProductName().toString());
             out.put("device", json);
         }
+        BluetoothCodecConfig link = codec;
+        if ("bluetooth".equals(kind) && link != null) {
+            JSObject json = new JSObject();
+            json.put("codec", codecName(link));
+            json.put("sampleRate", bitRate(link.getSampleRate(), new int[] { 44100, 48000, 88200, 96000, 176400, 192000 }));
+            json.put("bits", bitRate(link.getBitsPerSample(), new int[] { 16, 24, 32 }));
+            if (link.getCodecType() == BluetoothCodecConfig.SOURCE_CODEC_TYPE_LDAC) {
+                // LDAC's codec-specific value 1: 1000 quality (990 kbps), 1001 normal (660), 1002 connection (330), 1003 adaptive.
+                long quality = link.getCodecSpecific1();
+                if (quality >= 1000 && quality <= 1003) json.put("ldac", new String[] { "990", "660", "330", "adaptive" }[(int) (quality - 1000)]);
+            }
+            out.put("bluetooth", json);
+        }
 
         AudioSink.AudioTrackConfig track = stream;
         if (track != null) {
@@ -249,6 +350,7 @@ final class AudioOutputState implements AudioOutputProvider {
         }
         out.put("mixer", mixer);
 
+        out.put("codecAccess", Build.VERSION.SDK_INT < 31 ? "unsupported" : canReadCodec() ? "granted" : "needed");
         out.put("usbMode", mode);
         out.put("usbCapable", Build.VERSION.SDK_INT >= 34);
         AudioDeviceInfo usb = Build.VERSION.SDK_INT >= 34 ? usbDevice() : null;
@@ -269,6 +371,15 @@ final class AudioOutputState implements AudioOutputProvider {
     }
 
     private AudioDeviceInfo routedDevice() {
+        AudioTrack track = audioTrack;
+        if (track != null && stream != null) {
+            try {
+                AudioDeviceInfo device = track.getRoutedDevice();
+                if (device != null) return device;
+            } catch (RuntimeException ignored) {
+                // A released track has no route; ask the policy instead.
+            }
+        }
         if (Build.VERSION.SDK_INT < 33) return null;
         // Media can be routed to two devices at once; name the one you hear. While another app captures playback
         // (a screen mirror), media goes to its remote submix only, and that is what is reported.
@@ -303,6 +414,25 @@ final class AudioOutputState implements AudioOutputProvider {
             default:
                 return "other";
         }
+    }
+
+    /** The codec's own name where the system has one (LHDC, aptX Adaptive), else the SDK constant's. */
+    private static String codecName(BluetoothCodecConfig config) {
+        if (Build.VERSION.SDK_INT >= 34 && config.getExtendedCodecType() != null) return config.getExtendedCodecType().getCodecName();
+        switch (config.getCodecType()) {
+            case BluetoothCodecConfig.SOURCE_CODEC_TYPE_SBC: return "SBC";
+            case BluetoothCodecConfig.SOURCE_CODEC_TYPE_AAC: return "AAC";
+            case BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX: return "aptX";
+            case BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_HD: return "aptX HD";
+            case BluetoothCodecConfig.SOURCE_CODEC_TYPE_LDAC: return "LDAC";
+            default: return "Codec " + config.getCodecType();
+        }
+    }
+
+    /** A codec field is one bit of a mask (bit 0 = the first value); null when none or several are set. */
+    private static Integer bitRate(int mask, int[] values) {
+        for (int i = 0; i < values.length; i++) if (mask == 1 << i) return values[i];
+        return null;
     }
 
     private static String encodingName(int encoding) {

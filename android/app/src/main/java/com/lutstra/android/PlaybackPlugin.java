@@ -22,6 +22,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,7 +39,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
-@CapacitorPlugin(name = "AndroidPlayback")
+@CapacitorPlugin(
+    name = "AndroidPlayback",
+    permissions = { @Permission(alias = "bluetooth", strings = { android.Manifest.permission.BLUETOOTH_CONNECT }) }
+)
 public final class PlaybackPlugin extends Plugin {
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController controller;
@@ -85,6 +90,26 @@ public final class PlaybackPlugin extends Plugin {
             AudioOutputState output = AudioOutputState.current;
             if (output == null) { call.reject("Playback service not running"); return; }
             try { output.setMode(call.getString("mode", AudioOutputState.SHARED)); } catch (IllegalArgumentException error) { call.reject(error.getMessage()); return; }
+            call.resolve(output.snapshot());
+        });
+    }
+
+    /** Asks for Nearby devices (BLUETOOTH_CONNECT, Android 12+) so the output line can name the Bluetooth codec. */
+    @PluginMethod
+    public void requestBluetoothAccess(PluginCall call) {
+        if (android.os.Build.VERSION.SDK_INT < 31 || getPermissionState("bluetooth") == com.getcapacitor.PermissionState.GRANTED) {
+            bluetoothAccessResult(call);
+        } else {
+            requestPermissionForAlias("bluetooth", call, "bluetoothAccessResult");
+        }
+    }
+
+    @PermissionCallback
+    private void bluetoothAccessResult(PluginCall call) {
+        withController(call, mediaController -> {
+            AudioOutputState output = AudioOutputState.current;
+            if (output == null) { call.reject("Playback service not running"); return; }
+            output.enableCodec();
             call.resolve(output.snapshot());
         });
     }

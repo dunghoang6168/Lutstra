@@ -80,8 +80,11 @@
             @if (output.bits) {
               <dt>Stream</dt><dd><span class="measure">{{ output.bits }} · {{ output.streamKhz }}</span> kHz</dd>
             }
-            <dt>Mixer</dt>
-            @if (output.bitPerfect) {
+            @if (output.codec) { <dt>Codec</dt><dd>{{ output.codec }}</dd> }
+            <dt>{{ output.codec ? 'Link' : 'Mixer' }}</dt>
+            @if (output.codec && output.khz && !output.resampled) {
+              <dd><span class="measure">{{ output.khz }}</span> kHz@if (output.linkBits) { · <span class="measure">{{ output.linkBits }}</span>}</dd>
+            } @else if (output.bitPerfect) {
               <dd>Not mixed</dd>
             } @else if (output.resampled) {
               <dd><span class="measure">{{ output.streamKhz }} → {{ output.khz }}</span> kHz · resampled</dd>

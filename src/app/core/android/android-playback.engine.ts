@@ -34,6 +34,7 @@ export interface NativePlayback {
   addListener(event: 'error', listener: (event: { code: string; message: string }) => void): Promise<PluginListenerHandle>;
   getOutput(): Promise<NativeOutput>;
   setUsbMode(options: { mode: UsbMode }): Promise<NativeOutput>;
+  requestBluetoothAccess(): Promise<NativeOutput>;
   addListener(event: 'output', listener: (output: NativeOutput) => void): Promise<PluginListenerHandle>;
 }
 
@@ -49,6 +50,10 @@ export interface NativeOutput {
   stream?: { encoding: string; sampleRate: number; channels: number; offload: boolean };
   /** The device's mixer: its rate when known, whether it runs at Lutstra's request (matched) and unmixed (bitPerfect). */
   mixer: { sampleRate?: number; encoding?: string; matched: boolean; bitPerfect: boolean };
+  /** The Bluetooth link while media plays to Bluetooth: codec, its rate and bits, and LDAC's bitrate (990, 660, 330 or adaptive). */
+  bluetooth?: { codec: string; sampleRate?: number; bits?: number; ldac?: string };
+  /** Whether the codec can be read: Nearby devices granted, still to ask for, or not on this Android. */
+  codecAccess: 'granted' | 'needed' | 'unsupported';
   usbMode: UsbMode;
   /** Android 14+, where a USB DAC's mixer can be set. */
   usbCapable: boolean;
