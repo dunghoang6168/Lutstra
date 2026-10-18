@@ -73,28 +73,12 @@
           <dt>Path</dt><dd class="path">{{ info.path }}</dd>
         </dl>
         @if (info.output; as output) {
-          <h3 class="info-title">Output</h3>
-          <dl class="info">
-            @if (output.device) { <dt>Device</dt><dd>{{ output.device }}</dd> }
-            <dt>Path</dt><dd>{{ output.path }}</dd>
-            @if (output.bits) {
-              <dt>Stream</dt><dd><span class="measure">{{ output.bits }} · {{ output.streamKhz }}</span> kHz</dd>
-            }
-            @if (output.codec) { <dt>Codec</dt><dd>{{ output.codec }}</dd> }
-            <dt>{{ output.codec ? 'Link' : 'Mixer' }}</dt>
-            @if (output.codec && output.khz && !output.resampled) {
-              <dd><span class="measure">{{ output.khz }}</span> kHz@if (output.linkBits) { · <span class="measure">{{ output.linkBits }}</span>}</dd>
-            } @else if (output.bitPerfect) {
-              <dd>Not mixed</dd>
-            } @else if (output.resampled) {
-              <dd><span class="measure">{{ output.streamKhz }} → {{ output.khz }}</span> kHz · resampled</dd>
-            } @else if (output.khz) {
-              <dd><span class="measure">{{ output.khz }}</span> kHz</dd>
-            } @else {
-              <dd>Rate not reported</dd>
-            }
-          </dl>
-          <p class="info-note">{{ output.note }}</p>
+          <!-- The playing track's output lives in the Audio path sheet, as on Now Playing's chip. -->
+          <button type="button" class="path-row" (click)="openAudioPath()" aria-haspopup="dialog">
+            <span class="path-row-label">Audio path</span>
+            <span class="path-row-value">{{ output.path }}</span>
+            <app-icon name="chevron-right" [size]="18" />
+          </button>
         }
       </div>
     }

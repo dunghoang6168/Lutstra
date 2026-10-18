@@ -151,13 +151,6 @@
   padding: 0 var(--space-4);
 }
 
-.info-title {
-  margin: var(--space-2) 0 0;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
 .info {
   display: grid;
   grid-template-columns: 6rem minmax(0, 1fr);
@@ -173,9 +166,33 @@
 .measure.hires { color: var(--text-accent); }
 .path { font-size: var(--font-size-xs); color: var(--text-secondary); overflow-wrap: anywhere; }
 
-.info-note {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-size-xs);
-  line-height: 1.45;
-  color: var(--text-muted);
+
+.path-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: left;
+
+  app-icon { flex: none; color: var(--text-secondary); }
+}
+
+.path-row-label { flex: none; }
+
+.path-row-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-secondary);
 }

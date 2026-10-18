@@ -1,7 +1,7 @@
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
-import { describeOutput, loadOutput, output as liveOutput } from '../../app-shell';
+import { audioPathOpen, describeOutput, loadOutput, output as liveOutput } from '../../app-shell';
 import { CoverToneService } from '../../cover-tone.service';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -35,7 +35,7 @@ export class PhoneNowPlayingComponent {
   private readonly injector = inject(Injector);
   readonly queueOpen = input(false);
   /** Inert under the queue or the track actions sheet, which sit above it. */
-  readonly covered = computed(() => this.queueOpen() || this.library.actionTracks() !== null);
+  readonly covered = computed(() => this.queueOpen() || this.library.actionTracks() !== null || audioPathOpen());
   /** The transport pill just pressed, which widens for a moment while the others give way. */
   readonly pressed = signal<TransportButton | null>(null);
   private pressTimer: ReturnType<typeof setTimeout> | undefined;
@@ -68,6 +68,10 @@ export class PhoneNowPlayingComponent {
       if (queueWasOpen && !open) afterNextRender(() => focusQuietly(this.queueButton()?.nativeElement), { injector: this.injector });
       queueWasOpen = open;
     });
+  }
+
+  openAudioPath(): void {
+    audioPathOpen.set(true);
   }
 
   onSeekInput(seconds: number): void {

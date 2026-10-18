@@ -179,6 +179,11 @@ final class AudioOutputState implements AudioOutputProvider {
 
     void onTrackInitialized(AudioSink.AudioTrackConfig config) { stream = config; publish(); }
 
+    /** The MediaCodec decoder ExoPlayer opened (e.g. c2.android.flac.decoder), for the Audio path sheet. */
+    private volatile String decoder;
+
+    void onDecoderInitialized(String name) { decoder = name; publish(); }
+
     void onTrackReleased(AudioSink.AudioTrackConfig config) {
         // A format change opens the new track before the old one's release is reported.
         AudioSink.AudioTrackConfig open = stream;
@@ -318,6 +323,7 @@ final class AudioOutputState implements AudioOutputProvider {
             out.put("bluetooth", json);
         }
 
+        if (decoder != null) out.put("decoder", decoder);
         AudioSink.AudioTrackConfig track = stream;
         if (track != null) {
             JSObject json = new JSObject();

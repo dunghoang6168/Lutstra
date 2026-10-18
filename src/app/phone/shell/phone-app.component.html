@@ -76,6 +76,7 @@
   </div>
 }
 @if (library.actionTracks()) { <app-phone-track-actions-sheet /> }
+@if (audioPathOpen()) { <app-phone-audio-path-sheet /> }
 @if (library.playlistTracks(); as tracks) {
   <app-add-to-playlist-dialog [tracks]="tracks" (added)="library.loadPlaylists()" (closed)="library.playlistTracks.set(null)" />
 }

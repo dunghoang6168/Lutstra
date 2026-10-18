@@ -16,6 +16,8 @@ export const appShell = registerPlugin<{
 
 /** What the audio goes through now (device, stream, mixer, USB mode). Null until read, or off Android; the plugin keeps it live. */
 export const output = signal<NativeOutput | null>(null);
+/** The Audio path sheet, opened from Now Playing's output chip or the ⋯ sheet's File info. */
+export const audioPathOpen = signal(false);
 let watching = false;
 
 export async function loadOutput(): Promise<void> {

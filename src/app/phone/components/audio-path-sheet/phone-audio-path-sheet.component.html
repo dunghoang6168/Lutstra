@@ -1,0 +1,45 @@
+<div class="scrim" aria-hidden="true" (click)="close()"></div>
+<section class="path-sheet" role="dialog" aria-modal="true" aria-labelledby="audioPathTitle" (keydown.escape)="close()">
+  <span class="grabber" aria-hidden="true"></span>
+  <h2 id="audioPathTitle" class="sheet-title" tabindex="-1">Audio path</h2>
+  @if (path(); as path) {
+    <p class="verdict" [class.ok]="path.verdict.ok">
+      <app-icon [name]="path.verdict.ok ? 'check' : 'info'" [size]="18" />
+      <span>@for (part of path.verdict.parts; track $index) {@if (part.measure) {<span class="measure">{{ part.text }}</span>} @else {{{ part.text }}}}</span>
+    </p>
+
+    <ol class="steps">
+      @if (file(); as file) {
+        <li class="step">
+          <span class="step-icon" aria-hidden="true"><app-icon [name]="icons.file" [size]="18" /></span>
+          <span class="step-text">
+            <span class="step-label">File</span>
+            <span class="step-value">@for (part of file.value; track $index) {@if (part.measure) {<span class="measure">{{ part.text }}</span>} @else {{{ part.text }}}}</span>
+            @if (file.detail) { <span class="step-detail">{{ file.detail }}</span> }
+          </span>
+        </li>
+      }
+      @for (step of path.steps; track $index) {
+        <li class="step">
+          <span class="step-icon" aria-hidden="true"><app-icon [name]="icons[step.icon]" [size]="18" /></span>
+          <span class="step-text">
+            <span class="step-label">{{ step.label }}</span>
+            <span class="step-value">@for (part of step.value; track $index) {@if (part.measure) {<span class="measure">{{ part.text }}</span>} @else {{{ part.text }}}}</span>
+            @if (step.detail) { <span class="step-detail">{{ step.detail }}</span> }
+          </span>
+        </li>
+      }
+    </ol>
+
+    @if (path.usb) {
+      <a class="mode-row" routerLink="/settings" (click)="close()">
+        <span class="mode-label">USB DAC mode</span>
+        <span class="mode-value">{{ mode() }}</span>
+        <app-icon name="chevron-right" [size]="18" />
+      </a>
+    }
+    <p class="note">{{ path.note }}</p>
+  } @else {
+    <p class="note">Lutstra has not read the output yet. Play a track to see where its sound goes.</p>
+  }
+</section>

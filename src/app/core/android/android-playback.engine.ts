@@ -54,6 +54,8 @@ export interface NativeOutput {
   bluetooth?: { codec: string; sampleRate?: number; bits?: number; ldac?: string };
   /** Whether the codec can be read: Nearby devices granted, still to ask for, or not on this Android. */
   codecAccess: 'granted' | 'needed' | 'unsupported';
+  /** The MediaCodec decoder for the current file, e.g. c2.android.flac.decoder. */
+  decoder?: string;
   usbMode: UsbMode;
   /** Android 14+, where a USB DAC's mixer can be set. */
   usbCapable: boolean;

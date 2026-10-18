@@ -12,13 +12,14 @@ import { AndroidFolderPickerComponent } from '../../shared/components/android-fo
 import { PhoneNowPlayingComponent } from '../components/now-playing/phone-now-playing.component';
 import { PhoneQueueSheetComponent } from '../components/queue-sheet/phone-queue-sheet.component';
 import { PhoneTrackActionsSheetComponent } from '../components/track-actions-sheet/phone-track-actions-sheet.component';
+import { PhoneAudioPathSheetComponent } from '../components/audio-path-sheet/phone-audio-path-sheet.component';
 import { AddToPlaylistDialogComponent } from '../../shared/components/add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { PhoneLibraryService } from '../phone-library.service';
 import { CoverToneService } from '../cover-tone.service';
 import { SwipeDirection, SwipeDirective } from '../swipe.directive';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { appShell } from '../app-shell';
+import { appShell, audioPathOpen } from '../app-shell';
 import { focusQuietly } from '../focus';
 
 /** Modals other than the shell's own sheets: the folder picker and the dialogs pages open. */
@@ -32,7 +33,7 @@ const PAGE_MODALS = 'dialog[open], [aria-modal="true"]:not(.phone-sheet), .modal
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, IconComponent, CoverArtComponent, AndroidFolderPickerComponent,
-    PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, AddToPlaylistDialogComponent, SwipeDirective],
+    PhoneNowPlayingComponent, PhoneQueueSheetComponent, PhoneTrackActionsSheetComponent, PhoneAudioPathSheetComponent, AddToPlaylistDialogComponent, SwipeDirective],
   templateUrl: './phone-app.component.html',
   styleUrl: './phone-app.component.scss',
 })
@@ -49,6 +50,7 @@ export class PhoneAppComponent {
   private readonly injector = inject(Injector);
   private readonly miniOpen = viewChild<ElementRef<HTMLButtonElement>>('miniOpen');
   readonly folderPickerRequest = folderPickerRequest;
+  readonly audioPathOpen = audioPathOpen;
   readonly nowPlayingOpen = signal(false);
   readonly queueOpen = signal(false);
   readonly tabs: { path: string; label: string; icon: IconName }[] = [

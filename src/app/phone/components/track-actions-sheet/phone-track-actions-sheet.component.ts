@@ -5,7 +5,7 @@ import { QueueActionsService } from '../../../core/player/queue-actions.service'
 import { formatTrackFormat } from '../../../features/home/library-quality';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { describeOutput, loadOutput, output } from '../../app-shell';
+import { audioPathOpen, describeOutput, loadOutput, output } from '../../app-shell';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { focusQuietly } from '../../focus';
 
@@ -123,6 +123,11 @@ export class PhoneTrackActionsSheetComponent {
   addToQueue(): void {
     this.library.addToQueue(this.tracks());
     this.close();
+  }
+
+  /** The ⋯ button gets focus back first, so the Audio path sheet returns focus there. */
+  openAudioPath(): void {
+    this.close(() => audioPathOpen.set(true));
   }
 
   addToPlaylist(): void {

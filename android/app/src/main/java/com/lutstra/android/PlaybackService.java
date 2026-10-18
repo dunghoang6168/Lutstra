@@ -37,6 +37,11 @@ public final class PlaybackService extends MediaSessionService {
 
             @Override
             public void onAudioTrackReleased(EventTime eventTime, AudioSink.AudioTrackConfig config) { output.onTrackReleased(config); }
+
+            @Override
+            public void onAudioDecoderInitialized(EventTime eventTime, String decoderName, long initializedTimestampMs, long initializationDurationMs) {
+                output.onDecoderInitialized(decoderName);
+            }
         });
         // A new AudioTrack picks up the USB mixer request; the queue, position and play state stay.
         output.reopen = () -> new android.os.Handler(player.getApplicationLooper()).post(() -> {

@@ -1,0 +1,141 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  background: var(--scrim-strong);
+}
+
+.path-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1151;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 88dvh;
+  padding: 0 var(--page-pad-x) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+  animation: sheet-up var(--motion-dur) var(--motion-ease);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+}
+
+.grabber {
+  align-self: center;
+  flex: none;
+  width: var(--space-8);
+  height: var(--space-1);
+  margin-top: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--border-default);
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  outline: none;
+}
+
+/* What happens to the sound in one line; accent only when nothing changes its rate. */
+.verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+
+  app-icon { flex: none; margin-top: 1px; }
+}
+
+.verdict.ok { color: var(--text-accent); }
+
+/* The chain, after Poweramp's audio info: an icon per step, joined by a line. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--phone-path-icon) / 2 - 1px);
+  top: calc(var(--phone-path-icon) + var(--space-1));
+  bottom: var(--space-1);
+  width: 2px;
+  border-radius: var(--radius-full);
+  background: var(--border-default);
+}
+
+.step:last-child { padding-bottom: 0; }
+
+.step-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--phone-path-icon);
+  height: var(--phone-path-icon);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: var(--bg-surface-hover);
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.step-label { font-size: var(--font-size-xs); font-weight: 700; color: var(--text-muted); }
+.step-value { font-size: var(--font-size-base); font-weight: 600; overflow-wrap: anywhere; }
+.step-detail { font-size: var(--font-size-sm); line-height: 1.4; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+.measure { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  font-weight: 600;
+  text-decoration: none;
+
+  app-icon { color: var(--text-secondary); }
+}
+
+.mode-label { flex: 1; }
+.mode-value { font-weight: 500; color: var(--text-secondary); }
+.mode-row:active { background: var(--bg-surface-hover); }
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--text-muted);
+}

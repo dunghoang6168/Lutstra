@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 
 export type IconName =
   | 'headphones'
+  | 'speaker'
+  | 'bluetooth'
+  | 'usb'
+  | 'cpu'
+  | 'sliders'
   | 'home'
   | 'music'
   | 'disc'

@@ -41,7 +41,11 @@
         <span class="np-time">{{ position() | duration }}</span>
         @if (output(); as output) {
           <!-- Only what Android confirms: the path, the stream Lutstra writes and the device's rate. -->
-          <span class="np-output">{{ output.path }}@if (output.bits) { · <span class="measure">{{ output.bits }}</span>}@if (output.khz) { · <span class="measure">{{ output.khz }}</span> kHz}</span>
+          <button type="button" class="np-output" (click)="openAudioPath()" aria-haspopup="dialog"
+            [attr.aria-label]="'Audio path: ' + output.path + (output.khz ? ', ' + output.khz + ' kHz' : '')">
+            <span class="np-output-text">{{ output.path }}@if (output.bits) { · <span class="measure">{{ output.bits }}</span>}@if (output.khz) { · <span class="measure">{{ output.khz }}</span> kHz}</span>
+            <app-icon name="chevron-right" [size]="14" />
+          </button>
         }
         <span class="np-time">{{ player.duration() | duration }}</span>
       </div>
