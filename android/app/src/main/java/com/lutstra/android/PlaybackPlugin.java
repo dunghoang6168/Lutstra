@@ -64,6 +64,31 @@ public final class PlaybackPlugin extends Plugin {
         }
     };
 
+    @Override
+    public void load() {
+        AudioOutputState.listener = snapshot -> notifyListeners("output", snapshot);
+    }
+
+    /** What the audio goes through now: device, stream, mixer, the USB mode and what the plugged DAC offers. */
+    @PluginMethod
+    public void getOutput(PluginCall call) {
+        withController(call, mediaController -> {
+            AudioOutputState output = AudioOutputState.current;
+            if (output == null) call.reject("Playback service not running"); else call.resolve(output.snapshot());
+        });
+    }
+
+    /** { mode: 'shared' | 'match' | 'bitperfect' }: how a USB DAC is played to (Android 14+); takes effect at once. */
+    @PluginMethod
+    public void setUsbMode(PluginCall call) {
+        withController(call, mediaController -> {
+            AudioOutputState output = AudioOutputState.current;
+            if (output == null) { call.reject("Playback service not running"); return; }
+            try { output.setMode(call.getString("mode", AudioOutputState.SHARED)); } catch (IllegalArgumentException error) { call.reject(error.getMessage()); return; }
+            call.resolve(output.snapshot());
+        });
+    }
+
     @PluginMethod
     public void pickAndPlay(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -355,6 +380,7 @@ public final class PlaybackPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        AudioOutputState.listener = null;
         if (controller != null) controller.removeListener(listener);
         if (controllerFuture != null) MediaController.releaseFuture(controllerFuture);
         controller = null;

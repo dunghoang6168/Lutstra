@@ -40,8 +40,8 @@
       <div class="np-times">
         <span class="np-time">{{ position() | duration }}</span>
         @if (output(); as output) {
-          <!-- Honest about the phone: Android mixes everything at one rate, so this is never bit-perfect. -->
-          <span class="np-output">Android mixer · <span class="measure">{{ output.khz }}</span> kHz</span>
+          <!-- Only what Android confirms: the path, the stream Lutstra writes and the device's rate. -->
+          <span class="np-output">{{ output.path }}@if (output.bits) { · <span class="measure">{{ output.bits }}</span>}@if (output.khz) { · <span class="measure">{{ output.khz }}</span> kHz}</span>
         }
         <span class="np-time">{{ player.duration() | duration }}</span>
       </div>

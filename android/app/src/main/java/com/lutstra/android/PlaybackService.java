@@ -1,18 +1,49 @@
 package com.lutstra.android;
 
+import android.content.Context;
+import androidx.annotation.OptIn;
 import androidx.media3.common.AudioAttributes;
+import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
+import androidx.media3.exoplayer.audio.AudioSink;
+import androidx.media3.exoplayer.audio.DefaultAudioSink;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 
+@OptIn(markerClass = UnstableApi.class)
 public final class PlaybackService extends MediaSessionService {
     private MediaSession mediaSession;
+    private AudioOutputState output;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        ExoPlayer player = new ExoPlayer.Builder(this).build();
+        output = new AudioOutputState(this);
+        // Float output keeps 24-bit files at full resolution into the mixer (MediaCodec then decodes every file to float).
+        DefaultRenderersFactory renderers = new DefaultRenderersFactory(this) {
+            @Override
+            protected AudioSink buildAudioSink(Context context, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
+                return new DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setAudioOutputProvider(output).build();
+            }
+        };
+        ExoPlayer player = new ExoPlayer.Builder(this, renderers).build();
         player.setAudioAttributes(AudioAttributes.DEFAULT, true);
+        player.addAnalyticsListener(new AnalyticsListener() {
+            @Override
+            public void onAudioTrackInitialized(EventTime eventTime, AudioSink.AudioTrackConfig config) { output.onTrackInitialized(config); }
+
+            @Override
+            public void onAudioTrackReleased(EventTime eventTime, AudioSink.AudioTrackConfig config) { output.onTrackReleased(config); }
+        });
+        // A new AudioTrack picks up the USB mixer request; the queue, position and play state stay.
+        output.reopen = () -> new android.os.Handler(player.getApplicationLooper()).post(() -> {
+            if (player.getPlaybackState() == Player.STATE_IDLE || player.getMediaItemCount() == 0) return;
+            player.stop();
+            player.prepare();
+        });
         mediaSession = new MediaSession.Builder(this, player).build();
     }
 
@@ -23,6 +54,7 @@ public final class PlaybackService extends MediaSessionService {
 
     @Override
     public void onDestroy() {
+        if (output != null) output.close();
         if (mediaSession != null) {
             mediaSession.getPlayer().release();
             mediaSession.release();

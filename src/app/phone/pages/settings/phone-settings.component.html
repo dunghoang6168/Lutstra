@@ -65,6 +65,34 @@
   }
 </section>
 
+@if (output()?.usbCapable) {
+  <section class="group" aria-labelledby="usbTitle">
+    <h2 id="usbTitle" class="section-title">USB DAC</h2>
+    @if (output()?.usb; as usb) {
+      <p class="sub-desc">{{ usb.name }}</p>
+      <div class="segmented" role="radiogroup" aria-label="USB output">
+        @for (mode of usbModes(); track mode.id) {
+          <button type="button" role="radio" class="segment" [attr.aria-checked]="output()!.usbMode === mode.id"
+            (click)="chooseUsbMode(mode.id)">{{ mode.label }}</button>
+        }
+      </div>
+      @if (confirmBitPerfect()) {
+        <div class="confirm" role="group" aria-label="Turn on bit-perfect?">
+          <span>Turn the DAC’s volume down first</span>
+          <p class="confirm-note">Bit-perfect skips Android’s volume scaling, so playback can start much louder. Other apps’ sounds may not play over it.</p>
+          <button type="button" class="btn" (click)="confirmBitPerfect.set(false)">Cancel</button>
+          <button type="button" class="btn primary" (click)="applyUsbMode('bitperfect')">Turn on</button>
+        </div>
+      } @else {
+        <p class="sub-desc">{{ usbModeNote() }}</p>
+      }
+    } @else {
+      <p class="sub-desc">Plug in a USB DAC to choose how Lutstra plays through it.</p>
+    }
+    @if (usbError(); as error) { <p class="status warning" role="alert">{{ error }}</p> }
+  </section>
+}
+
 <section class="group" aria-labelledby="historyTitle">
   <h2 id="historyTitle" class="section-title">Listening history</h2>
   <p class="sub-desc">Smart Shuffle learns from the tracks you play. The history stays on this phone.</p>

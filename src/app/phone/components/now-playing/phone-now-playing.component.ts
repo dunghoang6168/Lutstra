@@ -1,7 +1,7 @@
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
-import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
+import { describeOutput, loadOutput, output as liveOutput } from '../../app-shell';
 import { CoverToneService } from '../../cover-tone.service';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -54,12 +54,12 @@ export class PhoneNowPlayingComponent {
   readonly position = computed(() => this.scrubTime() ?? this.player.currentTime());
   /** The cover's hue and chroma, which tint the controls as PixelPlayer's album scheme does; null without a cover. */
   readonly tone = inject(CoverToneService).tone;
-  /** Where the sound goes: the mixer's rate. The file's own format is in the ⋯ sheet and the mini player. */
-  readonly output = computed(() => outputPath(this.player.currentTrack()?.sampleRate ?? null, mixerRate()));
+  /** Where the sound goes: the path, what Lutstra hands Android and the device's rate. The file's own format is in the ⋯ sheet and the mini player. */
+  readonly output = computed(() => describeOutput(liveOutput()));
 
   constructor() {
-    // The output can change while the app is open (headphones, Bluetooth), so it is read on every open.
-    void loadMixerRate();
+    // The plugin keeps the output live (headphones, Bluetooth, a USB DAC); this reads it the first time.
+    void loadOutput();
     afterNextRender(() => focusQuietly(this.closeButton()?.nativeElement));
     // Focus returns to the queue button once the sheet is gone and this one is no longer inert.
     let queueWasOpen = false;

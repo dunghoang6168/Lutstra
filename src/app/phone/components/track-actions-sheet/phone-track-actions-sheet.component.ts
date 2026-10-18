@@ -2,10 +2,10 @@ import { Component, ElementRef, EnvironmentInjector, afterNextRender, computed, 
 import { RouterLink } from '@angular/router';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
-import { formatKhz, formatTrackFormat } from '../../../features/home/library-quality';
+import { formatTrackFormat } from '../../../features/home/library-quality';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { loadMixerRate, mixerRate, outputPath } from '../../app-shell';
+import { describeOutput, loadOutput, output } from '../../app-shell';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { focusQuietly } from '../../focus';
 
@@ -74,13 +74,13 @@ export class PhoneTrackActionsSheetComponent {
       size,
       summary: [bitrate, size].filter(Boolean).join(' · '),
       path: readablePath(track.path),
-      fileKhz: track.sampleRate ? formatKhz(track.sampleRate) : null,
-      output: outputPath(track.sampleRate, mixerRate()),
+      // The output is live, so it is shown for the playing track only.
+      output: track.id === this.player.currentTrack()?.id ? describeOutput(output()) : null,
     };
   });
 
   constructor() {
-    void loadMixerRate();
+    void loadOutput();
     afterNextRender(() => focusQuietly(this.host.querySelector<HTMLElement>('.action')));
   }
 

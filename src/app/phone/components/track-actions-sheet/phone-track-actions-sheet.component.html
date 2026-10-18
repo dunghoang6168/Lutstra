@@ -75,15 +75,23 @@
         @if (info.output; as output) {
           <h3 class="info-title">Output</h3>
           <dl class="info">
-            <dt>Path</dt><dd>Android mixer</dd>
-            <dt>Rate</dt>
-            @if (output.resampled) {
-              <dd><span class="measure">{{ info.fileKhz }} → {{ output.khz }}</span> kHz · resampled</dd>
-            } @else {
+            @if (output.device) { <dt>Device</dt><dd>{{ output.device }}</dd> }
+            <dt>Path</dt><dd>{{ output.path }}</dd>
+            @if (output.bits) {
+              <dt>Stream</dt><dd><span class="measure">{{ output.bits }} · {{ output.streamKhz }}</span> kHz</dd>
+            }
+            <dt>Mixer</dt>
+            @if (output.bitPerfect) {
+              <dd>Not mixed</dd>
+            } @else if (output.resampled) {
+              <dd><span class="measure">{{ output.streamKhz }} → {{ output.khz }}</span> kHz · resampled</dd>
+            } @else if (output.khz) {
               <dd><span class="measure">{{ output.khz }}</span> kHz</dd>
+            } @else {
+              <dd>Rate not reported</dd>
             }
           </dl>
-          <p class="info-note">Android mixes every app’s audio, so the phone is not bit-perfect. The file itself is untouched.</p>
+          <p class="info-note">{{ output.note }}</p>
         }
       </div>
     }

@@ -7,8 +7,16 @@ import { ListeningHistoryService } from '../../../core/history/listening-history
 import { formatCount } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PhoneLibraryService } from '../../phone-library.service';
+import { UsbMode } from '../../../core/android/android-playback.engine';
+import { loadOutput, output, setUsbMode } from '../../app-shell';
 
-/** Settings for the phone: music folders, appearance (preset, accent or the wallpaper's) and listening history. */
+const USB_MODES: { id: UsbMode; label: string; note: string }[] = [
+  { id: 'shared', label: 'Shared', note: 'Android’s mixer at its own rate, together with every app’s sound.' },
+  { id: 'match', label: 'File rate', note: 'The DAC runs at each file’s rate, so nothing is resampled. Android still mixes it. A change of rate between tracks can leave a short gap.' },
+  { id: 'bitperfect', label: 'Bit-perfect', note: 'Lutstra’s audio reaches the DAC unmixed and unscaled; set the volume on the DAC. A stream the DAC has no bit-perfect format for plays at the file’s rate.' },
+];
+
+/** Settings for the phone: music folders, appearance (preset, accent or the wallpaper's), the USB DAC mode and listening history. */
 @Component({
   selector: 'app-phone-settings',
   standalone: true,
@@ -30,9 +38,31 @@ export class PhoneSettingsComponent {
   readonly folderError = signal<string | null>(null);
   readonly confirmClear = signal(false);
   readonly historyNote = signal<string | null>(null);
+  readonly output = output;
+  readonly confirmBitPerfect = signal(false);
+  readonly usbError = signal<string | null>(null);
+  /** Shared always; the others when the plugged DAC offers them (or are the saved mode). */
+  readonly usbModes = computed(() => {
+    const out = this.output();
+    return USB_MODES.filter((mode) => mode.id === 'shared' || mode.id === out?.usbMode
+      || (mode.id === 'match' ? out?.usb?.match : out?.usb?.bitPerfect));
+  });
+  readonly usbModeNote = computed(() => USB_MODES.find((mode) => mode.id === this.output()?.usbMode)?.note ?? '');
 
   constructor() {
     void this.library.ensureLoaded();
+    void loadOutput();
+  }
+
+  chooseUsbMode(mode: UsbMode): void {
+    if (mode === this.output()?.usbMode) return;
+    if (mode === 'bitperfect') this.confirmBitPerfect.set(true); else void this.applyUsbMode(mode);
+  }
+
+  async applyUsbMode(mode: UsbMode): Promise<void> {
+    this.confirmBitPerfect.set(false);
+    this.usbError.set(null);
+    try { await setUsbMode(mode); } catch { this.usbError.set('Couldn’t change the USB output. Try again.'); }
   }
 
   async chooseFolders(): Promise<void> {

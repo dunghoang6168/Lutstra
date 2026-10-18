@@ -32,7 +32,32 @@ export interface NativePlayback {
   addListener(event: 'state', listener: (state: NativePlaybackState) => void): Promise<PluginListenerHandle>;
   addListener(event: 'advanced', listener: (event: { mediaId: string | null; auto: boolean }) => void): Promise<PluginListenerHandle>;
   addListener(event: 'error', listener: (event: { code: string; message: string }) => void): Promise<PluginListenerHandle>;
+  getOutput(): Promise<NativeOutput>;
+  setUsbMode(options: { mode: UsbMode }): Promise<NativeOutput>;
+  addListener(event: 'output', listener: (output: NativeOutput) => void): Promise<PluginListenerHandle>;
 }
+
+/** capture: another app records playback (a screen mirror's remote submix), and media goes there. */
+export type OutputDeviceKind = 'speaker' | 'wired' | 'usb' | 'bluetooth' | 'capture' | 'other';
+/** How a USB DAC is played to (Android 14+): through the shared mixer, the mixer at the stream's rate, or unmixed. */
+export type UsbMode = 'shared' | 'match' | 'bitperfect';
+
+/** What the audio goes through now (`AudioOutputState.snapshot`); absent fields are unknown. */
+export interface NativeOutput {
+  device?: { kind: OutputDeviceKind; name?: string };
+  /** The AudioTrack ExoPlayer writes: encoding is pcm16, pcm24, pcm32 or float. */
+  stream?: { encoding: string; sampleRate: number; channels: number; offload: boolean };
+  /** The device's mixer: its rate when known, whether it runs at Lutstra's request (matched) and unmixed (bitPerfect). */
+  mixer: { sampleRate?: number; encoding?: string; matched: boolean; bitPerfect: boolean };
+  usbMode: UsbMode;
+  /** Android 14+, where a USB DAC's mixer can be set. */
+  usbCapable: boolean;
+  /** The plugged USB DAC and the modes it offers. */
+  usb?: { name: string; match: boolean; bitPerfect: boolean };
+}
+
+/** The Media3 playback plugin; Now Playing and Settings also read the output from it. */
+export const androidPlayback = registerPlugin<NativePlayback>('AndroidPlayback');
 
 export function queueItemFor(track: Track): NativeQueueItem {
   return { id: track.id, uri: track.path, title: track.title, artist: track.artist, album: track.album };
@@ -85,7 +110,7 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
 
   constructor(
     private readonly zone: NgZone,
-    private readonly native: NativePlayback = registerPlugin<NativePlayback>('AndroidPlayback'),
+    private readonly native: NativePlayback = androidPlayback,
   ) {
     // Capacitor delivers plugin events outside Angular's zone.
     this.listeners = [
@@ -268,8 +293,12 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
     this.ticker = null;
   }
 
+  /**
+   * The phone has no in-app volume (the hardware keys set the system's), so the player stays at unity: nothing is
+   * scaled before the mixer, which bit-perfect USB output needs. Mute still silences it.
+   */
   private applyVolume(): void {
-    void this.native.setVolume({ volume: this.muted ? 0 : this.volume });
+    void this.native.setVolume({ volume: this.muted ? 0 : 1 });
     this.volumeSubject.next({ volume: this.volume, isMuted: this.muted });
   }
 }
