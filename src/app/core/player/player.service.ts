@@ -267,7 +267,8 @@ export class PlayerService implements OnDestroy {
       } else if (currentEntry && currentIndex < 0) {
         this.loadSequence++;
         this.clearPreparedCandidate();
-        this.engine.dispose();
+        // pause, not dispose: dispose is terminal for the native and switching engines.
+        this.engine.pause();
         this.currentTime.set(0);
         this.duration.set(0);
         const replacementIndex = nextQueue.length ? Math.min(Math.max(previousIndex, 0), nextQueue.length - 1) : -1;
@@ -1257,7 +1258,7 @@ export class PlayerService implements OnDestroy {
     this.loadSequence++;
     this.clearPreparedCandidate();
     this.playRequested.set(false);
-    this.engine.dispose();
+    this.engine.pause();
     this.currentTrack.set(null);
     this.currentTime.set(0);
     this.duration.set(0);

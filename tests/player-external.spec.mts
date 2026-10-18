@@ -163,12 +163,15 @@ describe('external source playback', () => {
   it('clears only the queue while the external track plays, then stops on Back to queue', async () => {
     const { player, engine } = setup();
     await player.playExternal(source(['x']), track('x'));
+    engine.pause.mockClear();
     player.clearQueue();
-    expect(engine.dispose).not.toHaveBeenCalled();
+    expect(engine.pause).not.toHaveBeenCalled();
     expect(player.currentTrack()?.id).toBe('x');
 
     await player.backToQueue();
-    expect(engine.dispose).toHaveBeenCalled();
+    expect(engine.pause).toHaveBeenCalled();
+    // dispose is terminal for the native engine; stopping must not kill the engine.
+    expect(engine.dispose).not.toHaveBeenCalled();
     expect(player.externalSource()).toBeNull();
     expect(player.currentTrack()).toBeNull();
     player.ngOnDestroy();

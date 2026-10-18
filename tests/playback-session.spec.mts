@@ -31,12 +31,12 @@ function setup(session: PlaybackSession | null, libraryIds = ['a', 'b', 'c', 'd'
     getSettings: async () => ({}), saveSettings: vi.fn(async (value: any) => value),
     getSession: async () => session, saveSession: vi.fn(async () => undefined),
   };
-  const library = { getLibrary: async () => ({ tracks: libraryIds.map(track) }), scanProgress$: new Subject() };
+  const library = { getLibrary: async () => ({ tracks: libraryIds.map(track) }), scanProgress$: new Subject(), libraryChanged$: new Subject<void>() };
   const injector = Injector.create({ providers: [
     { provide: PLAYBACK_ENGINE, useValue: engine }, { provide: SETTINGS_GATEWAY, useValue: gateway }, { provide: LIBRARY_GATEWAY, useValue: library },
   ] });
   const player = runInInjectionContext(injector, () => new PlayerService());
-  return { player, engine, gateway };
+  return { player, engine, gateway, library, libraryIds };
 }
 
 const ids = (player: PlayerService) => player.queue().map((entry) => entry.track.id);
@@ -61,6 +61,22 @@ describe('playback session', () => {
     expect(ids(player)).toEqual(['a', 'b']);
     expect(player.currentTrack()?.id).toBe('b');
     expect(engine.seek).not.toHaveBeenCalled();
+    player.ngOnDestroy();
+  });
+
+  it('keeps the engine alive when a removed folder takes the current track away', async () => {
+    const { player, engine, library, libraryIds } = setup({ version: 1, trackIds: ['a', 'b'], originalOrder: [0, 1], currentIndex: 0, positionSeconds: 0 });
+    await flush();
+    libraryIds.splice(0, libraryIds.length, 'c', 'd');
+    library.libraryChanged$.next();
+    await flush();
+    expect(player.queue()).toEqual([]);
+    expect(engine.pause).toHaveBeenCalled();
+    // dispose is terminal for the native engine: later playback would play without UI updates.
+    expect(engine.dispose).not.toHaveBeenCalled();
+    await player.playCollection([track('c')], 0);
+    engine.stateChange$.next({ state: 'playing', track: track('c') });
+    expect(player.playbackState()).toBe('playing');
     player.ngOnDestroy();
   });
 
