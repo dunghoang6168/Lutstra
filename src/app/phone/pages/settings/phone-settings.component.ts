@@ -4,6 +4,7 @@ import { LIBRARY_GATEWAY } from '../../../core/contracts';
 import { ACCENT_SWATCHES, AccentColor, ThemePreset } from '../../../core/models';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { ListeningHistoryService } from '../../../core/history/listening-history.service';
+import { PlayerService } from '../../../core/player/player.service';
 import { formatCount } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PhoneLibraryService } from '../../phone-library.service';
@@ -16,7 +17,7 @@ const USB_MODES: { id: UsbMode; label: string; note: string }[] = [
   { id: 'bitperfect', label: 'Bit-perfect', note: 'Lutstra’s audio reaches the DAC unmixed and unscaled; set the volume on the DAC. A stream the DAC has no bit-perfect format for plays at the file’s rate.' },
 ];
 
-/** Settings for the phone: music folders, appearance (preset, accent or the wallpaper's), the USB DAC mode and listening history. */
+/** Settings for the phone: music folders, appearance (preset, accent or the wallpaper's), the USB DAC mode, Autoplay and listening history. */
 @Component({
   selector: 'app-phone-settings',
   standalone: true,
@@ -27,6 +28,7 @@ const USB_MODES: { id: UsbMode; label: string; note: string }[] = [
 export class PhoneSettingsComponent {
   readonly theme = inject(ThemeService);
   readonly library = inject(PhoneLibraryService);
+  readonly player = inject(PlayerService);
   private readonly gateway = inject(LIBRARY_GATEWAY);
   private readonly history = inject(ListeningHistoryService);
   readonly swatches = ACCENT_SWATCHES;

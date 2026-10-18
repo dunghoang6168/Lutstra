@@ -16,7 +16,7 @@
       @for (entry of player.queue(); track entry.id; let i = $index) {
         @if (i === suggestedFrom()) {
           <li class="queue-divider" aria-hidden="true">
-            <app-icon name="smart-shuffle" [size]="16" /> Suggested by Smart Shuffle
+            @if (player.smartShuffle()) { <app-icon name="smart-shuffle" [size]="16" /> }{{ player.suggestionLabel() }}
           </li>
         }
         <li class="queue-row" appSwipe swipeMode="dismiss" [swipeThreshold]="0.4"
@@ -36,7 +36,7 @@
             </button>
           }
           <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)"
-            [attr.aria-description]="entry.suggested && i > player.currentIndex() ? 'Suggested by Smart Shuffle' : null">
+            [attr.aria-description]="entry.suggested && i > player.currentIndex() ? player.suggestionLabel() : null">
             <app-cover-art class="row-cover" [src]="entry.track.artwork" [iconSize]="18" />
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>

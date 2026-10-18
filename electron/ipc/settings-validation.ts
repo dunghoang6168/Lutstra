@@ -9,6 +9,7 @@ export function validSettings(value: unknown): Record<string, unknown> {
   if ('repeatMode' in input) { if (!['off','one','all'].includes(String(input['repeatMode']))) throw new Error('Invalid repeat mode'); result['repeatMode'] = input['repeatMode']; }
   if ('shuffle' in input) { if (typeof input['shuffle'] !== 'boolean') throw new Error('Invalid shuffle setting'); result['shuffle'] = input['shuffle']; }
   if ('smartShuffle' in input) { if (typeof input['smartShuffle'] !== 'boolean') throw new Error('Invalid smart shuffle setting'); result['smartShuffle'] = input['smartShuffle']; }
+  if ('autoplay' in input) { if (typeof input['autoplay'] !== 'boolean') throw new Error('Invalid autoplay setting'); result['autoplay'] = input['autoplay']; }
   if ('crossfadeEnabled' in input) { if (typeof input['crossfadeEnabled'] !== 'boolean') throw new Error('Invalid crossfade setting'); result['crossfadeEnabled'] = input['crossfadeEnabled']; }
   if ('crossfadeSeconds' in input) { if (typeof input['crossfadeSeconds'] !== 'number' || !Number.isInteger(input['crossfadeSeconds']) || input['crossfadeSeconds'] < 1 || input['crossfadeSeconds'] > 12) throw new Error('Invalid crossfade duration'); result['crossfadeSeconds'] = input['crossfadeSeconds']; }
   if ('audioEngineBackend' in input) { if (!['chromium','native-shared'].includes(String(input['audioEngineBackend']))) throw new Error('Invalid audio engine backend'); result['audioEngineBackend'] = input['audioEngineBackend']; }

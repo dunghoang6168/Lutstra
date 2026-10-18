@@ -187,10 +187,10 @@ describe('smart shuffle picks', () => {
 
   it('spaces suggestions out when they get skipped and closer when they play through', () => {
     const suggested = (endReason: PlayEvent['endReason'], playedSeconds: number) => listen('a0', { source: 'smart-shuffle', endReason, playedSeconds });
-    expect(suggestionSpacing([])).toBe(3);
-    expect(suggestionSpacing(Array.from({ length: 10 }, () => suggested('skip_next', 4)))).toBe(6);
-    expect(suggestionSpacing(Array.from({ length: 10 }, () => suggested('ended', 200)))).toBe(2);
-    expect(suggestionSpacing([...Array.from({ length: 5 }, () => suggested('ended', 200)), ...Array.from({ length: 5 }, () => suggested('skip_next', 60))])).toBe(3);
+    expect(suggestionSpacing([])).toBe(5);
+    expect(suggestionSpacing(Array.from({ length: 10 }, () => suggested('skip_next', 4)))).toBe(8);
+    expect(suggestionSpacing(Array.from({ length: 10 }, () => suggested('ended', 200)))).toBe(4);
+    expect(suggestionSpacing([...Array.from({ length: 5 }, () => suggested('ended', 200)), ...Array.from({ length: 5 }, () => suggested('skip_next', 60))])).toBe(5);
   });
 
   it('cools a region skipped early twice in a row for the session', () => {

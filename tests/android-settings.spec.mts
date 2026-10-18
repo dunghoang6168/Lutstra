@@ -23,14 +23,16 @@ describe('Android settings gateway', () => {
     const first = new AndroidSettingsGateway();
     expect((await first.getSettings()).crossfadeEnabled).toBe(false);
     expect((await first.getSettings()).accentColor).toBe('blue');
+    expect((await first.getSettings()).autoplay).toBe(true);
     expect((await first.getSettings()).musicFolders).toEqual([]);
-    await first.saveSettings({ defaultVolume: 0.35, crossfadeEnabled: true });
+    await first.saveSettings({ defaultVolume: 0.35, crossfadeEnabled: true, autoplay: false });
     await first.saveSession({ positionSeconds: 42 } as unknown as PlaybackSession);
 
     const restarted = new AndroidSettingsGateway();
     const settings = await restarted.getSettings();
     expect(settings.defaultVolume).toBe(0.35);
     expect(settings.crossfadeEnabled).toBe(true);
+    expect(settings.autoplay).toBe(false);
     expect(await restarted.getSession()).toEqual({ positionSeconds: 42 });
   });
 });

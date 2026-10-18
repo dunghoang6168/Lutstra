@@ -122,6 +122,13 @@ export class PlayerService implements OnDestroy {
   readonly smartShuffle = signal<boolean>(false);
   /** The shuffle button's state, for its label: the button cycles Off → Shuffle → Smart Shuffle. */
   readonly shuffleState = computed(() => this.smartShuffle() ? 'Smart Shuffle' : this.isShuffle() ? 'On' : 'Off');
+  /**
+   * Autoplay (`SmartShuffleService` appends suggestions on the last entry): the queue keeps playing similar tracks
+   * once it ends, while Smart Shuffle and repeat are off. Its suggestions stay out of `originalQueue`.
+   */
+  readonly autoplay = signal<boolean>(false);
+  /** Who put the upcoming suggestions in the queue, for the queue's divider and screen readers. */
+  readonly suggestionLabel = computed(() => this.smartShuffle() ? 'Suggested by Smart Shuffle' : 'Autoplay');
   private readonly external = signal<ExternalPlayback | null>(null);
   private externalCount = 0;
   /** The source playing outside the queue, if any. */
@@ -330,6 +337,7 @@ export class PlayerService implements OnDestroy {
           this.setShuffle(settings.shuffle);
         }
         if (settings.smartShuffle === true) this.setSmartShuffle(true);
+        if (typeof settings.autoplay === 'boolean') this.autoplay.set(settings.autoplay);
         if (typeof settings.crossfadeEnabled === 'boolean') this.setCrossfadeEnabled(settings.crossfadeEnabled);
         if (Number.isInteger(settings.crossfadeSeconds)) this.setCrossfadeSeconds(settings.crossfadeSeconds);
         this.outputMode.set(settings.outputMode === 'exclusive-dsp' ? 'exclusive-dsp' : 'shared');
@@ -738,6 +746,27 @@ export class PlayerService implements OnDestroy {
     this.refreshPreparedCandidate();
   }
 
+  /** Autoplay's next suggestions, after everything queued. */
+  appendSuggestions(entries: QueueEntry[]): void {
+    if (!entries.length) return;
+    this.queue.set([...this.queue(), ...entries]);
+    this.refreshPreparedCandidate();
+  }
+
+  /** Turning Autoplay off drops the suggestions not played yet; Smart Shuffle keeps its own. */
+  setAutoplay(enabled: boolean): void {
+    this.autoplay.set(enabled);
+    if (!enabled && !this.smartShuffle()) {
+      const index = this.currentIndex();
+      const kept = this.queue().filter((entry, i) => i <= index || !entry.suggested);
+      if (kept.length !== this.queue().length) {
+        this.queue.set(kept);
+        this.refreshPreparedCandidate();
+      }
+    }
+    void this.persistSettings({ autoplay: enabled });
+  }
+
   /** Smart Shuffle turned on with nothing queued: plays its suggestions from the first. */
   async startSuggestions(entries: QueueEntry[]): Promise<void> {
     if (!entries.length || this.blockedByBusyOutput()) return;
@@ -764,22 +793,25 @@ export class PlayerService implements OnDestroy {
     const currentEntry = this.currentQueueEntry();
 
     if (nextShuffle) {
-      // Turn Shuffle ON:
-      this.originalQueue = [...q];
+      // Turn Shuffle ON: Autoplay's suggestions are not the user's tracks; they stay after them.
+      this.originalQueue = q.filter((e) => !e.suggested);
+      const autoplayed = q.filter((e) => e.suggested && e !== currentEntry);
       if (currentEntry) {
-        const others = q.filter((e) => e.id !== currentEntry.id);
-        const shuffled = [currentEntry, ...this.shuffleArray(others)];
+        const others = q.filter((e) => e !== currentEntry && !e.suggested);
+        const shuffled = [currentEntry, ...this.shuffleArray(others), ...autoplayed];
         this.queue.set(shuffled);
         this.currentIndex.set(0);
       } else {
-        this.queue.set(this.shuffleArray(q));
+        this.queue.set([...this.shuffleArray(this.originalQueue), ...autoplayed]);
       }
     } else {
       // Turn Shuffle OFF: restore original order
       if (this.originalQueue.length > 0) {
-        this.queue.set([...this.originalQueue]);
+        // Autoplay's suggestions are not in the original order; they stay at the end.
+        const restored = [...this.originalQueue, ...q.filter((e) => e.suggested && !this.originalQueue.includes(e))];
+        this.queue.set(restored);
         if (currentEntry) {
-          const restoredIndex = this.originalQueue.findIndex((e) => e.id === currentEntry.id);
+          const restoredIndex = restored.findIndex((e) => e.id === currentEntry.id);
           this.currentIndex.set(restoredIndex >= 0 ? restoredIndex : 0);
         }
       }
@@ -1147,7 +1179,10 @@ export class PlayerService implements OnDestroy {
       return result;
     }
 
-    this.queue.update((current) => [...current, ...newEntries]);
+    // The user's tracks play before Autoplay's suggestions; Smart Shuffle places them itself.
+    let at = q.length;
+    if (!this.smartShuffle()) while (at > this.currentIndex() + 1 && q[at - 1].suggested) at--;
+    this.queue.set([...q.slice(0, at), ...newEntries, ...q.slice(at)]);
     this.originalQueue.push(...newEntries);
     this.refreshPreparedCandidate();
     return result;

@@ -21,7 +21,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
   - **Smart Shuffle** là một bước trong vòng xoay của nút Shuffle: Off → Shuffle → Smart Shuffle (icon ngôi sao) → Off, giống nút Repeat; phím S xoay theo đúng vòng này. Nút gộp ở Ambient và Gallery Now Playing xoay Off → Shuffle → Smart Shuffle → Repeat All → Repeat One. Smart Shuffle ẩn khi Roulette chạy. Chi tiết kỹ thuật nằm ở mục Smart Shuffle trong AGENTS.md.
     - **Một chế độ của queue**, loại trừ với Shuffle:
       - Bài của bạn được xếp lại theo gu; bài được Play next hoặc kéo tay thì giữ nguyên chỗ.
-      - Cứ vài bài (3 lúc đầu, tự chỉnh từ 2 đến 6) lại chèn một bài gợi ý, chỉ trong 10 vị trí phía trước. Hết bài của bạn thì chạy tiếp bằng gợi ý, không dứt.
+      - Cứ vài bài (5 lúc đầu, tự chỉnh từ 4 đến 8) lại chèn một bài gợi ý, chỉ trong 10 vị trí phía trước. Hết bài của bạn thì chạy tiếp bằng gợi ý, không dứt.
       - Queue trống mà xoay tới Smart Shuffle thì phát luôn các bài gợi ý.
       - Rời Smart Shuffle thì bỏ các bài gợi ý chưa phát và trả lại thứ tự gốc.
     - **Thuật toán chạy ngầm, không có nút đánh giá** (`core/smart-shuffle`):
@@ -34,9 +34,14 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Bài gợi ý sau bài kế tiếp hiện nhạt hơn, vì có thể đổi.
       - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
       - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).
+    - **Autoplay** (như Autoplay của Spotify, tách khỏi Smart Shuffle). Hiện chỉ có trên điện thoại: công tắc ở Settings, mặc định bật. Desktop chưa có công tắc và mặc định tắt cho tới khi bản điện thoại xong:
+      - Chỉ chạy khi Smart Shuffle tắt, Repeat tắt, không có Roulette và đang phát.
+      - Tới bài cuối queue thì nối thêm 5 bài gợi ý nối tiếp mấy bài vừa nghe; tới bài gợi ý cuối thì nối tiếp, nên nghe mãi. Nối trước khi bài cuối hết nên crossfade/gapless vẫn chạy.
+      - Bài của bạn giữ đúng thứ tự (Daily Mix, playlist phát đúng danh sách rồi mới sang gợi ý). Add to queue chèn trước các gợi ý; bật/tắt Shuffle vẫn để gợi ý ở cuối.
+      - Dòng phân cách trong queue điện thoại ghi "Autoplay". Tắt Autoplay thì bỏ các gợi ý chưa phát.
     - **Daily Mix** (desktop, `/daily-mix`, `DailyMixService` trong `core/smart-shuffle`):
       - Mỗi ngày một danh sách 30 bài do Smart Shuffle chọn (`SmartShuffleService.picks()`, cùng logic với lúc khởi động nguội nên người dùng mới vẫn có mix). Lưu ở `lutstra.dailyMix` kèm ngày; sang ngày mới thì tạo mix mới, nút **New mix** tạo lại ngay.
-      - Phát như một queue thường: Smart Shuffle tự tắt, skip không làm đổi bài trong mix nhưng vẫn được ghi vào lịch sử để học.
+      - Phát như một queue thường: Smart Shuffle tự tắt, skip không làm đổi bài trong mix nhưng vẫn được ghi vào lịch sử để học. Hết 30 bài thì dừng (Autoplay trên desktop đang tắt).
       - Gỡ một bài khỏi mix được ghi là `removed` như bài gợi ý.
       - Vào từ Home: thẻ Daily Mix trong mục "Made for you" (Gallery, Ambient), nút Daily Mix cạnh Shuffle library (Console).
     - **Báo cáo:** `node scripts/listening-report.mjs` ghi ra `plan/reports/listening-report.md` gồm tỉ lệ nghe hết và skip sớm theo nguồn và theo tuần, độ phủ thư viện trong 30 ngày, và tỉ lệ lặp bài trong 3 ngày.

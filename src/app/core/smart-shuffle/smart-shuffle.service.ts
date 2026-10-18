@@ -9,6 +9,8 @@ import { newSession, PlanEntry, planUpcoming, Random, ScoreContext, suggestionSp
 
 /** How many tracks before the current one count as context for the next picks. */
 const RECENT_CONTEXT = 4;
+/** How many suggestions Autoplay queues at a time. */
+const AUTOPLAY_BATCH = 5;
 
 /**
  * Arranges the queue while Smart Shuffle is on: the user's tracks in taste order with suggestions mixed in
@@ -36,6 +38,7 @@ export class SmartShuffleService {
   private reorderNext = false;
   private refreshNext = false;
   private lastSignature = '';
+  private autoplaySignature = '';
   private scheduled = false;
   private wasEnabled = false;
   private arranging = false;
@@ -52,11 +55,17 @@ export class SmartShuffleService {
       const enabled = this.player.smartShuffle();
       this.player.queue();
       this.player.currentIndex();
+      // Autoplay's conditions.
+      this.player.autoplay();
+      this.player.repeatMode();
+      this.player.modesLocked();
+      this.player.isPlaybackActive();
       untracked(() => {
         // Turned on (by either cycle or a restored setting): the user's tracks get a fresh taste order.
         if (enabled && !this.wasEnabled) this.reorderNext = true;
         this.wasEnabled = enabled;
         if (enabled) this.schedule();
+        else void this.autoplay();
       });
     });
   }
@@ -165,6 +174,42 @@ export class SmartShuffleService {
       console.warn('Smart Shuffle could not arrange the queue', error);
     } finally {
       this.arranging = false;
+    }
+  }
+
+  private autoplayAllowed(): boolean {
+    const player = this.player;
+    return player.autoplay() && !player.smartShuffle() && player.repeatMode() === 'off' && !player.modesLocked() && player.isPlaybackActive();
+  }
+
+  /**
+   * Autoplay: on the last playable entry, queues the next `AUTOPLAY_BATCH` suggestions, linked on from the tracks
+   * just played. Appending before the queue ends keeps gapless and crossfade; the last of them appends more.
+   */
+  private async autoplay(): Promise<void> {
+    if (!this.autoplayAllowed()) return;
+    const queue = this.player.queue();
+    const index = this.player.currentIndex();
+    if (index < 0 || queue.slice(index + 1).some((entry) => entry.track.isAvailable)) return;
+    // Once per queue state, so a library with nothing left to suggest is not asked again and again.
+    const signature = signatureOf(queue, index);
+    if (signature === this.autoplaySignature) return;
+    this.autoplaySignature = signature;
+    try {
+      await this.ensureLoaded();
+      // Things changed while the library loaded: the effect asks again for the new state.
+      if (!this.autoplayAllowed() || this.player.queue() !== queue || this.player.currentIndex() !== index) {
+        this.autoplaySignature = '';
+        return;
+      }
+      const plan = planUpcoming({
+        upcoming: [], recent: queue.slice(Math.max(0, index - RECENT_CONTEXT), index + 1).map((entry) => entry.track.id),
+        userRun: 0, every: suggestionSpacing(this.events), window: AUTOPLAY_BATCH, refresh: false, reorder: false,
+        exclude: new Set([...this.sessionExclude, ...queue.map((entry) => entry.track.id)]),
+      }, this.context());
+      this.player.appendSuggestions(plan.map((item) => this.player.createSuggestedEntry(this.tracks.get(item.trackId)!)));
+    } catch (error) {
+      console.warn('Autoplay could not queue suggestions', error);
     }
   }
 

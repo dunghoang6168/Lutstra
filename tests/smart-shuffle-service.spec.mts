@@ -40,7 +40,9 @@ async function setup() {
   const tracks = (await library.getLibrary()).tracks.filter((track) => track.isAvailable);
   const turnOn = async () => { await service.cycleShuffle(); await service.cycleShuffle(); };
   const arrange = () => (service as any).arrange() as Promise<void>;
-  return { player, history, service, tracks, arrange, turnOn };
+  const autoplay = () => (service as any).autoplay() as Promise<void>;
+  const playing = () => engine.stateChange$.next({ state: 'playing', track: player.currentTrack() });
+  return { player, history, service, tracks, arrange, turnOn, autoplay, playing };
 }
 
 describe('SmartShuffleService', () => {
@@ -131,5 +133,81 @@ describe('SmartShuffleService', () => {
     await service.cyclePlaybackMode();
     expect(player.isShuffle()).toBe(false);
     expect(player.smartShuffle()).toBe(false);
+  });
+});
+
+describe('Autoplay', () => {
+  it('is off unless the settings turn it on (the desktop has no switch yet)', async () => {
+    const { player, tracks, autoplay, playing } = await setup();
+    await player.playCollection(tracks.slice(0, 2), 1);
+    playing();
+    await autoplay();
+    expect(player.autoplay()).toBe(false);
+    expect(player.queue().length).toBe(2);
+  });
+
+  it('queues suggestions once the last entry plays, after the user tracks in their order', async () => {
+    const { player, tracks, autoplay, playing } = await setup();
+    player.autoplay.set(true);
+    const own = tracks.slice(0, 3);
+    await player.playCollection(own, 0);
+    playing();
+    await autoplay();
+    expect(player.queue().length).toBe(3);
+
+    await player.jumpToQueueIndex(2);
+    playing();
+    await autoplay();
+    const queue = player.queue();
+    expect(queue.slice(0, 3).map((entry) => entry.track.id)).toEqual(own.map((track) => track.id));
+    expect(queue.slice(3).length).toBe(5);
+    expect(queue.slice(3).every((entry) => entry.suggested)).toBe(true);
+    expect(new Set(queue.map((entry) => entry.track.id)).size).toBe(8);
+  });
+
+  it('stays off with Smart Shuffle, repeat, the setting off or while paused', async () => {
+    const { player, tracks, autoplay, playing } = await setup();
+    player.autoplay.set(true);
+    await player.playCollection(tracks.slice(0, 2), 1);
+    await autoplay();
+    expect(player.queue().length).toBe(2);
+    playing();
+    player.setRepeatMode('all');
+    await autoplay();
+    player.setRepeatMode('off');
+    player.setAutoplay(false);
+    await autoplay();
+    expect(player.queue().length).toBe(2);
+  });
+
+  it('drops the suggestions not played yet when turned off', async () => {
+    const { player, tracks, autoplay, playing } = await setup();
+    player.autoplay.set(true);
+    await player.playCollection(tracks.slice(0, 2), 1);
+    playing();
+    await autoplay();
+    await player.jumpToQueueIndex(2);
+    player.setAutoplay(false);
+    expect(player.queue().length).toBe(3);
+    expect(player.currentIndex()).toBe(2);
+  });
+
+  it('puts Add to queue before its suggestions and keeps them last through shuffle', async () => {
+    const { player, tracks, autoplay, playing } = await setup();
+    player.autoplay.set(true);
+    const own = tracks.slice(0, 3);
+    await player.playCollection(own, 2);
+    playing();
+    await autoplay();
+    player.addToQueue([tracks[10]]);
+    expect(player.queue()[3].track.id).toBe(tracks[10].id);
+    expect(player.queue().slice(4).every((entry) => entry.suggested)).toBe(true);
+
+    player.toggleShuffle();
+    expect(player.queue().slice(-5).every((entry) => entry.suggested)).toBe(true);
+    player.toggleShuffle();
+    expect(player.queue().slice(0, 4).map((entry) => entry.track.id)).toEqual([...own, tracks[10]].map((track) => track.id));
+    expect(player.queue().slice(4).every((entry) => entry.suggested)).toBe(true);
+    expect(player.currentIndex()).toBe(2);
   });
 });

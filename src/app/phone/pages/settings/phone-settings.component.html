@@ -104,6 +104,17 @@
   </section>
 }
 
+<section class="group" aria-labelledby="playbackTitle">
+  <h2 id="playbackTitle" class="section-title">Autoplay</h2>
+  <p class="sub-desc">Keep playing similar tracks when the queue ends.</p>
+  <div class="segmented" role="radiogroup" aria-label="Autoplay">
+    <button type="button" role="radio" class="segment" [attr.aria-checked]="player.autoplay()"
+      (click)="player.setAutoplay(true)">On</button>
+    <button type="button" role="radio" class="segment" [attr.aria-checked]="!player.autoplay()"
+      (click)="player.setAutoplay(false)">Off</button>
+  </div>
+</section>
+
 <section class="group" aria-labelledby="historyTitle">
   <h2 id="historyTitle" class="section-title">Listening history</h2>
   <p class="sub-desc">Smart Shuffle learns from the tracks you play. The history stays on this phone.</p>

@@ -48,7 +48,7 @@ export interface PlanInput {
 }
 
 export const SUGGESTION_WINDOW = 10;
-export const DEFAULT_EVERY = 3;
+export const DEFAULT_EVERY = 5;
 export const MAX_SAME_ARTIST_RUN = 2;
 
 export function newSession(): SessionState {
@@ -172,15 +172,15 @@ export function pickSuggestion(
 
 /**
  * How many of the user's tracks go between two suggestions, from the last 20 suggestions:
- * mostly skipped early spaces them out (up to 6), mostly played through brings them closer (2).
+ * mostly skipped early spaces them out (up to 8), mostly played through brings them closer (4).
  */
 export function suggestionSpacing(events: readonly PlayEvent[]): number {
   const recent = events.filter((event) => event.source === 'smart-shuffle').slice(-20);
   if (recent.length < 5) return DEFAULT_EVERY;
   const early = recent.filter((event) => event.endReason === 'removed' || (event.endReason !== 'ended' && event.playedSeconds < 30)).length / recent.length;
   const through = recent.filter((event) => event.endReason === 'ended' || (event.duration > 0 && event.playedSeconds / event.duration >= 0.8)).length / recent.length;
-  if (early > 0.5) return Math.min(6, DEFAULT_EVERY + Math.ceil((early - 0.5) * 6));
-  if (through >= 0.7) return 2;
+  if (early > 0.5) return Math.min(8, DEFAULT_EVERY + Math.ceil((early - 0.5) * 6));
+  if (through >= 0.7) return 4;
   return DEFAULT_EVERY;
 }
 

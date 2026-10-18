@@ -100,6 +100,8 @@ export interface Settings {
   repeatMode: RepeatMode;
   shuffle: boolean;
   smartShuffle: boolean;
+  /** Keep playing suggestions once the queue ends (Smart Shuffle off, repeat off). */
+  autoplay: boolean;
   crossfadeEnabled: boolean;
   crossfadeSeconds: number;
   preferredAudioOutputId: string;

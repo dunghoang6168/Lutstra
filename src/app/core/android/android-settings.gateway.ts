@@ -27,8 +27,8 @@ export class AndroidSettingsGateway implements SettingsGateway {
   private readonly ready: Promise<Settings>;
 
   constructor() {
-    // Media3 cannot crossfade, so crossfade starts off. The phone's default accent is blue.
-    this.ready = this.inner.saveSettings({ crossfadeEnabled: false, accentColor: 'blue', ...read<Partial<Settings>>(SETTINGS_KEY), musicFolders: [] });
+    // Media3 cannot crossfade, so crossfade starts off. The phone's default accent is blue, and Autoplay starts on.
+    this.ready = this.inner.saveSettings({ crossfadeEnabled: false, autoplay: true, accentColor: 'blue', ...read<Partial<Settings>>(SETTINGS_KEY), musicFolders: [] });
   }
 
   async getSettings(): Promise<Settings> {
