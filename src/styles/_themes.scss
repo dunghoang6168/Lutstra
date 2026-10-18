@@ -385,6 +385,12 @@ html[data-layout='phone'] {
   --phone-sheet-action-height: 56px;
   --phone-queue-cover: 44px;
   --phone-path-icon: 36px;
+  --phone-seek-height: 14px;
+  --phone-seek-grow: 1.3;
+  --phone-seek-gap: 5px;
+  --phone-seek-thumb-width: 4px;
+  --phone-toggle-gap: 6px;
+  --phone-toggle-height: 52px;
   /* A pressed transport pill widens for this long (PixelPlayer's release delay). */
   --phone-press-dur: 220ms;
   /* Now Playing's cover colours change with the cover's crossfade. */

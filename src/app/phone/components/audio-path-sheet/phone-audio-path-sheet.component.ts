@@ -31,7 +31,7 @@ export class PhoneAudioPathSheetComponent {
   readonly icons = ICONS;
   readonly path = computed(() => {
     const out = output();
-    return out ? audioPath(out) : null;
+    return out ? audioPath(out, this.player.currentTrack()?.bitDepth ?? null) : null;
   });
   readonly mode = computed(() => ({ shared: 'Shared', match: 'File rate', bitperfect: 'Bit-perfect' } as Record<string, string>)[output()?.usbMode ?? 'shared'] ?? 'Shared');
   /** The file as the library read it: codec, bits, rate, channels, bitrate. */

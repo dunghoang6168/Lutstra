@@ -41,9 +41,27 @@ export async function requestBluetoothAccess(): Promise<void> {
 const BITS: Record<string, string> = { pcm16: '16-bit', pcm24: '24-bit', pcm32: '32-bit', float: 'float' };
 const DEVICE: Record<OutputDeviceKind, string> = { speaker: 'Phone speaker', wired: 'Wired', usb: 'USB DAC', bluetooth: 'Bluetooth', capture: 'Screen capture', other: 'Other' };
 
+const INTEGER_BITS: Record<string, string> = { pcm16: '16-bit', pcm24: '24-bit', pcm32: '32-bit' };
+
+/**
+ * The bits the device receives, only as Android reports them: the USB mixer's format when Lutstra set it, the
+ * Bluetooth link's bits, or the device's one integer format (the speaker lists pcm16 alone); otherwise null.
+ */
+export function outputBits(out: NativeOutput): string | null {
+  const kind = out.device?.kind;
+  if (kind === 'bluetooth') return out.bluetooth?.bits ? `${out.bluetooth.bits}-bit` : null;
+  if (out.mixer.matched && out.mixer.encoding) return INTEGER_BITS[out.mixer.encoding] ?? null;
+  const integer = (out.device?.encodings ?? []).filter((encoding) => encoding in INTEGER_BITS);
+  return integer.length === 1 ? INTEGER_BITS[integer[0]] : null;
+}
+
 export interface OutputPath {
   /** Where the stream goes: "Android mixer", "USB mixer" (at the file's rate), "USB bit-perfect", "Bluetooth". */
   path: string;
+  /** The chip's name for the output: "Speaker", "Wired", the Bluetooth codec, or the USB path. */
+  label: string;
+  /** The bits the device receives (see outputBits). */
+  outBits: string | null;
   device: string | null;
   /** What Lutstra hands Android: "16-bit" or "float", and its rate. */
   bits: string | null;
@@ -79,8 +97,11 @@ export function describeOutput(out: NativeOutput | null): OutputPath | null {
   } else if (mixer.bitPerfect) note = 'Lutstra’s stream reaches the DAC untouched: no mixing, no volume scaling.';
   else if (usb && mixer.matched && out.usbMode === 'bitperfect') note = 'The DAC has no bit-perfect format for this stream, so Android mixes it at the file’s rate. Nothing is resampled.';
   else if (usb && mixer.matched) note = 'The DAC runs at the file’s rate, so nothing is resampled. Android still mixes it, so this is not bit-perfect.';
+  const label = kind === 'speaker' ? 'Speaker' : kind === 'wired' ? 'Wired' : kind === 'bluetooth' ? codec ?? 'Bluetooth' : path;
   return {
     path,
+    label,
+    outBits: outputBits(out),
     device: out.device ? out.device.name || DEVICE[out.device.kind] : null,
     bits: stream ? BITS[stream.encoding] ?? stream.encoding : null,
     streamKhz: stream ? formatKhz(stream.sampleRate) : null,

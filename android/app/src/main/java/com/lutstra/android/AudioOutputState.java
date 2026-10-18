@@ -307,6 +307,10 @@ final class AudioOutputState implements AudioOutputProvider {
             JSObject json = new JSObject();
             json.put("kind", kind);
             if ("usb".equals(kind) || "bluetooth".equals(kind)) json.put("name", device.getProductName().toString());
+            // The PCM formats the device takes; one integer format alone is what it receives (the speaker's 16-bit).
+            com.getcapacitor.JSArray encodings = new com.getcapacitor.JSArray();
+            for (int encoding : device.getEncodings()) encodings.put(encodingName(encoding));
+            json.put("encodings", encodings);
             out.put("device", json);
         }
         BluetoothCodecConfig link = codec;

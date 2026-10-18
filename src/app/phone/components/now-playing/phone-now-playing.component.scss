@@ -124,7 +124,94 @@
   color: var(--text-secondary);
 }
 
-.np-timeline app-range-slider { --range-hit-height: var(--touch-target); }
+/*
+ * The timeline: a thick pill split at the playhead by a thumb line with a gap on each side, after Material 3's
+ * expressive slider. --p (0–1) is set every frame from the playhead; held, the bar and the times grow.
+ */
+.np-seek {
+  --p: 0;
+  --seek-fill: var(--np-on, var(--accent-primary));
+  --seek-rest: var(--np-track, var(--border-default));
+  --seek-gap: var(--phone-seek-gap);
+  position: relative;
+  height: var(--touch-target);
+  touch-action: none; /* a sideways drag is a seek, not a scroll */
+}
+
+/* Both parts span the bar and are clipped at the playhead, so a frame repaints without a layout. */
+.seek-played,
+.seek-rest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--phone-seek-height);
+  margin-top: calc(var(--phone-seek-height) / -2);
+  border-radius: var(--radius-full);
+  transition: scale var(--phone-press-dur) var(--motion-ease), background-color var(--np-tint-dur) var(--motion-ease);
+}
+
+.seek-played {
+  clip-path: inset(0 calc((1 - var(--p)) * 100% + var(--seek-gap)) 0 0 round var(--radius-full));
+  background: var(--seek-fill);
+}
+
+.seek-rest {
+  clip-path: inset(0 0 0 calc(var(--p) * 100% + var(--seek-gap)) round var(--radius-full));
+  background: var(--seek-rest);
+}
+
+/* The thumb rides a full-width layer moved by translate (a percentage of the bar). */
+.seek-head {
+  position: absolute;
+  inset: 0;
+  translate: calc(var(--p) * 100%) 0;
+  pointer-events: none;
+}
+
+.seek-thumb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--phone-seek-thumb-width);
+  height: calc(var(--phone-seek-height) + var(--space-3));
+  translate: -50% -50%;
+  border-radius: var(--radius-full);
+  background: var(--seek-fill);
+  transition: scale var(--phone-press-dur) var(--motion-ease), background-color var(--np-tint-dur) var(--motion-ease);
+}
+
+/* Held: the bar thickens and the thumb grows and turns to ink. */
+.np-seek.dragging .seek-played,
+.np-seek.dragging .seek-rest { scale: 1 var(--phone-seek-grow); }
+
+.np-seek.dragging .seek-thumb {
+  scale: 1 var(--phone-seek-grow);
+  background: var(--text-primary);
+}
+
+/* The native input stays on top, invisible, so touch, keys and screen readers seek as usual. */
+.np-seek input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.np-seek:has(input:focus-visible) .seek-thumb {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seek-played,
+  .seek-rest,
+  .seek-thumb,
+  .np-time { transition: none; }
+}
 
 .np-times {
   display: flex;
@@ -136,6 +223,27 @@
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.np-time { flex: none; transition: scale var(--phone-press-dur) var(--motion-ease), color var(--phone-press-dur) var(--motion-ease); }
+.np-time:first-child { transform-origin: left center; }
+.np-time-end { transform-origin: right center; }
+
+/* While the bar is held the times are what you read, so they grow. */
+.np-times.dragging .np-time { scale: 1.25; color: var(--text-primary); }
+
+/* The right time is a toggle between the length and the time left; its hit area is a full touch target. */
+.np-time-end {
+  position: relative;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--space-3) * -1) calc(var(--space-2) * -1);
+  }
 }
 
 /* The output path between the times: secondary, never accent, since the phone is never bit-perfect. Only the number is mono. */
@@ -209,11 +317,15 @@
   .transport-btn { transition: none; }
 }
 
-/* Shuffle and repeat as one pill of segments; on is accent, the only colour that means something here. */
+/*
+ * Shuffle and repeat after PixelPlayer's BottomToggleRow: a pill holding square-ish segments (the pill clips their
+ * outer ends round); a segment that is on swells into a pill of its own, each in its own tone.
+ */
 .np-toggles {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: var(--phone-toggle-gap);
+  padding: var(--phone-toggle-gap);
+  overflow: hidden;
   border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
 }
@@ -227,19 +339,28 @@
   min-width: 0;
   font-size: var(--font-size-sm);
   font-weight: 600;
-  height: var(--touch-target);
-  border-radius: var(--radius-full);
+  height: var(--phone-toggle-height);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  transition: border-radius var(--motion-dur) var(--motion-ease), background-color var(--motion-dur) var(--motion-ease);
 }
 
+/*
+ * The row's ends stay round like the pill around them; only the inner edges are square-ish. Half the height, not
+ * --radius-full: a 9999px corner makes the browser scale every corner of the box down, squaring the inner ones.
+ */
+.toggle:first-child { border-start-start-radius: calc(var(--phone-toggle-height) / 2); border-end-start-radius: calc(var(--phone-toggle-height) / 2); }
+.toggle:last-child { border-start-end-radius: calc(var(--phone-toggle-height) / 2); border-end-end-radius: calc(var(--phone-toggle-height) / 2); }
+
 .toggle.on {
+  border-radius: calc(var(--phone-toggle-height) / 2);
   color: var(--text-accent);
   background: var(--accent-muted);
 }
 
 .toggle.on { font-weight: 700; }
-.toggle:disabled { opacity: 0.5; }
+.toggle:disabled { opacity: 0.5; background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
 
 .np-toggle-note {
   margin: calc(var(--space-3) * -1) 0 0;
@@ -271,15 +392,12 @@
   .np-times { color: var(--np-text-2); }
   .np-output { color: var(--np-text-2); background: var(--np-track); }
   .np-toggles { background: var(--np-track); }
-  .toggle { color: var(--np-text-2); background: transparent; }
+  .toggle { color: var(--np-text-2); background: color-mix(in srgb, var(--np-on-skip) 8%, transparent); }
   .toggle.on { color: var(--np-on-on); background: var(--np-on); }
+  .toggle.repeat.on { color: var(--np-on-play); background: var(--np-play); }
   .tonal-btn:active,
   .transport-btn:active { filter: brightness(1.15); }
 
-  .np-timeline app-range-slider {
-    --range-fill-color: var(--np-on);
-    --color-border: var(--np-track);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

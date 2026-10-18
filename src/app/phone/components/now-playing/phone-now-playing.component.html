@@ -33,21 +33,31 @@
     </div>
 
     <div class="np-timeline">
-      <app-range-slider [min]="0" [max]="player.duration() || 0" [step]="1" [value]="position()"
-        [disabled]="!player.duration()" ariaLabel="Seek"
-        [ariaValueText]="(position() | duration) + ' of ' + (player.duration() | duration)"
-        (valueChange)="onSeekInput($event)" (adjustingChange)="onScrubbing($event)" />
-      <div class="np-times">
+      <!-- A thick bar split by a thumb line, after Material 3's expressive slider; a native range input does the work. -->
+      <div #seekBar class="np-seek" [class.dragging]="dragging()">
+        <span class="seek-played" aria-hidden="true"></span>
+        <span class="seek-rest" aria-hidden="true"></span>
+        <span class="seek-head" aria-hidden="true"><span class="seek-thumb"></span></span>
+        <input type="range" min="0" [max]="player.duration() || 0" step="1" [value]="position()"
+          [disabled]="!player.duration()" aria-label="Seek"
+          [attr.aria-valuetext]="(position() | duration) + ' of ' + (player.duration() | duration)"
+          (pointerdown)="dragging.set(true)" (input)="onSeekInput($event)" (change)="onSeekCommit()"
+          (pointerup)="onSeekCommit()" (pointercancel)="onSeekCommit()" />
+      </div>
+      <div class="np-times" [class.dragging]="dragging()">
         <span class="np-time">{{ position() | duration }}</span>
         @if (output(); as output) {
           <!-- Only what Android confirms: the path, the stream Lutstra writes and the device's rate. -->
           <button type="button" class="np-output" (click)="openAudioPath()" aria-haspopup="dialog"
-            [attr.aria-label]="'Audio path: ' + output.path + (output.khz ? ', ' + output.khz + ' kHz' : '')">
-            <span class="np-output-text">{{ output.path }}@if (output.bits) { · <span class="measure">{{ output.bits }}</span>}@if (output.khz) { · <span class="measure">{{ output.khz }}</span> kHz}</span>
+            [attr.aria-label]="'Audio path: ' + output.label + (output.outBits ? ', ' + output.outBits : '') + (output.khz ? ', ' + output.khz + ' kHz' : '')">
+            <span class="np-output-text">{{ output.label }}@if (output.outBits) { · <span class="measure">{{ output.outBits }}</span>}@if (output.khz) { · <span class="measure">{{ output.khz }}</span> kHz}</span>
             <app-icon name="chevron-right" [size]="14" />
           </button>
         }
-        <span class="np-time">{{ player.duration() | duration }}</span>
+        <button type="button" class="np-time np-time-end" (click)="toggleRemaining()"
+          [attr.aria-label]="showRemaining() ? (remaining() | duration) + ' left. Tap to show the length' : 'Length ' + (player.duration() | duration) + '. Tap to show the time left'">
+          {{ showRemaining() ? '−' + (remaining() | duration) : (player.duration() | duration) }}
+        </button>
       </div>
     </div>
 
@@ -73,7 +83,7 @@
           <span aria-hidden="true">{{ shuffleText() }}</span>
         </button>
         <!-- Smart Shuffle never runs out, so repeat does not apply while it is on. -->
-        <button type="button" class="toggle" [class.on]="player.repeatMode() !== 'off' && !player.smartShuffle()"
+        <button type="button" class="toggle repeat" [class.on]="player.repeatMode() !== 'off' && !player.smartShuffle()"
           [attr.aria-pressed]="player.repeatMode() !== 'off' && !player.smartShuffle()" [disabled]="player.smartShuffle()"
           (click)="player.cycleRepeatMode()" [attr.aria-label]="repeatLabel()">
           <app-icon [name]="player.repeatMode() === 'one' ? 'repeat-one' : 'repeat'" [size]="20" />

@@ -62,6 +62,19 @@ describe('Android Media3 playback engine', () => {
     engine.dispose();
   });
 
+  it('keeps a seek on the timeline until Media3 reports it', async () => {
+    const { plugin, emit } = fakeNative();
+    const engine = new AndroidPlaybackEngine(zone, plugin);
+    const times: number[] = [];
+    engine.timeUpdate$.subscribe((event) => times.push(event.currentTime));
+    await engine.load(track('a'));
+    engine.seek(60);
+    emit('state', native({ positionMs: 10_000, durationMs: 120_000 }));
+    emit('state', native({ positionMs: 60_200, durationMs: 120_000 }));
+    expect(times.slice(-2)).toEqual([60, 60.2]);
+    engine.dispose();
+  });
+
   it('drops a preparation that a newer load superseded', async () => {
     const { plugin } = fakeNative();
     const engine = new AndroidPlaybackEngine(zone, plugin);

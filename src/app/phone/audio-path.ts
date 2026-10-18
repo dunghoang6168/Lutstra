@@ -1,5 +1,6 @@
 import type { NativeOutput } from '../core/android/android-playback.engine';
 import { formatKhz } from '../features/home/library-quality';
+import { outputBits } from './app-shell';
 
 /** A run of text; measurements are set in mono. */
 export interface PathPart {
@@ -24,14 +25,22 @@ export interface AudioPath {
 
 const m = (text: string): PathPart => ({ text, measure: true });
 const t = (text: string): PathPart => ({ text });
-const BITS: Record<string, string> = { pcm16: '16-bit', pcm24: '24-bit', pcm32: '32-bit', float: '32-bit float' };
 const DEVICE = { speaker: 'Phone speaker', wired: 'Wired headphones', usb: 'USB DAC', bluetooth: 'Bluetooth', capture: 'Screen capture', other: 'Other output' };
 
+/** "16-bit · 48 kHz": bits first, then the rate; either may be unknown. */
+function bitsAndRate(bits: string | null, khz: string | null): PathPart[] {
+  const parts: PathPart[] = [];
+  if (bits) parts.push(m(bits));
+  if (khz) parts.push(...(parts.length ? [t(' · ')] : []), m(khz), t(' kHz'));
+  return parts;
+}
+
 /**
- * The Audio path sheet's steps after the file, after Poweramp's audio info chain: decoder, Lutstra, Android's mixer
- * (or the USB mixer), the Bluetooth codec, the device. Only what Android reports is stated; an unknown rate says so.
+ * The Audio path sheet's steps after the file, after Poweramp's audio info chain: decoder, Lutstra → Android,
+ * Android's mixer (or the USB mixer), and the output the device receives, bits before the rate. Only what Android
+ * reports is stated; an unknown rate or bit depth is left out. `fileBits` lets the note say when bits are cut.
  */
-export function audioPath(out: NativeOutput): AudioPath {
+export function audioPath(out: NativeOutput, fileBits: number | null = null): AudioPath {
   const kind = out.device?.kind ?? null;
   const { mixer, stream } = out;
   const usb = kind === 'usb';
@@ -41,34 +50,37 @@ export function audioPath(out: NativeOutput): AudioPath {
   const rate = link ? link.sampleRate : mixer.sampleRate;
   const streamKhz = stream ? formatKhz(stream.sampleRate) : null;
   const khz = rate ? formatKhz(rate) : null;
+  const bits = outputBits(out);
   const resampled = !!rate && !!stream && stream.sampleRate !== rate;
+  const device = out.device ? out.device.name || DEVICE[out.device.kind] : 'Not reported';
+  const resampleParts = (): PathPart[] => [t('Android resamples '), m(streamKhz!), t(' → '), m(khz!), t(' kHz')];
+  const withSpecs = (name: string): PathPart[] => [t(name), ...(bits || khz ? [t(' · '), ...bitsAndRate(bits, khz)] : [])];
   const steps: PathStep[] = [];
 
   steps.push({
     icon: 'decoder', label: 'Decoder', value: [t(out.decoder ? decoderName(out.decoder) : 'Android decoder')],
-    detail: out.decoder ? `${out.decoder} · to float, exact` : 'To float, exact',
+    detail: out.decoder ?? undefined,
   });
   steps.push({
-    icon: 'app', label: 'Lutstra', value: stream ? [t('Float · '), m(streamKhz!), t(' kHz')] : [t('Float')],
-    detail: 'No EQ or effects. Volume stays full; the phone’s keys set it.',
+    icon: 'app', label: 'Lutstra → Android', value: [m('32-bit'), t(' float'), ...(streamKhz ? [t(' · '), m(streamKhz), t(' kHz')] : [])],
+    detail: 'Float is Android’s working format: 16- and 24-bit files fit in it exactly. No EQ, volume stays full.',
   });
 
   let verdict: AudioPath['verdict'];
   let note = 'Android mixes every app’s audio, so this is not bit-perfect. The file itself is untouched.';
+  let output: PathStep = { icon: usb ? 'usb' : kind === 'wired' ? 'wired' : 'speaker', label: 'Output', value: withSpecs(device) };
+
   if (kind === 'capture') {
     steps.push({ icon: 'mixer', label: 'Android', value: [t('Sent to a screen capture')], detail: 'Another app is recording what plays, so Android sends it there.' });
     verdict = { parts: [t('Another app is capturing what plays')], ok: false };
     note = 'Stop the screen mirror (for example Phone View) to hear Lutstra on your own output again.';
   } else if (mixer.bitPerfect) {
-    steps.push({ icon: 'mixer', label: 'USB', value: [t('Bit-perfect · '), m(khz ?? ''), t(' kHz')], detail: 'Not mixed, no volume scaling.' });
+    steps.push({ icon: 'mixer', label: 'USB', value: [t('Bit-perfect')], detail: 'Not mixed, no volume scaling.' });
     verdict = { parts: [t('Bit-perfect: the DAC gets the stream untouched')], ok: true };
     note = 'Lutstra’s stream reaches the DAC untouched: no mixing, no volume scaling.';
   } else if (usb && mixer.matched) {
-    const bits = mixer.encoding ? BITS[mixer.encoding] ?? mixer.encoding : null;
-    steps.push({ icon: 'mixer', label: 'USB mixer', value: [m(khz ?? ''), t(' kHz'), ...(bits ? [t(' · '), m(bits)] : []), t(' · File rate')], detail: 'Android still mixes, so this is not bit-perfect.' });
-    verdict = resampled
-      ? { parts: [t('Android resamples '), m(streamKhz!), t(' → '), m(khz!), t(' kHz')], ok: false }
-      : { parts: [t('Nothing resampled: the DAC runs at the file’s rate')], ok: true };
+    steps.push({ icon: 'mixer', label: 'USB mixer', value: [t('File rate')], detail: 'Android still mixes, so this is not bit-perfect.' });
+    verdict = resampled ? { parts: resampleParts(), ok: false } : { parts: [t('Nothing resampled: the DAC runs at the file’s rate')], ok: true };
     note = 'The DAC runs at the file’s rate, so nothing is resampled. Android still mixes it, so this is not bit-perfect.';
   } else if (bluetooth) {
     steps.push(resampled
@@ -76,25 +88,31 @@ export function audioPath(out: NativeOutput): AudioPath {
       : khz
         ? { icon: 'mixer', label: 'Android', value: [t('Same rate as the link')], detail: 'Nothing is resampled on the way to Bluetooth.' }
         : { icon: 'mixer', label: 'Android mixer', value: [t('Rate not reported')], detail: 'Android does not say which rate, so Lutstra does not guess.' });
-    steps.push(link
-      ? { icon: 'bluetooth', label: 'Bluetooth', value: [t(`${codec} · `), m(khz ?? ''), t(' kHz'), ...(link.bits ? [t(' · '), m(`${link.bits}-bit`)] : [])],
-          detail: link.ldac === 'adaptive' ? 'Re-encoded for the headphones. Adaptive lowers the bitrate when the signal weakens (up to 990 kbps).' : 'Re-encoded for the headphones.' }
-      : { icon: 'bluetooth', label: 'Bluetooth', value: [t('Codec not known')], detail: out.codecAccess === 'needed' ? 'Allow Nearby devices in Settings to see the codec.' : 'Android did not report the codec.' });
+    output = link
+      ? { icon: 'bluetooth', label: 'Output', value: withSpecs(codec!),
+          detail: `Re-encoded for ${device}${link.ldac === 'adaptive' ? '; adaptive lowers the bitrate when the signal weakens (up to 990 kbps)' : ''}.` }
+      : { icon: 'bluetooth', label: 'Output', value: [t(device)],
+          detail: out.codecAccess === 'needed' ? 'Allow Nearby devices in Settings to see the codec.' : 'Android did not report the codec.' };
     verdict = resampled
-      ? { parts: [t('Android resamples '), m(streamKhz!), t(' → '), m(khz!), t(` kHz${link ? ` for ${link.codec}` : ''}`)], ok: false }
+      ? { parts: [...resampleParts(), t(link ? ` for ${link.codec}` : '')], ok: false }
       : { parts: [t(`Nothing resampled; ${link?.codec ?? 'Bluetooth'} still re-encodes it`)], ok: false };
     note = 'Bluetooth sends a compressed copy, so this is not bit-perfect. The file itself is untouched.';
   } else {
     steps.push(khz
-      ? { icon: 'mixer', label: usb ? 'Android mixer (Shared)' : 'Android mixer', value: [m(khz), t(resampled ? ' kHz · resampled' : ' kHz')], detail: 'Every app’s sound is mixed here at one rate.' }
+      ? { icon: 'mixer', label: usb ? 'Android mixer (Shared)' : 'Android mixer', value: resampled ? [t('Resampled to '), m(khz), t(' kHz')] : [m(khz), t(' kHz · mixed in float')],
+          detail: 'Every app’s sound is mixed here at one rate.' }
       : { icon: 'mixer', label: 'Android mixer', value: [t('Rate not reported')], detail: 'Android does not say which rate, so Lutstra does not guess.' });
     verdict = resampled
-      ? { parts: [t('Android resamples '), m(streamKhz!), t(' → '), m(khz!), t(' kHz')], ok: false }
+      ? { parts: resampleParts(), ok: false }
       : khz
-        ? { parts: [t('Nothing resampled; Android still mixes it')], ok: false }
+        ? { parts: [t(`Nothing resampled; Android mixes it${bits ? ` and sends ${bits}` : ''}`)], ok: false }
         : { parts: [t('Android does not report the output rate')], ok: false };
+    const outBits = bits ? Number.parseInt(bits, 10) : 0;
+    if (fileBits && outBits && fileBits > outBits) {
+      note = `Your ${fileBits}-bit file is cut to ${bits} at the ${kind === 'speaker' ? 'speaker' : 'output'}. ${note}`;
+    }
   }
-  steps.push({ icon: usb ? 'usb' : bluetooth ? 'wired' : kind === 'wired' ? 'wired' : 'speaker', label: 'Device', value: [t(out.device ? out.device.name || DEVICE[out.device.kind] : 'Not reported')] });
+  steps.push(output);
   return { verdict, steps, note, usb };
 }
 

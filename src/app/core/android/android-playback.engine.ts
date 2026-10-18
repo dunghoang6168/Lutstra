@@ -45,7 +45,8 @@ export type UsbMode = 'shared' | 'match' | 'bitperfect';
 
 /** What the audio goes through now (`AudioOutputState.snapshot`); absent fields are unknown. */
 export interface NativeOutput {
-  device?: { kind: OutputDeviceKind; name?: string };
+  /** The routed device; encodings are the PCM formats it takes (pcm16, pcm24, pcm32, float). */
+  device?: { kind: OutputDeviceKind; name?: string; encodings?: string[] };
   /** The AudioTrack ExoPlayer writes: encoding is pcm16, pcm24, pcm32 or float. */
   stream?: { encoding: string; sampleRate: number; channels: number; offload: boolean };
   /** The device's mixer: its rate when known, whether it runs at Lutstra's request (matched) and unmixed (bitPerfect). */
@@ -103,6 +104,8 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
   private lastState: PlaybackState = 'idle';
   private pending: { track: Track; resolve: (done: boolean) => void; timeout: ReturnType<typeof setTimeout> } | null = null;
   private ticker: ReturnType<typeof setInterval> | null = null;
+  /** A seek just sent: a report from before it landed would pull the timeline back, so it is dropped for a moment. */
+  private pendingSeek: { seconds: number; until: number } | null = null;
   private readonly listeners: Promise<PluginListenerHandle>[];
 
   private readonly stateSubject = new BehaviorSubject<PlaybackStateEvent>({ state: 'idle', track: null });
@@ -155,6 +158,7 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
   seek(positionSeconds: number): void {
     const seconds = Math.max(0, positionSeconds);
     void this.native.seekTo({ positionMs: Math.round(seconds * 1000) });
+    this.pendingSeek = { seconds, until: Date.now() + 1500 };
     this.timeSubject.next({ currentTime: seconds, duration: this.current?.duration ?? 0 });
   }
 
@@ -285,7 +289,11 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
 
   private emitTime(native: NativePlaybackState): void {
     const duration = native.durationMs > 0 ? native.durationMs / 1000 : this.current?.duration ?? 0;
-    this.timeSubject.next({ currentTime: Math.max(0, native.positionMs / 1000), duration });
+    const seconds = Math.max(0, native.positionMs / 1000);
+    const pending = this.pendingSeek;
+    if (pending && Date.now() < pending.until && Math.abs(seconds - pending.seconds) > 1) return;
+    this.pendingSeek = null;
+    this.timeSubject.next({ currentTime: seconds, duration });
   }
 
   private startTicker(): void {
