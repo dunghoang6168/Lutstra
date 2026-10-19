@@ -13,6 +13,8 @@ const TENSION_PX = 60;
 const TENSION_SHOWN_PX = 20;
 /** Lutstra's ease-out (--motion-ease), with no overshoot: a released swipe glides home. */
 const SETTLE_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+/** The longest a skip waits for `swipeBeforeEnter` before coming back in anyway. */
+const ENTER_WAIT_MS = 100;
 
 /**
  * Horizontal swipe on a touch target, tuned after PixelPlayer's mini player and queue gestures
@@ -30,6 +32,8 @@ export class SwipeDirective {
   readonly mode = input<'skip' | 'dismiss'>('skip', { alias: 'swipeMode' });
   readonly threshold = input(0.22, { alias: 'swipeThreshold' });
   readonly disabled = input(false, { alias: 'swipeDisabled' });
+  /** Skip mode: awaited (up to `ENTER_WAIT_MS`) after `swiped`, while the host is invisible, so it comes back in already changed. */
+  readonly beforeEnter = input<() => Promise<unknown> | undefined>(() => undefined, { alias: 'swipeBeforeEnter' });
   readonly swiped = output<SwipeDirection>();
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private start: { id: number; x: number; y: number } | null = null;
@@ -120,6 +124,7 @@ export class SwipeDirective {
       // Shared-axis swap: leave fading, change the track while invisible, come in from the other side.
       await this.animate({ translate: `${sign * innerWidth * 0.34}px 0`, opacity: 0 }, 130, 'cubic-bezier(0.4, 0, 1, 1)');
       this.swiped.emit(direction);
+      await Promise.race([this.beforeEnter()(), new Promise((resolve) => setTimeout(resolve, ENTER_WAIT_MS))]);
       this.host.style.translate = `${-sign * innerWidth * 0.26}px 0`;
       await this.animate({ translate: '0 0', opacity: 1 }, 260, SETTLE_EASE);
     } finally {

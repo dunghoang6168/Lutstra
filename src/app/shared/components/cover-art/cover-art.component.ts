@@ -28,6 +28,11 @@ export class CoverArtComponent {
     effect(() => void this.swap.show(this.src() ?? null));
   }
 
+  /** Swaps to `src` without the crossfade, for a caller animating the change itself; resolves once it is shown. */
+  showNow(src: string | null): Promise<void> {
+    return this.swap.show(src, false);
+  }
+
   protected onAnimationEnd(event: AnimationEvent, id: number): void {
     if (event.target === event.currentTarget) this.swap.settle(id);
   }

@@ -77,4 +77,20 @@ describe('CoverSwap', () => {
     await swap.show('broken.jpg');
     expect(srcs(swap)).toEqual(['a.jpg', 'broken.jpg']);
   });
+
+  it('replaces the cover outright when asked to skip the fade, even if the fading ask came first', async () => {
+    const swap = new CoverSwap(() => Promise.resolve());
+    await swap.show('a.jpg');
+    const fading = swap.show('b.jpg');
+    await swap.show('b.jpg', false);
+    await fading;
+    expect(swap.layers().map((layer) => [layer.src, layer.fade])).toEqual([['b.jpg', false]]);
+  });
+
+  it('resolves at once when the cover does not change', async () => {
+    const swap = new CoverSwap(() => new Promise(() => undefined));
+    await swap.show('a.jpg');
+    await swap.show('a.jpg', false);
+    expect(srcs(swap)).toEqual(['a.jpg']);
+  });
 });

@@ -60,6 +60,7 @@ export class PhoneNowPlayingComponent {
   /** The right-hand time shows the length or, after a tap, the time left; kept for this phone only. */
   readonly showRemaining = signal(readRemaining());
   private readonly seekBar = viewChild<ElementRef<HTMLElement>>('seekBar');
+  private readonly cover = viewChild('cover', { read: CoverArtComponent });
   private sample: PlayheadSample = { seconds: 0, at: 0 };
   /** The cover's hue and chroma, which tint the controls as PixelPlayer's album scheme does; null without a cover. */
   readonly tone = inject(CoverToneService).tone;
@@ -132,6 +133,9 @@ export class PhoneNowPlayingComponent {
   coverSwiped(direction: SwipeDirection): void {
     if (direction === 'left') this.player.next(); else this.player.previous();
   }
+
+  /** The swipe is the transition: the new cover drops in without its crossfade, so the old one never slides back in. */
+  readonly coverReady = () => this.cover()?.showNow(this.player.currentTrack()?.artwork ?? null);
 
   press(button: TransportButton): void {
     this.pressed.set(button);

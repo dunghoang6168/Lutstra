@@ -17,7 +17,7 @@
 
   @if (player.currentTrack(); as track) {
     <div class="np-cover-frame">
-      <app-cover-art class="np-cover" appSwipe (swiped)="coverSwiped($event)" [src]="track.artwork" [iconSize]="64"
+      <app-cover-art #cover class="np-cover" appSwipe (swiped)="coverSwiped($event)" [swipeBeforeEnter]="coverReady" [src]="track.artwork" [iconSize]="64"
         aria-description="Swipe left for the next track, right for the previous one" />
     </div>
 
