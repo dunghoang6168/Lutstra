@@ -376,6 +376,9 @@ html[data-layout='phone'] {
   --phone-cover-thumb: 48px;
   --phone-transport-size: 56px;
   --phone-play-size: 72px;
+  /* Home's "Flex / Mix" display title and the covers stacked in its card head (PixelPlayer's Your Mix). */
+  --phone-hero-title-size: 4.25rem;
+  --phone-mix-cover: 52px;
   --phone-np-transport-height: 88px;
   --phone-np-play-radius: 26px;
   --phone-np-cover-max: 440px;

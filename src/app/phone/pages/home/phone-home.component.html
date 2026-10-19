@@ -17,14 +17,13 @@
 } @else if (library.snapshot()?.tracks?.length) {
   <section class="hero" aria-labelledby="mixHeading">
     <div class="hero-text">
-      <h2 id="mixHeading" class="hero-title">Your mix</h2>
-      <p class="hero-subtitle">Smart Shuffle, from what you listen to</p>
+      <h2 id="mixHeading" class="hero-title"><span>Flex</span> <span>Mix</span></h2>
+      <p class="hero-subtitle">{{ mix.tracks().length ? mix.tracks().length + ' tracks made for you today' : 'Made for you today' }}</p>
     </div>
-    @if (!player.modesLocked()) {
+    @if (mix.tracks().length) {
       <button type="button" class="hero-play" (click)="playMix()"
-        [attr.aria-label]="mixLive() && player.isPlaybackActive() ? 'Pause your mix' : 'Play your mix'">
-        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'smart-shuffle'"
-          [size]="mixLive() && player.isPlaybackActive() ? 36 : 52" />
+        [attr.aria-label]="mixLive() && player.isPlaybackActive() ? 'Pause Flex Mix' : 'Play Flex Mix'">
+        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'play-fill'" [size]="40" />
       </button>
     }
   </section>
@@ -40,12 +39,12 @@
     </div>
   }
 
-  @if (mixRows().length && !player.modesLocked()) {
+  @if (mixView().rows.length) {
     <section class="mix-card" aria-labelledby="mixCardTitle">
       <header class="mix-header">
         <div class="mix-heading">
-          <h2 id="mixCardTitle" class="mix-title">Up next in your mix</h2>
-          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'Paused') : 'Based on your listening' }}</p>
+          <h2 id="mixCardTitle" class="mix-title">Up next in Flex Mix</h2>
+          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'Paused') : 'Made for you today' }}</p>
         </div>
         @if (mixCovers().length) {
           <span class="mix-covers" aria-hidden="true">
@@ -53,25 +52,29 @@
           </span>
         }
         @if (!mixLive()) {
-          <button type="button" class="mix-refresh" (click)="refreshPreview()" aria-label="New picks">
+          <button type="button" class="mix-refresh" (click)="mix.refresh()" aria-label="Make a new mix for today">
             <app-icon name="refresh-cw" [size]="18" />
           </button>
         }
       </header>
+      <!-- After PixelPlayer's Daily Mix card: the playing row is an accent pill, the others quiet cards with ⋯. -->
       <ol class="mix-list">
-        @for (row of mixRows(); track row.track.id + '-' + $index; let i = $index) {
-          <li>
-            <button type="button" class="mix-row" [class.current]="row.current" (click)="playRow(row, i)"
-              [attr.aria-current]="row.current ? 'true' : null">
-              <app-cover-art class="mix-row-cover" [src]="row.track.artwork" icon="music" [iconSize]="18" />
-              <span class="mix-row-text">
-                <span class="mix-row-title">{{ row.track.title }}</span>
-                <span class="mix-row-artist">@if (row.suggested) { <app-icon name="smart-shuffle" [size]="14" class="suggested" role="img" aria-label="Suggestion" /> }{{ row.track.artist ?? 'Unknown artist' }}</span>
-              </span>
+        @for (row of mixView().rows; track row.track.id + '-' + $index) {
+          <li class="mix-item" [class.current]="row.current">
+            <button type="button" class="mix-row" (click)="playRow(row)" [attr.aria-current]="row.current ? 'true' : null">
+              <span class="mix-row-title">{{ row.track.title }}</span>
+              <span class="mix-row-artist">{{ row.track.artist ?? 'Unknown artist' }}</span>
+            </button>
+            <button type="button" class="mix-more" (click)="library.openActions([row.track], null, true)" aria-haspopup="dialog"
+              [attr.aria-label]="'More actions for ' + row.track.title">
+              <app-icon name="more-horizontal" [size]="20" />
             </button>
           </li>
         }
       </ol>
+      @if (autoplayNote()) {
+        <p class="mix-autoplay"><app-icon name="repeat" [size]="18" /> Autoplay is on: similar tracks play after Flex Mix</p>
+      }
     </section>
   }
 }

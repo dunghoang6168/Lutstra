@@ -38,6 +38,11 @@
         <app-icon name="queue" [size]="20" /> Add to queue
       </button>
     }
+    @if (library.actionFromMix() && track()) {
+      <button type="button" class="action" (click)="removeFromMix()">
+        <app-icon name="x" [size]="20" /> Remove from mix
+      </button>
+    }
     <button type="button" class="action" (click)="addToPlaylist()">
       <app-icon name="list-music" [size]="20" /> Playlist
     </button>

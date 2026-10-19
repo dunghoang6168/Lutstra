@@ -24,6 +24,8 @@ export class PhoneLibraryService {
   readonly actionTracks = signal<Track[] | null>(null);
   /** Set when the ⋯ sheet was opened from a queue row, so it acts on that entry. */
   readonly actionEntry = signal<QueueEntry | null>(null);
+  /** Set when the ⋯ sheet was opened from a Flex Mix row on Home, so it offers Remove from mix. */
+  readonly actionFromMix = signal(false);
   readonly playlistTracks = signal<Track[] | null>(null);
   /** Library sorts last for the session, so a detail page and Back keep them. */
   readonly songSort = signal<SongSort>('title');
@@ -73,8 +75,9 @@ export class PhoneLibraryService {
     void this.player.playCollection([...tracks], Math.floor(Math.random() * tracks.length));
   }
 
-  openActions(tracks: Track[], entry: QueueEntry | null = null): void {
+  openActions(tracks: Track[], entry: QueueEntry | null = null, fromMix = false): void {
     this.actionEntry.set(entry);
+    this.actionFromMix.set(fromMix);
     this.actionTracks.set(tracks);
   }
 

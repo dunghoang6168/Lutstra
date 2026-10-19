@@ -3,22 +3,24 @@
   padding-bottom: var(--space-6);
 }
 
-/* Your mix: display type with one big ink button, as PixelPlayer's "Your Mix". */
+/* Flex Mix: two lines of very large display type with one big ink button, as PixelPlayer's "Your Mix". */
 .hero {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-4);
-  padding: var(--space-4) var(--page-pad-x) var(--space-2);
+  padding: var(--space-8) var(--page-pad-x) var(--space-2) var(--space-6);
 }
 
 .hero-text { flex: 1; min-width: 0; }
 
 .hero-title {
   margin: 0;
-  font-size: var(--font-size-3xl);
+  font-size: var(--phone-hero-title-size);
   font-weight: var(--type-display-weight);
-  letter-spacing: var(--type-display-tracking);
-  line-height: 1;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+
+  span { display: block; }
 }
 
 .hero-subtitle {
@@ -70,15 +72,17 @@
   margin: 0 var(--page-pad-x) var(--space-4);
   overflow: hidden;
   border-radius: var(--sheet-radius);
-  background: var(--bg-surface);
+  background: var(--bg-elevated);
 }
 
+/* A light accent band, as the pastel head of PixelPlayer's Daily Mix card. */
 .mix-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-3) var(--space-3) var(--space-5);
-  background: var(--bg-elevated);
+  padding: var(--space-5) var(--space-3) var(--space-5) var(--space-5);
+  color: var(--text-inverse);
+  background: var(--text-accent);
 }
 
 .mix-heading { flex: 1; min-width: 0; }
@@ -93,7 +97,7 @@
 .mix-subtitle {
   margin: var(--space-1) 0 0;
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  opacity: 0.8;
 }
 
 .mix-covers {
@@ -101,14 +105,15 @@
   flex: none;
 
   app-cover-art {
-    width: var(--space-10);
-    height: var(--space-10);
+    width: var(--phone-mix-cover);
+    height: var(--phone-mix-cover);
     overflow: hidden;
-    border: 2px solid var(--bg-elevated);
+    border: 2px solid var(--text-accent);
     border-radius: var(--radius-full);
   }
 
-  app-cover-art + app-cover-art { margin-left: calc(-1 * var(--space-3)); }
+  app-cover-art:last-child { border-radius: var(--radius-lg); }
+  app-cover-art + app-cover-art { margin-left: calc(-1 * var(--space-4)); }
 }
 
 .mix-refresh {
@@ -118,10 +123,10 @@
   width: var(--touch-target);
   height: var(--touch-target);
   border-radius: var(--radius-full);
-  color: var(--text-secondary);
+  color: inherit;
 }
 
-.mix-refresh:active { background: var(--bg-surface-hover); }
+.mix-refresh:active { background: color-mix(in srgb, var(--text-inverse) 12%, transparent); }
 
 .mix-list {
   display: flex;
@@ -132,47 +137,74 @@
   list-style: none;
 }
 
-.mix-row {
+.mix-item {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-3);
-  width: 100%;
+  gap: var(--space-2);
   min-height: var(--row-height);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--surface-radius);
+  padding-right: var(--space-2);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+}
+
+.mix-item.current {
+  border-radius: var(--radius-full);
+  color: var(--color-on-accent);
+  background: var(--accent-primary);
+}
+
+.mix-row {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--row-height);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border-radius: inherit;
   text-align: left;
   color: inherit;
 }
 
-.mix-row:active { background: var(--bg-surface-hover); }
-.mix-row.current { background: var(--accent-muted); }
-
-.mix-row-cover {
-  flex: none;
-  width: var(--space-10);
-  height: var(--space-10);
-  overflow: hidden;
-  border-radius: var(--radius-md);
-}
-
-.mix-row-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .mix-row-title,
 .mix-row-artist {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mix-row-title { font-size: var(--font-size-base); font-weight: 600; }
-.mix-row.current .mix-row-title { color: var(--text-accent); }
-.mix-row-artist { font-size: var(--font-size-xs); color: var(--text-secondary); }
-.suggested { vertical-align: -2px; margin-right: var(--space-1); color: var(--text-accent); }
+.mix-row-title { font-size: var(--font-size-base); font-weight: 700; }
+.mix-row-artist { font-size: var(--font-size-sm); color: var(--text-secondary); }
+.mix-item.current .mix-row-artist { color: inherit; opacity: 0.8; }
+
+.mix-more {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: var(--bg-surface-hover);
+}
+
+.mix-item.current .mix-more {
+  color: var(--accent-primary);
+  background: var(--color-on-accent);
+}
+
+/* Autoplay takes over after the last mix track; its picks show in the Queue sheet, not here. */
+.mix-autoplay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-5) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
 
 .page-note a { color: var(--text-accent); font-weight: 600; }
 

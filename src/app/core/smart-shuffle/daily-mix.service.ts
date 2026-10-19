@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { LIBRARY_GATEWAY } from '../contracts';
-import { Track } from '../models';
+import { QueueEntry, Track } from '../models';
 import { ListeningHistoryService } from '../history/listening-history.service';
 import { PlayerService } from '../player/player.service';
 import { SmartShuffleService } from './smart-shuffle.service';
@@ -24,6 +24,17 @@ export function parseDailyMix(raw: string | null): StoredDailyMix | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether the queue is playing this mix: every mix track is among the queue's own entries, in any order (Shuffle may
+ * have mixed them). Suggestions (Autoplay, Smart Shuffle) are skipped, and tracks the user added do not count against it.
+ */
+// ponytail: a set check, so a queue that happens to hold a tiny leftover mix also counts; tag the queue's source if that bites.
+export function isMixQueue(queue: readonly QueueEntry[], mix: readonly Track[]): boolean {
+  if (!mix.length) return false;
+  const own = new Set(queue.filter((entry) => !entry.suggested).map((entry) => entry.track.id));
+  return mix.every((track) => own.has(track.id));
 }
 
 /**

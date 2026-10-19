@@ -84,26 +84,10 @@ export class SmartShuffleService {
     await this.startIfEmpty();
   }
 
-  /** What a cold start would play now, without touching the queue (the phone Home shows it). */
-  async previewSuggestions(): Promise<Track[]> {
-    await this.ensureLoaded();
-    return this.coldPlan();
-  }
-
   /** A cold-start run of `count` picks, linked track to track (the Daily Mix). */
   async picks(count: number): Promise<Track[]> {
     await this.ensureLoaded();
     return this.coldPlan(count);
-  }
-
-  /** The phone Home's quick start: Smart Shuffle plays its own picks (the shown preview, if given) in place of the queue. */
-  async playSuggestions(picks?: readonly Track[]): Promise<void> {
-    if (this.player.modesLocked()) return;
-    await this.ensureLoaded();
-    this.player.setSmartShuffle(true);
-    if (!picks?.length) { await this.start(true); return; }
-    this.reorderNext = false;
-    await this.player.startSuggestions(picks.map((track) => this.player.createSuggestedEntry(track)));
   }
 
   /** Only a user's turn starts playback; a setting restored at launch never does. */
@@ -111,9 +95,9 @@ export class SmartShuffleService {
     if (this.player.smartShuffle() && !this.player.queue().length) await this.start();
   }
 
-  private async start(replaceQueue = false): Promise<void> {
+  private async start(): Promise<void> {
     await this.ensureLoaded();
-    if (!this.player.smartShuffle() || (!replaceQueue && this.player.queue().length)) return;
+    if (!this.player.smartShuffle() || this.player.queue().length) return;
     const plan = this.coldPlan();
     this.reorderNext = false;
     await this.player.startSuggestions(plan.map((track) => this.player.createSuggestedEntry(track)));

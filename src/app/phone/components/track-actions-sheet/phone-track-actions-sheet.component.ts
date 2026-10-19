@@ -2,6 +2,7 @@ import { Component, ElementRef, EnvironmentInjector, afterNextRender, computed, 
 import { RouterLink } from '@angular/router';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
+import { DailyMixService } from '../../../core/smart-shuffle/daily-mix.service';
 import { formatTrackFormat } from '../../../features/home/library-quality';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -31,6 +32,7 @@ export class PhoneTrackActionsSheetComponent {
   readonly library = inject(PhoneLibraryService);
   private readonly player = inject(PlayerService);
   private readonly queueActions = inject(QueueActionsService);
+  private readonly mix = inject(DailyMixService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly opener = document.activeElement as HTMLElement | null;
   private readonly rootInjector = inject(EnvironmentInjector);
@@ -88,6 +90,7 @@ export class PhoneTrackActionsSheetComponent {
   close(then?: () => void): void {
     this.library.actionTracks.set(null);
     this.library.actionEntry.set(null);
+    this.library.actionFromMix.set(false);
     // Now Playing and the queue stay inert until the next render, and this sheet is gone by then, so the root injector waits.
     const opener = this.opener;
     afterNextRender(() => {
@@ -122,6 +125,13 @@ export class PhoneTrackActionsSheetComponent {
 
   addToQueue(): void {
     this.library.addToQueue(this.tracks());
+    this.close();
+  }
+
+  /** Taking a track out of Flex Mix also tells Smart Shuffle it was not wanted (DailyMixService.remove). */
+  removeFromMix(): void {
+    const track = this.track();
+    if (track) this.mix.remove(track);
     this.close();
   }
 

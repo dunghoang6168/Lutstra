@@ -1,8 +1,8 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Album, Track } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
-import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
+import { DailyMixService, isMixQueue } from '../../../core/smart-shuffle/daily-mix.service';
 import { RecentPlaysService, recentlyPlayedAlbums } from '../../../core/layout/recent-plays.service';
 import { albumFormatMap } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -14,11 +14,11 @@ const MIX_ROWS = 5;
 /** The collage's shapes, in the order its slots are laid out. */
 const COLLAGE_SHAPES = ['circle', 'pill', 'circle', 'tile', 'blob'] as const;
 
-interface MixRow { track: Track; suggested: boolean; current: boolean; queueIndex: number | null }
+interface MixRow { track: Track; current: boolean; queueIndex: number | null; mixIndex: number | null }
 
 /**
- * Home, after PixelPlayer's: Smart Shuffle up top, a collage of recently played covers, the mix itself
- * (the live queue while Smart Shuffle plays, otherwise a preview of its picks), then album strips.
+ * Home, after PixelPlayer's: Flex Mix (today's Daily Mix) up top, a collage of recently played covers, the mix's
+ * Up next card, then album strips.
  */
 @Component({
   selector: 'app-phone-home',
@@ -30,7 +30,6 @@ interface MixRow { track: Track; suggested: boolean; current: boolean; queueInde
 export class PhoneHomeComponent {
   readonly player = inject(PlayerService);
   readonly library = inject(PhoneLibraryService);
-  private readonly smartShuffle = inject(SmartShuffleService);
   private readonly recentPlays = inject(RecentPlaysService);
 
   private readonly albums = computed(() => this.library.snapshot()?.albums ?? []);
@@ -50,42 +49,44 @@ export class PhoneHomeComponent {
     return covers.length >= 3 ? covers.map((album, i) => ({ album, shape: COLLAGE_SHAPES[i], slot: i })) : [];
   });
 
-  readonly preview = signal<Track[]>([]);
-  readonly mixLive = computed(() => this.player.smartShuffle() && this.player.queue().length > 0 && !this.player.modesLocked());
-  readonly mixRows = computed<MixRow[]>(() => {
-    if (this.mixLive()) {
-      const index = Math.max(0, this.player.currentIndex());
-      return this.player.queue().slice(index, index + MIX_ROWS).map((entry, i) => ({
-        track: entry.track, suggested: !!entry.suggested, current: i === 0 && this.player.currentIndex() >= 0, queueIndex: index + i,
-      }));
+  readonly mix = inject(DailyMixService);
+  readonly mixLive = computed(() => !this.player.modesLocked() && isMixQueue(this.player.queue(), this.mix.tracks()));
+  /**
+   * Up next: while the mix plays, the queue's own entries from the current one (suggestions stay in the Queue sheet);
+   * otherwise the mix's first rows. `end` is set once the last of them is on the card.
+   */
+  readonly mixView = computed<{ rows: MixRow[]; end: boolean }>(() => {
+    if (!this.mixLive()) {
+      return { rows: this.mix.tracks().slice(0, MIX_ROWS).map((track, i) => ({ track, current: false, queueIndex: null, mixIndex: i })), end: false };
     }
-    return this.preview().slice(0, MIX_ROWS).map((track) => ({ track, suggested: true, current: false, queueIndex: null }));
+    const at = this.player.currentIndex();
+    const own = this.player.queue().map((entry, queueIndex) => ({ entry, queueIndex })).filter(({ entry }) => !entry.suggested);
+    const next = own.findIndex(({ queueIndex }) => queueIndex >= at);
+    const from = next >= 0 ? next : Math.max(0, own.length - MIX_ROWS);
+    const rows = own.slice(from, from + MIX_ROWS).map(({ entry, queueIndex }) => ({ track: entry.track, current: queueIndex === at, queueIndex, mixIndex: null }));
+    return { rows, end: from + rows.length >= own.length };
   });
-  readonly mixCovers = computed(() => this.mixRows().map((row) => row.track.artwork).filter((art): art is string => !!art).slice(0, 3));
+  /** Autoplay carries on after the mix: said on the card once its end is in view. */
+  readonly autoplayNote = computed(() => this.mixView().end && this.player.autoplay() && !this.player.smartShuffle() && this.player.repeatMode() === 'off');
+  readonly mixCovers = computed(() => [...new Set(this.mix.tracks().map((track) => track.artwork).filter((art): art is string => !!art))].slice(0, 3));
 
   constructor() {
     void this.library.ensureLoaded();
-    // A fresh preview once the library is in, and again whenever Smart Shuffle stops.
+    // Today's mix once the library is in; DailyMixService keeps it for the day.
     effect(() => {
-      const ready = this.library.snapshot() !== null;
-      const live = this.mixLive();
-      if (ready && !live) untracked(() => void this.refreshPreview());
+      if (this.library.snapshot()) untracked(() => void this.mix.ensure());
     });
   }
 
-  async refreshPreview(): Promise<void> {
-    try { this.preview.set(await this.smartShuffle.previewSuggestions()); } catch { this.preview.set([]); }
-  }
-
-  /** The big button: plays the previewed picks, or toggles playback while the mix is already playing. */
+  /** The big button: plays Flex Mix from the top, or toggles playback while it is playing. */
   playMix(): void {
-    if (this.mixLive()) { void this.player.togglePlayPause(); return; }
-    void this.smartShuffle.playSuggestions(this.preview());
+    if (this.mixLive()) void this.player.togglePlayPause();
+    else void this.mix.play();
   }
 
-  playRow(row: MixRow, index: number): void {
-    if (row.queueIndex !== null) { void this.player.jumpToQueueIndex(row.queueIndex); return; }
-    // Starting from a later preview row keeps the picks after it.
-    void this.smartShuffle.playSuggestions(this.preview().slice(index));
+  /** While the mix plays a row jumps to its entry, keeping what the user added; otherwise the mix starts there. */
+  playRow(row: MixRow): void {
+    if (row.queueIndex !== null) void this.player.jumpToQueueIndex(row.queueIndex);
+    else if (row.mixIndex !== null) void this.mix.play(row.mixIndex);
   }
 }

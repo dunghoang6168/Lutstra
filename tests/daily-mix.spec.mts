@@ -7,7 +7,8 @@ import { MockLibraryGateway, MockListeningHistoryGateway, MockPlaylistGateway } 
 import { PlayerService } from '../src/app/core/player/player.service';
 import { ListeningHistoryService } from '../src/app/core/history/listening-history.service';
 import { SmartShuffleService } from '../src/app/core/smart-shuffle/smart-shuffle.service';
-import { DAILY_MIX_KEY, DailyMixService, localDay, parseDailyMix } from '../src/app/core/smart-shuffle/daily-mix.service';
+import { Track } from '../src/app/core/models';
+import { DAILY_MIX_KEY, DailyMixService, isMixQueue, localDay, parseDailyMix } from '../src/app/core/smart-shuffle/daily-mix.service';
 
 vi.mock('@angular/core', async (importOriginal) => ({
   ...await importOriginal<typeof import('@angular/core')>(),
@@ -87,5 +88,21 @@ describe('DailyMixService', () => {
     expect(parseDailyMix('{"day":1}')).toBeNull();
     expect(parseDailyMix('nope')).toBeNull();
     expect(parseDailyMix(null)).toBeNull();
+  });
+});
+
+describe('isMixQueue', () => {
+  const t = (id: string) => ({ id }) as Track;
+  const e = (id: string, suggested = false) => ({ id: 'e-' + id, track: t(id), originalIndex: 0, suggested });
+  const mix = [t('a'), t('b'), t('c')];
+
+  it('sees the mix in any order, past suggestions and tracks the user added', () => {
+    expect(isMixQueue([e('c'), e('s1', true), e('a'), e('b'), e('x')], mix)).toBe(true);
+  });
+
+  it('is off once a mix track leaves the queue, for a suggested copy, or with no mix', () => {
+    expect(isMixQueue([e('a'), e('b')], mix)).toBe(false);
+    expect(isMixQueue([e('a'), e('b'), e('c', true)], mix)).toBe(false);
+    expect(isMixQueue([e('a')], [])).toBe(false);
   });
 });
