@@ -18,6 +18,8 @@
   from { transform: translateY(100%); }
 }
 
+:host(.sheet-leaving) .now-playing { animation: sheet-down var(--motion-dur) var(--motion-ease) forwards; }
+
 /* The Ambient Ground Rule, borrowed: the cover, blurred, tints the whole sheet and crossfades with the track. */
 .np-ground {
   position: fixed;

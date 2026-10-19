@@ -56,10 +56,10 @@
 </div>
 
 @if (nowPlayingOpen()) {
-  <app-phone-now-playing [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
+  <app-phone-now-playing animate.leave="sheet-leaving" [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
 }
 @if (queueOpen()) {
-  <app-phone-queue-sheet [attr.inert]="library.actionTracks() ? '' : null" (close)="queueOpen.set(false)" />
+  <app-phone-queue-sheet animate.leave="sheet-leaving" [attr.inert]="library.actionTracks() ? '' : null" (close)="queueOpen.set(false)" />
 }
 
 @if (queueActions.notice(); as notice) {
@@ -75,8 +75,8 @@
     <button type="button" (click)="player.playbackNotice.set(null)">Dismiss</button>
   </div>
 }
-@if (library.actionTracks()) { <app-phone-track-actions-sheet /> }
-@if (audioPathOpen()) { <app-phone-audio-path-sheet /> }
+@if (library.actionTracks()) { <app-phone-track-actions-sheet animate.leave="sheet-leaving" /> }
+@if (audioPathOpen()) { <app-phone-audio-path-sheet animate.leave="sheet-leaving" /> }
 @if (library.playlistTracks(); as tracks) {
   <app-add-to-playlist-dialog [tracks]="tracks" (added)="library.loadPlaylists()" (closed)="library.playlistTracks.set(null)" />
 }

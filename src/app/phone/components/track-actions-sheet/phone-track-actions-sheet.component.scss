@@ -3,6 +3,7 @@
   inset: 0;
   z-index: 1150;
   background: var(--scrim-strong);
+  animation: scrim-in var(--motion-dur) var(--motion-ease);
 }
 
 .actions-sheet {
@@ -28,6 +29,9 @@
 @keyframes sheet-up {
   from { transform: translateY(100%); }
 }
+
+:host(.sheet-leaving) .scrim { animation: scrim-out var(--motion-dur) var(--motion-ease) forwards; }
+:host(.sheet-leaving) .actions-sheet { animation: sheet-down var(--motion-dur) var(--motion-ease) forwards; }
 
 .grabber {
   align-self: center;

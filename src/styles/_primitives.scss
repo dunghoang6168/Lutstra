@@ -325,6 +325,17 @@
   }
 }
 
+/* Phone sheets close the way they open. The shell puts animate.leave="sheet-leaving" on a sheet's host;
+   Angular keeps the host until its own sheet-hold ends, while the sheet's rules slide it down with sheet-down. */
+.sheet-leaving {
+  pointer-events: none;
+  animation: sheet-hold var(--motion-dur);
+}
+@keyframes sheet-hold { to { visibility: visible; } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes scrim-in { from { opacity: 0; } }
+@keyframes scrim-out { to { opacity: 0; } }
+
 /* Developer Random folder: the mythical tier's hologram, a hue that cycles through every colour.
    Registered so it can animate; shared by the reel and the result card. */
 @property --holo-hue {
