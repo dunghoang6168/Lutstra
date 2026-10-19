@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Track } from '../../core/models';
 import { DailyMixService } from '../../core/smart-shuffle/daily-mix.service';
 import { PlayerService } from '../../core/player/player.service';
@@ -23,7 +23,6 @@ export class DailyMixComponent {
   private readonly selection = inject(TrackSelectionService);
   private readonly rowsContainer = viewChild<ElementRef<HTMLElement>>('rowsContainer');
   readonly activeId = signal<string | null>(null);
-  readonly totalSeconds = computed(() => this.mix.tracks().reduce((sum, track) => sum + (track.duration || 0), 0));
 
   constructor() {
     void this.mix.ensure();

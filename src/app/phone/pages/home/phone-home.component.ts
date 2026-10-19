@@ -1,8 +1,8 @@
 import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Album, Track } from '../../../core/models';
+import { Album } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
-import { DailyMixService, isMixQueue } from '../../../core/smart-shuffle/daily-mix.service';
+import { DailyMixService } from '../../../core/smart-shuffle/daily-mix.service';
 import { RecentPlaysService, recentlyPlayedAlbums } from '../../../core/layout/recent-plays.service';
 import { albumFormatMap } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -10,11 +10,8 @@ import { CoverArtComponent } from '../../../shared/components/cover-art/cover-ar
 import { PhoneLibraryService } from '../../phone-library.service';
 
 const STRIP_LENGTH = 10;
-const MIX_ROWS = 5;
 /** The collage's shapes, in the order its slots are laid out. */
 const COLLAGE_SHAPES = ['circle', 'pill', 'circle', 'tile', 'blob'] as const;
-
-interface MixRow { track: Track; current: boolean; queueIndex: number | null; mixIndex: number | null }
 
 /**
  * Home, after PixelPlayer's: Flex Mix (today's Daily Mix) up top, a collage of recently played covers, the mix's
@@ -50,25 +47,9 @@ export class PhoneHomeComponent {
   });
 
   readonly mix = inject(DailyMixService);
-  readonly mixLive = computed(() => !this.player.modesLocked() && isMixQueue(this.player.queue(), this.mix.tracks()));
-  /**
-   * Up next: while the mix plays, the queue's own entries from the current one (suggestions stay in the Queue sheet);
-   * otherwise the mix's first rows. `end` is set once the last of them is on the card.
-   */
-  readonly mixView = computed<{ rows: MixRow[]; end: boolean }>(() => {
-    if (!this.mixLive()) {
-      return { rows: this.mix.tracks().slice(0, MIX_ROWS).map((track, i) => ({ track, current: false, queueIndex: null, mixIndex: i })), end: false };
-    }
-    const at = this.player.currentIndex();
-    const own = this.player.queue().map((entry, queueIndex) => ({ entry, queueIndex })).filter(({ entry }) => !entry.suggested);
-    const next = own.findIndex(({ queueIndex }) => queueIndex >= at);
-    const from = next >= 0 ? next : Math.max(0, own.length - MIX_ROWS);
-    const rows = own.slice(from, from + MIX_ROWS).map(({ entry, queueIndex }) => ({ track: entry.track, current: queueIndex === at, queueIndex, mixIndex: null }));
-    return { rows, end: from + rows.length >= own.length };
-  });
   /** Autoplay carries on after the mix: said on the card once its end is in view. */
-  readonly autoplayNote = computed(() => this.mixView().end && this.player.autoplay() && !this.player.smartShuffle() && this.player.repeatMode() === 'off');
-  readonly mixCovers = computed(() => [...new Set(this.mix.tracks().map((track) => track.artwork).filter((art): art is string => !!art))].slice(0, 3));
+  readonly autoplayNote = computed(() => this.mix.upNext().end && this.player.autoplay() && !this.player.smartShuffle() && this.player.repeatMode() === 'off');
+  readonly mixCovers = computed(() => this.mix.covers().slice(0, 3));
 
   constructor() {
     void this.library.ensureLoaded();
@@ -76,17 +57,5 @@ export class PhoneHomeComponent {
     effect(() => {
       if (this.library.snapshot()) untracked(() => void this.mix.ensure());
     });
-  }
-
-  /** The big button: plays Flex Mix from the top, or toggles playback while it is playing. */
-  playMix(): void {
-    if (this.mixLive()) void this.player.togglePlayPause();
-    else void this.mix.play();
-  }
-
-  /** While the mix plays a row jumps to its entry, keeping what the user added; otherwise the mix starts there. */
-  playRow(row: MixRow): void {
-    if (row.queueIndex !== null) void this.player.jumpToQueueIndex(row.queueIndex);
-    else if (row.mixIndex !== null) void this.mix.play(row.mixIndex);
   }
 }

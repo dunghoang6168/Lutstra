@@ -114,12 +114,13 @@ describe('SmartShuffleService', () => {
 });
 
 describe('Autoplay', () => {
-  it('is off unless the settings turn it on (the desktop has no switch yet)', async () => {
+  it('is on by default and adds nothing once turned off', async () => {
     const { player, tracks, autoplay, playing } = await setup();
+    expect(player.autoplay()).toBe(true);
+    player.setAutoplay(false);
     await player.playCollection(tracks.slice(0, 2), 1);
     playing();
     await autoplay();
-    expect(player.autoplay()).toBe(false);
     expect(player.queue().length).toBe(2);
   });
 

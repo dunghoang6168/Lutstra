@@ -37,6 +37,11 @@ export class QueueDrawerComponent {
     while (start > this.player.currentIndex() + 1 && queue[start - 1].suggested) start--;
     return { start, length: queue.length - start };
   });
+  /** Where Autoplay's run starts, for its divider; Smart Shuffle marks each of its rows instead. */
+  readonly autoplayFrom = computed(() => {
+    const tail = this.suggestionTail();
+    return !this.player.smartShuffle() && tail.length ? tail.start : -1;
+  });
   /** A prefix of the queue, so row indices stay queue indices. */
   readonly visibleEntries = computed(() => {
     const tail = this.suggestionTail();

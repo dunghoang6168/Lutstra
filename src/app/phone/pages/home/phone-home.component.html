@@ -21,9 +21,9 @@
       <p class="hero-subtitle">{{ mix.tracks().length ? mix.tracks().length + ' tracks made for you today' : 'Made for you today' }}</p>
     </div>
     @if (mix.tracks().length) {
-      <button type="button" class="hero-play" (click)="playMix()"
-        [attr.aria-label]="mixLive() && player.isPlaybackActive() ? 'Pause Flex Mix' : 'Play Flex Mix'">
-        <app-icon [name]="mixLive() && player.isPlaybackActive() ? 'pause' : 'play-fill'" [size]="40" />
+      <button type="button" class="hero-play" (click)="mix.playOrPause()"
+        [attr.aria-label]="mix.live() && player.isPlaybackActive() ? 'Pause Flex Mix' : 'Play Flex Mix'">
+        <app-icon [name]="mix.live() && player.isPlaybackActive() ? 'pause' : 'play-fill'" [size]="40" />
       </button>
     }
   </section>
@@ -39,19 +39,19 @@
     </div>
   }
 
-  @if (mixView().rows.length) {
+  @if (mix.upNext().rows.length) {
     <section class="mix-card" aria-labelledby="mixCardTitle">
       <header class="mix-header">
         <div class="mix-heading">
           <h2 id="mixCardTitle" class="mix-title">Up next in Flex Mix</h2>
-          <p class="mix-subtitle">{{ mixLive() ? (player.isPlaybackActive() ? 'Playing now' : 'Paused') : 'Made for you today' }}</p>
+          <p class="mix-subtitle">{{ mix.live() ? (player.isPlaybackActive() ? 'Playing now' : 'Paused') : 'Made for you today' }}</p>
         </div>
         @if (mixCovers().length) {
           <span class="mix-covers" aria-hidden="true">
             @for (cover of mixCovers(); track $index) { <app-cover-art [src]="cover" [icon]="null" /> }
           </span>
         }
-        @if (!mixLive()) {
+        @if (!mix.live()) {
           <button type="button" class="mix-refresh" (click)="mix.refresh()" aria-label="Make a new mix for today">
             <app-icon name="refresh-cw" [size]="18" />
           </button>
@@ -59,9 +59,9 @@
       </header>
       <!-- After PixelPlayer's Daily Mix card: the playing row is an accent pill, the others quiet cards with ⋯. -->
       <ol class="mix-list">
-        @for (row of mixView().rows; track row.track.id + '-' + $index) {
+        @for (row of mix.upNext().rows; track row.track.id + '-' + $index) {
           <li class="mix-item" [class.current]="row.current">
-            <button type="button" class="mix-row" (click)="playRow(row)" [attr.aria-current]="row.current ? 'true' : null">
+            <button type="button" class="mix-row" (click)="mix.playRow(row)" [attr.aria-current]="row.current ? 'true' : null">
               <span class="mix-row-title">{{ row.track.title }}</span>
               <span class="mix-row-artist">{{ row.track.artist ?? 'Unknown artist' }}</span>
             </button>

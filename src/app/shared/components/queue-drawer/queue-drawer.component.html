@@ -60,6 +60,9 @@
         } @else {
           <div class="queue-list" role="list" #rowsContainer (keydown)="onRowsKeyDown($event)">
             @for (entry of visibleEntries(); track entry.id; let i = $index) {
+              @if (i === autoplayFrom()) {
+                <div class="queue-divider" aria-hidden="true">Autoplay</div>
+              }
               <div
                 class="queue-item"
                 [class.current]="player.currentIndex() === i && !player.externalSource()"
@@ -130,7 +133,9 @@
                   </span>
                   <span class="track-artist truncate" appTipOverflow>
                     @if (entry.suggested) {
-                      <app-icon name="smart-shuffle" [size]="13" class="suggested-mark" />
+                      @if (player.smartShuffle()) {
+                        <app-icon name="smart-shuffle" [size]="13" class="suggested-mark" />
+                      }
                       <span class="sr-only">{{ player.suggestionLabel() }}. </span>
                     }
                     {{ entry.track.artist || 'Unknown Artist' }}

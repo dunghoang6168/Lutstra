@@ -11,8 +11,7 @@ export class MockSettingsGateway implements SettingsGateway {
     repeatMode: 'off',
     shuffle: false,
     smartShuffle: false,
-    // ponytail: Autoplay is phone-first; the desktop has no switch yet, so it stays off there.
-    autoplay: false,
+    autoplay: true,
     crossfadeEnabled: true,
     crossfadeSeconds: 5,
     audioEngineBackend: 'chromium',

@@ -15,11 +15,12 @@ import { albumFormatMap, formatCount, formatTrackFormat as trackFormatLabel, sum
 import { RecentPlaysService, findRecentPlayableTrack, recentlyPlayedAlbums, recentTrackCollection } from '../../core/layout/recent-plays.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { DailyMixService } from '../../core/smart-shuffle/daily-mix.service';
+import { DurationPipe } from '../../shared/pipes/duration.pipe';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [DecimalPipe, RouterModule, IconComponent, AlbumCardComponent, CoverArtComponent],
+  imports: [DecimalPipe, DurationPipe, RouterModule, IconComponent, AlbumCardComponent, CoverArtComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
@@ -36,8 +37,9 @@ export class HomeComponent implements OnInit {
   readonly activeId = signal<string | null>(null);
   private readonly queueActions = inject(QueueActionsService);
   readonly mix = inject(DailyMixService);
-  /** Four distinct covers make the card a mosaic; fewer show the first one. */
-  readonly mixCovers = computed(() => [...new Set(this.mix.tracks().map((track) => track.artwork).filter((art): art is string => !!art))].slice(0, 4));
+  readonly mixPlaying = computed(() => this.mix.live() && this.player.isPlaybackActive());
+  /** What plays after the current track, suggestions included, for Console's Flex Mix band. */
+  readonly nextTitle = computed(() => this.player.queue()[this.player.currentIndex() + 1]?.track.title ?? null);
   readonly errorMessage = signal<string | null>(null);
   readonly addingFolder = signal(false);
   readonly isLoading = signal(true);
@@ -259,10 +261,6 @@ export class HomeComponent implements OnInit {
   onPlayPlaylist(playlist: Playlist): void {
     const tracks = this.tracksForIds(playlist.entries.map((entry) => entry.trackId));
     if (tracks.length > 0) void this.player.playCollection(tracks, 0);
-  }
-
-  onAddMixToQueue(): void {
-    this.queueActions.add(this.mix.tracks());
   }
 
   onAddPlaylistToQueue(playlist: Playlist): void {

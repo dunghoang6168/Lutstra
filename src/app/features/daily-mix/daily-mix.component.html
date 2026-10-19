@@ -1,10 +1,10 @@
 <div class="mix-page">
   <header class="page-header">
     <div class="header-text">
-      <h1>Daily Mix</h1>
+      <h1>Flex Mix</h1>
       <p class="caption">Picked for today from what you play. A new mix comes tomorrow.</p>
       @if (mix.tracks().length) {
-        <p class="meta">{{ mix.tracks().length }} tracks · {{ totalSeconds() | duration }}</p>
+        <p class="meta">{{ mix.tracks().length }} tracks · {{ mix.totalSeconds() | duration }}@if (player.autoplay()) { · then Autoplay }</p>
       }
     </div>
     <div class="header-actions">
@@ -25,11 +25,11 @@
   } @else if (!mix.tracks().length) {
     <div class="state-empty state-message">
       <app-icon name="smart-shuffle" [size]="32" />
-      <p>Add music to your library to get a Daily Mix.</p>
+      <p>Add music to your library to get a Flex Mix.</p>
     </div>
   } @else {
     <div class="table-card" #rowsContainer (keydown)="onRowsKeyDown($event)">
-      <table class="mix-table" role="grid" aria-label="Daily Mix" [attr.aria-busy]="mix.loading()">
+      <table class="mix-table" role="grid" aria-label="Flex Mix" [attr.aria-busy]="mix.loading()">
         <thead>
           <tr>
             <th class="col-index"><span class="sr-only">Number</span></th>

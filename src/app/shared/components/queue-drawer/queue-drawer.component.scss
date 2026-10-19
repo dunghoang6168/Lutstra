@@ -332,6 +332,13 @@
 
     .queue-item.tentative .track-title { color: var(--text-secondary); font-weight: 400; }
 
+    .queue-divider {
+      padding: var(--space-4) var(--space-3) var(--space-1);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
     .suggestions-toggle {
       display: block;
       margin: var(--space-2) auto 0;

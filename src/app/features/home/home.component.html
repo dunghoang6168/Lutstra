@@ -53,15 +53,27 @@
     <header class="console-home-header">
       <h1>Recently modified</h1>
       <span class="console-home-count">{{ recentTracks().length }} of {{ tracksCount() | number }} tracks</span>
-      @if (mix.tracks().length > 0) {
-        <a routerLink="/daily-mix" class="btn btn-secondary btn-sm console-mix-link">
-          <app-icon name="smart-shuffle" [size]="15" /> Daily Mix
-        </a>
-      }
       <button type="button" class="btn btn-secondary btn-sm" (click)="shuffleAll()">
         <app-icon name="shuffle" [size]="15" /> Shuffle library
       </button>
     </header>
+    @if (mix.tracks().length > 0) {
+      <section class="console-mix" [class.live]="mix.live()" aria-labelledby="console-mix-title">
+        <app-icon name="smart-shuffle" [size]="15" class="mix-mark" />
+        <h2 id="console-mix-title">Flex Mix</h2>
+        <span class="console-mix-meta">
+          @if (mix.position(); as at) {
+            {{ mixPlaying() ? 'Playing' : 'Paused' }} {{ at.at }} of {{ at.total }}@if (nextTitle(); as next) { · next: {{ next }} }
+          } @else {
+            {{ mix.tracks().length }} tracks · {{ mix.totalSeconds() | duration }} · picked today@if (player.autoplay()) { · then Autoplay }
+          }
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="mix.playOrPause()">
+          <app-icon [name]="mixPlaying() ? 'pause' : 'play'" [size]="13" /> {{ mixPlaying() ? 'Pause' : 'Play' }}
+        </button>
+        <a routerLink="/daily-mix" class="btn btn-secondary btn-sm">Open</a>
+      </section>
+    }
     <table class="console-table" role="grid" aria-label="Recently modified songs" [attr.aria-rowcount]="recentTracks().length + 1" aria-multiselectable="false">
       <thead>
         <tr><th scope="col">Title</th><th scope="col">Artist</th><th scope="col">Album</th><th scope="col">Format</th><th scope="col">File</th></tr>
@@ -132,21 +144,54 @@
     </nav>
 
     @if (mix.tracks().length > 0) {
-      <section class="home-section" aria-labelledby="daily-mix-title">
-        <div class="section-header"><h2 id="daily-mix-title">Made for you</h2></div>
-        <div class="albums-grid" #albumGrid>
-          <app-album-card
-            [item]="mix"
-            title="Daily Mix"
-            subtitle="Picked for today"
-            [subtext]="mix.tracks().length + ' tracks'"
-            [showDetails]="true"
-            [imageUrls]="mixCovers()"
-            fallbackIcon="smart-shuffle"
-            [link]="['/daily-mix']"
-            (play)="mix.play()"
-            (queue)="onAddMixToQueue()">
-          </app-album-card>
+      <section class="mix-card" aria-labelledby="flex-mix-title">
+        <a routerLink="/daily-mix" class="mix-cover" aria-label="Open Flex Mix">
+          @if (mix.covers().length === 4) {
+            @for (cover of mix.covers(); track $index) { <img [src]="cover" alt="" /> }
+          } @else {
+            <app-cover-art [src]="mix.covers().at(0) ?? null" icon="smart-shuffle" [iconSize]="40" />
+          }
+        </a>
+        <div class="mix-info">
+          <p class="mix-status" [class.live]="mix.live()">
+            <app-icon name="smart-shuffle" [size]="14" />
+            @if (mix.position(); as at) { {{ mixPlaying() ? 'Playing' : 'Paused' }} · {{ at.at }} of {{ at.total }} } @else { Made for you today }
+          </p>
+          <h2 id="flex-mix-title">Flex Mix</h2>
+          <p class="mix-meta">{{ mix.tracks().length }} tracks · {{ mix.totalSeconds() | duration }}@if (player.autoplay()) { · then Autoplay }</p>
+          <div class="mix-actions">
+            <button type="button" class="btn hero-play" [attr.aria-label]="(mixPlaying() ? 'Pause' : 'Play') + ' Flex Mix'" (click)="mix.playOrPause()">
+              <app-icon [name]="mixPlaying() ? 'pause' : 'play'" [size]="16" /> {{ mixPlaying() ? 'Pause' : 'Play' }}
+            </button>
+            @if (!mix.live()) {
+              <button type="button" class="btn btn-secondary" [disabled]="mix.loading()" (click)="mix.refresh()">
+                <app-icon name="refresh-cw" [size]="16" /> New mix
+              </button>
+            }
+          </div>
+        </div>
+        <div class="mix-list">
+          <div class="mix-list-header">
+            <h3>{{ mix.live() ? 'Up next in Flex Mix' : 'In today’s mix' }}</h3>
+            <a routerLink="/daily-mix" class="see-all-link">See all {{ mix.tracks().length }} &rarr;</a>
+          </div>
+          <ol>
+            @for (row of mix.upNext().rows; track row.track.id + '-' + $index) {
+              <li>
+                <button type="button" class="mix-row" [class.current]="row.current" [attr.aria-current]="row.current ? 'true' : null" (click)="mix.playRow(row)">
+                  <span class="mix-row-index">
+                    @if (row.current) { <span class="mix-eq" aria-hidden="true"><i></i><i></i><i></i></span> } @else { {{ mix.upNext().from + $index + 1 }} }
+                  </span>
+                  <app-cover-art class="mix-row-cover" [src]="row.track.artwork" [iconSize]="14" />
+                  <span class="mix-row-text">
+                    <span class="mix-row-title">{{ row.track.title }}</span>
+                    <span class="mix-row-artist">{{ row.track.artist || 'Unknown Artist' }}</span>
+                  </span>
+                  <span class="mix-row-time">{{ row.track.duration | duration }}</span>
+                </button>
+              </li>
+            }
+          </ol>
         </div>
       </section>
     }

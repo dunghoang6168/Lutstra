@@ -126,7 +126,7 @@ export class PlayerService implements OnDestroy {
    * Autoplay (`SmartShuffleService` appends suggestions on the last entry): the queue keeps playing similar tracks
    * once it ends, while Smart Shuffle and repeat are off. Its suggestions stay out of `originalQueue`.
    */
-  readonly autoplay = signal<boolean>(false);
+  readonly autoplay = signal<boolean>(true);
   /** Who put the upcoming suggestions in the queue, for the queue's divider and screen readers. */
   readonly suggestionLabel = computed(() => this.smartShuffle() ? 'Suggested by Smart Shuffle' : 'Autoplay');
   private readonly external = signal<ExternalPlayback | null>(null);

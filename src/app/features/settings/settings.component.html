@@ -248,6 +248,23 @@
             </div>
             <div class="pref-row">
               <div class="pref-label">
+                <span class="pref-title">Autoplay</span>
+                <span class="pref-desc">Keep playing similar tracks when the queue ends</span>
+              </div>
+              <div class="pref-control">
+                <button
+                  type="button"
+                  class="btn-toggle"
+                  [class.active]="player.autoplay()"
+                  aria-label="Autoplay"
+                  [attr.aria-pressed]="player.autoplay()"
+                  (click)="player.setAutoplay(!player.autoplay())">
+                  {{ player.autoplay() ? 'On' : 'Off' }}
+                </button>
+              </div>
+            </div>
+            <div class="pref-row">
+              <div class="pref-label">
                 <div class="pref-title-line">
                   <span class="pref-title">Crossfade</span>
                   <span class="beta-tag">Beta</span>

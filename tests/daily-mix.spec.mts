@@ -96,8 +96,17 @@ describe('isMixQueue', () => {
   const e = (id: string, suggested = false) => ({ id: 'e-' + id, track: t(id), originalIndex: 0, suggested });
   const mix = [t('a'), t('b'), t('c')];
 
-  it('sees the mix in any order, past suggestions and tracks the user added', () => {
-    expect(isMixQueue([e('c'), e('s1', true), e('a'), e('b'), e('x')], mix)).toBe(true);
+  it('sees the mix in its order, past suggestions and tracks the user added', () => {
+    expect(isMixQueue([e('a'), e('s1', true), e('x'), e('b'), e('c')], mix)).toBe(true);
+  });
+
+  it('is not fooled by a queue that only holds the mix tracks, such as the whole library', () => {
+    expect(isMixQueue([e('c'), e('a'), e('b')], mix)).toBe(false);
+  });
+
+  it('takes any order while shuffled, as long as the mix is most of the queue', () => {
+    expect(isMixQueue([e('c'), e('s1', true), e('a'), e('b'), e('x')], mix, true)).toBe(true);
+    expect(isMixQueue([e('c'), e('a'), e('b'), e('x'), e('y'), e('z')], mix, true)).toBe(false);
   });
 
   it('is off once a mix track leaves the queue, for a suggested copy, or with no mix', () => {
