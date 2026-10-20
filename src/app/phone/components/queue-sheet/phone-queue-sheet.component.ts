@@ -1,6 +1,7 @@
 import { Component, ElementRef, Injector, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
+import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { QueueEntry } from '../../../core/models';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
@@ -61,6 +62,16 @@ export class PhoneQueueSheetComponent {
     for (let i = Math.max(current, 0); i < queue.length; i++) seconds += queue[i].track.duration || 0;
     return current >= 0 ? Math.max(0, seconds - Math.min(this.player.currentTime(), queue[current]?.track.duration || 0)) : seconds;
   });
+
+  private readonly smartShuffle = inject(SmartShuffleService);
+  readonly refreshing = signal(false);
+
+  /** Picks Autoplay's waiting suggestions again. */
+  async refreshAutoplay(): Promise<void> {
+    haptic('tick');
+    this.refreshing.set(true);
+    try { await this.smartShuffle.refreshAutoplay(); } finally { this.refreshing.set(false); }
+  }
 
   /** Where Smart Shuffle's picks start after the current track, marked once instead of on every row. */
   readonly suggestedFrom = computed(() => {

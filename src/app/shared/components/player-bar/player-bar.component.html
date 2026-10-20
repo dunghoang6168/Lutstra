@@ -87,7 +87,6 @@
     <button type="button" class="queue-btn" [class.active]="isQueueOpen()" (click)="toggleQueue.emit()" aria-controls="queue-drawer"
       appTip="Queue (Q)" aria-label="Toggle playback queue" [attr.aria-pressed]="isQueueOpen()" aria-keyshortcuts="Q">
       <app-icon name="queue" [size]="18" />
-      @if (player.queue().length > 0) { <span class="queue-badge">{{ player.queue().length }}</span> }
     </button>
   }
 </ng-template>

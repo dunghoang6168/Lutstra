@@ -160,7 +160,12 @@
               </div>
             }
           </div>
-          @if (suggestionTail().length > 3) {
+          @if (autoplayFrom() >= 0) {
+            <button type="button" class="autoplay-refresh" [disabled]="refreshingAutoplay()" (click)="refreshAutoplay()"
+              aria-label="Refresh Autoplay suggestions">
+              <app-icon name="refresh-cw" [size]="14" /> Refresh
+            </button>
+          } @else if (player.smartShuffle() && suggestionTail().length > 3) {
             <button type="button" class="suggestions-toggle" (click)="suggestionsExpanded.set(!suggestionsExpanded())"
               [attr.aria-expanded]="suggestionsExpanded()">
               {{ suggestionsExpanded() ? 'Show fewer' : 'Show more' }}

@@ -39,6 +39,8 @@ export class SmartShuffleService {
   private refreshNext = false;
   private lastSignature = '';
   private autoplaySignature = '';
+  /** The suggestion whose start already refreshed the preview behind it. */
+  private autoplayRefreshedId = '';
   private scheduled = false;
   private wasEnabled = false;
   private arranging = false;
@@ -163,18 +165,28 @@ export class SmartShuffleService {
 
   private autoplayAllowed(): boolean {
     const player = this.player;
-    return player.autoplay() && !player.smartShuffle() && player.repeatMode() === 'off' && !player.modesLocked() && player.isPlaybackActive();
+    return player.autoplay() && !player.smartShuffle() && player.repeatMode() === 'off' && !player.modesLocked();
   }
 
   /**
-   * Autoplay: on the last playable entry, queues the next `AUTOPLAY_BATCH` suggestions, linked on from the tracks
-   * just played. Appending before the queue ends keeps gapless and crossfade; the last of them appends more.
+   * Autoplay keeps `AUTOPLAY_BATCH` suggestions waiting after the queue, like Spotify's:
+   * - a preview, linked on from the queue's last tracks, as soon as the queue has none;
+   * - when the first of them starts, the rest are picked again from what was really played;
+   * - each later suggestion that starts tops the run back up, leaving the waiting ones as they are.
+   * They are queue entries, so gapless and crossfade reach them like any other track.
    */
   private async autoplay(): Promise<void> {
     if (!this.autoplayAllowed()) return;
     const queue = this.player.queue();
     const index = this.player.currentIndex();
-    if (index < 0 || queue.slice(index + 1).some((entry) => entry.track.isAvailable)) return;
+    if (index < 0 || !queue.length) return;
+    let start = queue.length;
+    while (start > index + 1 && queue[start - 1].suggested) start--;
+    const waiting = queue.length - start;
+    const current = queue[index];
+    const refresh = current.suggested && !queue[index - 1]?.suggested && current.id !== this.autoplayRefreshedId;
+    const count = refresh ? AUTOPLAY_BATCH : current.suggested ? AUTOPLAY_BATCH - waiting : waiting ? 0 : AUTOPLAY_BATCH;
+    if (count <= 0) return;
     // Once per queue state, so a library with nothing left to suggest is not asked again and again.
     const signature = signatureOf(queue, index);
     if (signature === this.autoplaySignature) return;
@@ -186,15 +198,43 @@ export class SmartShuffleService {
         this.autoplaySignature = '';
         return;
       }
-      const plan = planUpcoming({
-        upcoming: [], recent: queue.slice(Math.max(0, index - RECENT_CONTEXT), index + 1).map((entry) => entry.track.id),
-        userRun: 0, every: suggestionSpacing(this.events), window: AUTOPLAY_BATCH, refresh: false, reorder: false,
-        exclude: new Set([...this.sessionExclude, ...queue.map((entry) => entry.track.id)]),
-      }, this.context());
-      this.player.appendSuggestions(plan.map((item) => this.player.createSuggestedEntry(this.tracks.get(item.trackId)!)));
+      const picks = this.autoplayPicks(queue, index, start, count, refresh ? queue.slice(0, index + 1) : queue);
+      // Only an empty result is remembered: the same queue may need a preview again (after Repeat, say).
+      if (picks.length) this.autoplaySignature = '';
+      if (refresh) {
+        this.autoplayRefreshedId = current.id;
+        // Tracks the user added after this one stay; only the preview is picked again (or kept, with nothing to pick).
+        if (picks.length) this.player.replaceUpcoming([...queue.slice(index + 1).filter((entry) => !entry.suggested), ...picks]);
+      } else {
+        this.player.appendSuggestions(picks);
+      }
     } catch (error) {
       console.warn('Autoplay could not queue suggestions', error);
     }
+  }
+
+  /** The queue's Refresh: picks all the waiting Autoplay suggestions again, none of them the same as before. */
+  async refreshAutoplay(): Promise<void> {
+    if (!this.autoplayAllowed()) return;
+    await this.ensureLoaded();
+    const queue = this.player.queue();
+    const index = this.player.currentIndex();
+    let start = queue.length;
+    while (start > index + 1 && queue[start - 1].suggested) start--;
+    if (index < 0 || start === queue.length) return;
+    // Every track in the queue is left out, the old picks too, so Refresh always brings new ones.
+    const picks = this.autoplayPicks(queue, index, start, AUTOPLAY_BATCH, queue);
+    if (picks.length) this.player.replaceUpcoming([...queue.slice(index + 1, start), ...picks]);
+  }
+
+  /** The preview follows the queue's last tracks; once suggestions play, the tracks just heard. */
+  private autoplayPicks(queue: QueueEntry[], index: number, start: number, count: number, exclude: QueueEntry[]): QueueEntry[] {
+    const until = queue[index].suggested ? index + 1 : start;
+    return planUpcoming({
+      upcoming: [], recent: queue.slice(Math.max(0, until - RECENT_CONTEXT - 1), until).map((entry) => entry.track.id),
+      userRun: 0, every: suggestionSpacing(this.events), window: count, refresh: false, reorder: false,
+      exclude: new Set([...this.sessionExclude, ...exclude.map((entry) => entry.track.id)]),
+    }, this.context()).map((item) => this.player.createSuggestedEntry(this.tracks.get(item.trackId)!));
   }
 
   private onListen(event: PlayEvent): void {

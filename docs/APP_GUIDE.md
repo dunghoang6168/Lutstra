@@ -35,8 +35,11 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
       - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).
     - **Autoplay** (như Autoplay của Spotify, tách khỏi Smart Shuffle). Mặc định bật; công tắc ở Settings › Playback (desktop) và Settings (điện thoại):
-      - Chỉ chạy khi Smart Shuffle tắt, Repeat tắt, không có Roulette và đang phát.
-      - Tới bài cuối queue thì nối thêm 5 bài gợi ý nối tiếp mấy bài vừa nghe; tới bài gợi ý cuối thì nối tiếp, nên nghe mãi. Nối trước khi bài cuối hết nên crossfade/gapless vẫn chạy.
+      - Chỉ chạy khi Smart Shuffle tắt, Repeat tắt và không có Roulette. Bật Repeat hoặc Smart Shuffle thì các gợi ý chưa phát rời queue; tắt Repeat thì chúng quay lại.
+      - Xem trước như Spotify: queue vừa có bài là 5 bài gợi ý đã hiện ở cuối, chọn theo mấy bài cuối của queue.
+      - Khi bài gợi ý đầu tiên bắt đầu phát, các bài gợi ý còn lại được chọn lại theo những bài vừa thật sự nghe (bài bạn thêm vào sau đó vẫn giữ). Từ đó mỗi bài gợi ý bắt đầu thì nối thêm cho đủ 5 bài chờ, không đổi các bài đang chờ, nên nghe mãi. Gợi ý là bài trong queue nên crossfade/gapless vẫn chạy.
+      - Icon queue không còn số bài, vì phần Autoplay làm con số này tăng mãi.
+      - Queue (desktop và điện thoại) hiện đủ các bài Autoplay đang chờ, bên dưới có nút **Refresh** để chọn lại cả 5 bài, không lấy lại bài nào đã có trong queue. Gợi ý của Smart Shuffle vẫn gọn còn 3 bài kèm Show more.
       - Bài của bạn giữ đúng thứ tự (Flex Mix, playlist phát đúng danh sách rồi mới sang gợi ý). Add to queue chèn trước các gợi ý; bật/tắt Shuffle vẫn để gợi ý ở cuối.
       - Trong queue (desktop và điện thoại) các gợi ý nằm dưới dòng phân cách "Autoplay"; icon la bàn chỉ dành cho gợi ý của Smart Shuffle. Tắt Autoplay thì bỏ các gợi ý chưa phát.
     - **Flex Mix** (mix của hôm nay; giao diện desktop và điện thoại đều gọi là Flex Mix, còn code, route `/daily-mix` và khoá `lutstra.dailyMix` giữ tên Daily Mix; `DailyMixService` trong `core/smart-shuffle`):

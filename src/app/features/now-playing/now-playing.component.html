@@ -44,9 +44,6 @@
                   aria-label="Toggle playback queue drawer"
                   appTip="Toggle queue drawer">
                   <app-icon name="queue" [size]="18" />
-                  @if (player.queue().length > 0) {
-                    <span class="queue-badge">{{ player.queue().length }}</span>
-                  }
                 </button>
               } @else if (layoutPreference.mode() === 'liquid-glass') {
                 <button #detailsTrigger type="button" class="heading-source-btn"

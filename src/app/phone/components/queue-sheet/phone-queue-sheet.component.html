@@ -54,6 +54,13 @@
           </button>
         </li>
       }
+      @if (suggestedFrom() >= 0 && !player.smartShuffle()) {
+        <li class="queue-refresh">
+          <button type="button" [disabled]="refreshing()" (click)="refreshAutoplay()" aria-label="Refresh Autoplay suggestions">
+            <app-icon name="refresh-cw" [size]="18" /> Refresh
+          </button>
+        </li>
+      }
     </ol>
   } @else {
     <p class="empty">Queue is empty. Play something from Library.</p>

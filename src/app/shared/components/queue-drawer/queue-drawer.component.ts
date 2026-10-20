@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { ListeningHistoryService } from '../../../core/history/listening-history.service';
+import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { focusListItem, nextRowIndex } from '../../utils/row-navigation';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
@@ -29,8 +30,10 @@ export class QueueDrawerComponent {
   readonly dropTarget = signal<{ entryId: string; placement: 'before' | 'after' } | null>(null);
   readonly reorderAnnouncement = signal('');
   private readonly history = inject(ListeningHistoryService);
-  /** Smart Shuffle's own run at the end of the queue shows three suggestions until expanded. */
+  private readonly smartShuffleService = inject(SmartShuffleService);
+  /** Smart Shuffle's own run at the end of the queue shows three suggestions until expanded; Autoplay's shows all. */
   readonly suggestionsExpanded = signal(false);
+  readonly refreshingAutoplay = signal(false);
   readonly suggestionTail = computed(() => {
     const queue = this.player.queue();
     let start = queue.length;
@@ -46,10 +49,26 @@ export class QueueDrawerComponent {
   readonly visibleEntries = computed(() => {
     const tail = this.suggestionTail();
     const queue = this.player.queue();
-    return tail.length > COLLAPSED_SUGGESTIONS && !this.suggestionsExpanded() ? queue.slice(0, tail.start + COLLAPSED_SUGGESTIONS) : queue;
+    return this.player.smartShuffle() && tail.length > COLLAPSED_SUGGESTIONS && !this.suggestionsExpanded()
+      ? queue.slice(0, tail.start + COLLAPSED_SUGGESTIONS) : queue;
   });
 
+  async refreshAutoplay(): Promise<void> {
+    this.refreshingAutoplay.set(true);
+    try { await this.smartShuffleService.refreshAutoplay(); } finally { this.refreshingAutoplay.set(false); }
+  }
+
   constructor() {
+    // Opening the drawer brings the current entry (playing or paused) to the middle and makes it the active row.
+    effect(() => {
+      if (!this.isOpen()) return;
+      untracked(() => {
+        const current = this.player.queue()[this.player.currentIndex()];
+        if (!current) return;
+        this.activeId.set(current.id);
+        afterNextRender(() => this.scrollToEntry(current.id), { injector: this.injector });
+      });
+    });
     effect(() => {
       const entries = this.player.queue();
       untracked(() => {
@@ -69,6 +88,15 @@ export class QueueDrawerComponent {
     if (this.host.nativeElement.contains(event.target)) return;
     if (event.target.closest('[aria-controls="queue-drawer"], .queue-notice')) return;
     this.close.emit();
+  }
+
+  /** Scrolls only the drawer's list, so the page behind it stays where it was. */
+  private scrollToEntry(entryId: string): void {
+    const list = this.host.nativeElement.querySelector<HTMLElement>('.drawer-content');
+    const row = list?.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(entryId)}"]`);
+    if (!list || !row) return;
+    const offset = row.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    list.scrollTop = offset - (list.clientHeight - row.offsetHeight) / 2;
   }
 
   onActivateEntry(entryId: string, moveFocus = false): void {

@@ -660,6 +660,8 @@ export class PlayerService implements OnDestroy {
   }
 
   setRepeatMode(mode: RepeatMode): void {
+    // Repeat loops the queue itself, so Autoplay's preview would never play; it comes back with Repeat off.
+    if (mode !== 'off' && !this.smartShuffle()) this.dropUpcomingSuggestions();
     this.repeatMode.set(mode);
     this.refreshPreparedCandidate();
     if (!this.restoringSettings) void this.persistSettings({ repeatMode: mode });
@@ -710,6 +712,8 @@ export class PlayerService implements OnDestroy {
     if (this.smartShuffle() === enabled) return;
     if (enabled) {
       if (this.isShuffle()) this.toggleShuffle();
+      // Autoplay's waiting picks are not Smart Shuffle's; it makes its own. A restored setting keeps the saved queue.
+      if (!this.restoringSettings) this.dropUpcomingSuggestions();
       this.originalQueue = this.queue().filter((entry) => !entry.suggested);
     } else {
       this.restoreFromSmartShuffle();
@@ -756,15 +760,17 @@ export class PlayerService implements OnDestroy {
   /** Turning Autoplay off drops the suggestions not played yet; Smart Shuffle keeps its own. */
   setAutoplay(enabled: boolean): void {
     this.autoplay.set(enabled);
-    if (!enabled && !this.smartShuffle()) {
-      const index = this.currentIndex();
-      const kept = this.queue().filter((entry, i) => i <= index || !entry.suggested);
-      if (kept.length !== this.queue().length) {
-        this.queue.set(kept);
-        this.refreshPreparedCandidate();
-      }
-    }
+    if (!enabled && !this.smartShuffle()) this.dropUpcomingSuggestions();
     void this.persistSettings({ autoplay: enabled });
+  }
+
+  /** Takes Autoplay's suggestions not played yet out of the queue (Autoplay off, Repeat on, Smart Shuffle on). */
+  private dropUpcomingSuggestions(): void {
+    const index = this.currentIndex();
+    const kept = this.queue().filter((entry, i) => i <= index || !entry.suggested);
+    if (kept.length === this.queue().length) return;
+    this.queue.set(kept);
+    this.refreshPreparedCandidate();
   }
 
   /** Smart Shuffle turned on with nothing queued: plays its suggestions from the first. */

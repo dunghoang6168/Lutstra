@@ -124,45 +124,73 @@ describe('Autoplay', () => {
     expect(player.queue().length).toBe(2);
   });
 
-  it('queues suggestions once the last entry plays, after the user tracks in their order', async () => {
-    const { player, tracks, autoplay, playing } = await setup();
-    player.autoplay.set(true);
+  it('shows five suggestions after the queue from the start, linked on from its last tracks', async () => {
+    const { player, tracks, autoplay } = await setup();
     const own = tracks.slice(0, 3);
     await player.playCollection(own, 0);
-    playing();
-    await autoplay();
-    expect(player.queue().length).toBe(3);
-
-    await player.jumpToQueueIndex(2);
-    playing();
     await autoplay();
     const queue = player.queue();
     expect(queue.slice(0, 3).map((entry) => entry.track.id)).toEqual(own.map((track) => track.id));
     expect(queue.slice(3).length).toBe(5);
     expect(queue.slice(3).every((entry) => entry.suggested)).toBe(true);
     expect(new Set(queue.map((entry) => entry.track.id)).size).toBe(8);
+    await autoplay();
+    expect(player.queue()).toBe(queue);
   });
 
-  it('stays off with Smart Shuffle, repeat, the setting off or while paused', async () => {
+  it('picks the preview again when its first track starts, keeping tracks added after it', async () => {
     const { player, tracks, autoplay, playing } = await setup();
-    player.autoplay.set(true);
+    await player.playCollection(tracks.slice(0, 2), 0);
+    await autoplay();
+    const preview = player.queue().slice(2);
+    await player.jumpToQueueIndex(2);
+    playing();
+    player.addToQueue([tracks[12]]);
+    await autoplay();
+    const queue = player.queue();
+    expect(queue[2]).toBe(preview[0]);
+    expect(queue[3].track.id).toBe(tracks[12].id);
+    expect(queue.slice(4).length).toBe(5);
+    expect(queue.slice(4).every((entry) => entry.suggested && !preview.includes(entry))).toBe(true);
+    await autoplay();
+    expect(player.queue()).toBe(queue);
+  });
+
+  it('tops the run back up to five as later suggestions start, leaving the waiting ones', async () => {
+    const { player, tracks, autoplay } = await setup();
+    await player.playCollection(tracks.slice(0, 2), 0);
+    await autoplay();
+    await player.jumpToQueueIndex(2);
+    await autoplay();
+    const waiting = player.queue().slice(4);
+    await player.jumpToQueueIndex(3);
+    await autoplay();
+    const queue = player.queue();
+    expect(queue.slice(4, 8)).toEqual(waiting);
+    expect(queue.length).toBe(9);
+    expect(queue[8].suggested).toBe(true);
+  });
+
+  it('stays out while Repeat or Smart Shuffle is on, and comes back with Repeat off', async () => {
+    const { player, tracks, autoplay, turnOn } = await setup();
     await player.playCollection(tracks.slice(0, 2), 1);
     await autoplay();
-    expect(player.queue().length).toBe(2);
-    playing();
+    expect(player.queue().length).toBe(7);
     player.setRepeatMode('all');
-    await autoplay();
-    player.setRepeatMode('off');
-    player.setAutoplay(false);
+    expect(player.queue().length).toBe(2);
     await autoplay();
     expect(player.queue().length).toBe(2);
+    player.setRepeatMode('off');
+    await autoplay();
+    expect(player.queue().length).toBe(7);
+    await turnOn();
+    expect(player.smartShuffle()).toBe(true);
+    expect(player.queue().some((entry) => entry.suggested)).toBe(false);
   });
 
   it('drops the suggestions not played yet when turned off', async () => {
-    const { player, tracks, autoplay, playing } = await setup();
-    player.autoplay.set(true);
+    const { player, tracks, autoplay } = await setup();
     await player.playCollection(tracks.slice(0, 2), 1);
-    playing();
     await autoplay();
     await player.jumpToQueueIndex(2);
     player.setAutoplay(false);
@@ -170,9 +198,21 @@ describe('Autoplay', () => {
     expect(player.currentIndex()).toBe(2);
   });
 
+  it('picks all five waiting suggestions again on Refresh, none of them the same', async () => {
+    const { player, service, tracks, autoplay } = await setup();
+    const own = tracks.slice(0, 2);
+    await player.playCollection(own, 0);
+    await autoplay();
+    const before = player.queue().slice(2).map((entry) => entry.track.id);
+    await service.refreshAutoplay();
+    const queue = player.queue();
+    expect(queue.slice(0, 2).map((entry) => entry.track.id)).toEqual(own.map((track) => track.id));
+    expect(queue.slice(2).length).toBe(5);
+    expect(queue.slice(2).every((entry) => entry.suggested && !before.includes(entry.track.id))).toBe(true);
+  });
+
   it('puts Add to queue before its suggestions and keeps them last through shuffle', async () => {
     const { player, tracks, autoplay, playing } = await setup();
-    player.autoplay.set(true);
     const own = tracks.slice(0, 3);
     await player.playCollection(own, 2);
     playing();
