@@ -17,8 +17,8 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 - **Gateway:** mọi truy cập dữ liệu đi qua gateway trong `core/contracts`. `app.config.ts` chọn adapter Electron (`core/desktop`) khi chạy desktop, và adapter mock (`core/mock`) khi chạy trên trình duyệt. Nhờ đó, `npm start` chạy được toàn bộ UI bằng dữ liệu giả.
 - **Phát nhạc:**
   - `PlayerService` (`core/player`) giữ queue và trạng thái phát.
-  - Phiên nghe được giữ qua lần tắt app: queue, thứ tự trước shuffle, bài hiện tại và giây (`PlaybackSession`), lưu ở hàng `session` của bảng `settings` qua IPC `session:get` / `session:save` (`validPlaybackSession`). Renderer ghi dần trong lúc nghe, vì `before-quit` đóng database ngay: queue đổi thì ghi trong khoảng 1 giây, còn vị trí thì tối đa 5 giây một lần khi đang phát. Khi roulette chạy, cái được lưu là queue đang tạm gác và chỗ nghe tiếp của nó. Mở app thì nạp lại ở trạng thái **dừng**, không tự phát. Bài đã bị xoá khỏi thư viện thì bỏ qua. File của bài hiện tại bị mất thì hiện Unavailable.
-  - **Smart Shuffle** là một bước trong vòng xoay của nút Shuffle: Off → Shuffle → Smart Shuffle (icon ngôi sao) → Off, giống nút Repeat; phím S xoay theo đúng vòng này. Nút gộp ở Ambient và Gallery Now Playing xoay Off → Shuffle → Smart Shuffle → Repeat All → Repeat One. Smart Shuffle ẩn khi Roulette chạy. Chi tiết kỹ thuật nằm ở mục Smart Shuffle trong AGENTS.md.
+  - Phiên nghe được giữ qua lần tắt app: queue, thứ tự trước shuffle, bài hiện tại và giây (`PlaybackSession`), lưu ở hàng `session` của bảng `settings` qua IPC `session:get` / `session:save` (`validPlaybackSession`). Renderer ghi dần trong lúc nghe, vì `before-quit` đóng database ngay: queue đổi thì ghi trong khoảng 1 giây, còn vị trí thì tối đa 5 giây một lần khi đang phát. Khi một nguồn phát ngoài đang chạy, cái được lưu là queue đang tạm gác và chỗ nghe tiếp của nó. Mở app thì nạp lại ở trạng thái **dừng**, không tự phát. Bài đã bị xoá khỏi thư viện thì bỏ qua. File của bài hiện tại bị mất thì hiện Unavailable.
+  - **Smart Shuffle** là một bước trong vòng xoay của nút Shuffle: Off → Shuffle → Smart Shuffle (icon ngôi sao) → Off, giống nút Repeat; phím S xoay theo đúng vòng này. Nút gộp ở Ambient và Gallery Now Playing xoay Off → Shuffle → Smart Shuffle → Repeat All → Repeat One. Smart Shuffle ẩn khi một nguồn phát ngoài đang chạy. Chi tiết kỹ thuật nằm ở mục Smart Shuffle trong AGENTS.md.
     - **Một chế độ của queue**, loại trừ với Shuffle:
       - Bài của bạn được xếp lại theo gu; bài được Play next hoặc kéo tay thì giữ nguyên chỗ.
       - Cứ vài bài (5 lúc đầu, tự chỉnh từ 4 đến 8) lại chèn một bài gợi ý, chỉ trong 10 vị trí phía trước. Hết bài của bạn thì chạy tiếp bằng gợi ý, không dứt.
@@ -35,7 +35,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Chuỗi gợi ý ở cuối queue chỉ hiện 3 bài, kèm nút Show more.
       - Xóa một bài gợi ý được ghi là "không thích nhẹ" (`removed`).
     - **Autoplay** (như Autoplay của Spotify, tách khỏi Smart Shuffle). Mặc định bật; công tắc ở Settings › Playback (desktop) và Settings (điện thoại):
-      - Chỉ chạy khi Smart Shuffle tắt, Repeat tắt và không có Roulette. Bật Repeat hoặc Smart Shuffle thì các gợi ý chưa phát rời queue; tắt Repeat thì chúng quay lại.
+      - Chỉ chạy khi Smart Shuffle tắt, Repeat tắt và không có nguồn phát ngoài. Bật Repeat hoặc Smart Shuffle thì các gợi ý chưa phát rời queue; tắt Repeat thì chúng quay lại.
       - Xem trước như Spotify: queue vừa có bài là 5 bài gợi ý đã hiện ở cuối, chọn theo mấy bài cuối của queue.
       - Khi bài gợi ý đầu tiên bắt đầu phát, các bài gợi ý còn lại được chọn lại theo những bài vừa thật sự nghe (bài bạn thêm vào sau đó vẫn giữ). Từ đó mỗi bài gợi ý bắt đầu thì nối thêm cho đủ 5 bài chờ, không đổi các bài đang chờ, nên nghe mãi. Gợi ý là bài trong queue nên crossfade/gapless vẫn chạy.
       - Icon queue không còn số bài, vì phần Autoplay làm con số này tăng mãi.
@@ -62,7 +62,7 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
     - **IPC:** `history:record`, `history:list`, `history:events` (toàn bộ, cho phân tích) và `history:clear`, có validate. Android lưu vào SQLite riêng của app với cùng bảng `play_events` (`AndroidListeningHistoryGateway` / `AndroidHistoryPlugin`); trên trình duyệt, lịch sử chỉ giữ trong bộ nhớ (`MockListeningHistoryGateway`).
     - **Trang History** (`/history`, sau Folders ở sidebar và tab):
       - Chỉ là lịch sử, không phải thống kê. Mỗi dòng gồm bài, nghệ sĩ, album, giờ nghe và thời lượng bài, chia nhóm theo ngày.
-      - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ Roulette và bài gợi ý bị xóa (`shownInHistory`). Các lượt này vẫn được lưu để phân tích.
+      - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ nguồn phát ngoài và bài gợi ý bị xóa (`shownInHistory`). Các lượt này vẫn được lưu để phân tích.
       - Settings > Playback có nút **Clear history** (hỏi lại trước khi xóa).
   - `PlaybackEngine` là ranh giới với backend: Native Shared (Native Audio Host, mặc định) hoặc Chromium Shared (dự phòng).
   - Media flyout của Windows (Quick Settings, lock screen): khi chạy Chromium Shared, Chromium tự đẩy `navigator.mediaSession` lên. Khi chạy Native Shared, `MediaSessionService` gửi bài đang phát qua IPC `media-controls:update`, rồi `electron/media-controls.ts` gọi SMTC trong addon `native/window-snap/media_controls.cc`. Nút bấm trên flyout đi về theo channel `media-keys:action`.
@@ -77,72 +77,11 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
 - `RecentPlaysService`: 20 bài gần nhất cho Home (Continue listening), lưu trong `lutsra.recentPlays` dạng `[{ trackId, playedAt }]`, mới nhất trước. Ghi khi `player.currentTrack` đổi. Đây không phải lịch sử nghe đầy đủ (`play_events`, xem mục Phát nhạc).
 - `RightPanelService`: panel nào đang mở bên phải (queue drawer hoặc track details).
 - `NavigationHistoryService`: lịch sử điều hướng cho nút back/forward.
-- `DevModeService` (`core/settings`): developer mode ẩn, lưu trong `lutsra.dev.enabled`. Cách bật: khi dev mode đang tắt, bấm tiêu đề "About Lutstra" trong Settings để mở modal nhập mã (`app-dev-mode-dialog`). Mã duy nhất là **`lutstra-dev`**; không phân biệt hoa thường, bỏ qua khoảng trắng hai đầu. Mã này chỉ để tránh bật nhầm, không phải để bảo mật. Khi dev mode đang bật, bấm tiêu đề không làm gì; thẻ About có dòng "Developer mode: On" kèm nút **Exit developer mode** để quay về chế độ thường. Khi bật, header (cả 3 layout) có thêm nút icon gacha cạnh Settings (`src/assets/icons/gacha_cards_{outline,solid}.svg`, hiển thị bằng CSS mask, bản solid khi đang ở trang) dẫn tới trang **Music Roulette** (`/random-folder`, có guard; route, tên trong code và key localStorage vẫn giữ tên "random folder"). Trang này cố ý không nằm trong tab hay sidebar để không lẫn với Folders:
-  - Duyệt folder như màn Folders (không cover). Folder mở gần nhất được nhớ trong `lutsra.dev.randomFolder.path`.
-  - Mỗi dòng folder có một checkbox bên trái để gộp nhiều folder nhỏ thành một nguồn roll:
-    - Tick ở folder nào cũng được. Dấu tick giữ nguyên khi đi vào đi ra các folder, và được nhớ trong `lutsra.dev.randomFolder.checked`.
-    - Khi có folder được tick, nguồn roll là các folder đó thay cho folder đang mở. Nút Roll ghi "N folders" (hoặc tên folder nếu chỉ tick 1). Bài trùng giữa các folder lồng nhau chỉ tính một lần (`sourceTrackIds()`).
-    - Dòng "N folders ticked to roll together" có nút **Clear** để bỏ hết dấu tick. Folder không còn trong thư viện thì tự bỏ tick.
-  - Dưới danh sách folder con là danh sách **Tracks**: các bài còn phát được nằm trực tiếp trong folder đang mở. Mỗi dòng có cover, tên bài, nghệ sĩ, chip bậc và thời lượng.
-    - Bấm vào dòng nào cũng tick hoặc bỏ tick bài đó (cả dòng là label của checkbox). Dấu tick được nhớ trong `lutsra.dev.randomFolder.checkedTracks`.
-    - Bài đã tick được gộp chung với các folder đã tick thành một nguồn. Nút Roll ghi kiểu "2 folders, 5 tracks". **Clear** bỏ cả hai loại dấu tick.
-  - Bấm Roll (nền accent) để bắt đầu một **lượt** (`RandomSessionService`). Dải quay kiểu mở hòm CS:GO (`random-reel`) hé lộ bài đầu trong 7 giây. Dải có nút Skip, có tiếng tách và tiếng ding (Web Audio, có thể im khi output Exclusive chiếm DAC), và bỏ hiệu ứng nếu bật reduced motion.
-  - Viền mỗi ô theo bậc hiếm, tính theo lượt xem YouTube đã lưu (`popularityTiers()`), màu token `--rarity-1`…`--rarity-4` và hologram cho Mythical (chỉ dùng cho màn này):
-    - Phân vị tính riêng trong từng vùng, tức thư mục cấp 1 dưới music root (`trackRegions()`). Riêng các folder trong `RANKED_WITH_LIBRARY` (hiện là "Random ass") xếp theo thang của cả thư viện.
-    - Tỉ lệ số bài trong mỗi vùng (`TIER_SHARES`): vàng là 10% bài nhiều view nhất, đỏ 20% kế tiếp, xanh dương 30% kế tiếp, còn lại 40% là bậc nền xám xanh.
-    - Bậc 5 **Mythical**: 2% bài nhiều view nhất của vùng (`MYTHIC_SHARE`), không giới hạn theo nghệ sĩ.
-    - Vàng giữ tối đa 2 bài mỗi nghệ sĩ (`GOLD_PER_ARTIST`, tính theo nghệ sĩ đầu tiên, `leadArtist()`). Các bài vượt mức xuống đỏ, để một nghệ sĩ không chiếm hết bậc vàng.
-    - Mythical không có màu cố định mà dùng kiểu hologram, chạy vòng qua mọi màu (`--holo-hue` đăng ký bằng `@property`, keyframes `holo-cycle` trong `_primitives.scss`), nên không lẫn với 4 màu kia trên bất kỳ màn hình nào.
-      - Cả trang chỉ có **một đồng hồ màu**: animation đặt trên khung trang, sinh ra biến `--holo-live`. Ô trúng, lóe sáng, thẻ kết quả, chip và spectrum đều đọc biến này, nên cùng một màu tại mọi thời điểm.
-      - Spectrum là canvas nên dùng input `liveColor` để đọc lại màu mỗi khung hình.
-      - `--rarity-holo` là dải cầu vồng tĩnh cho chấm màu.
-    - Bài không có view (No match hoặc chưa tra) xếp vào bậc nền. Intro và interlude không được lọc riêng, view quyết định.
-    - Bậc tính trên cả thư viện, không theo folder nguồn, nên một bài giữ nguyên bậc ở mọi folder. Màn này đọc views đã lưu qua `PopularityFetchService.load()` (không lên mạng) rồi đặt vào `RandomSessionService.tiers`.
-
-    Khi trúng, quầng sáng mạnh dần theo bậc; vàng và Mythical có thêm vệt sáng quét qua. Hiệu ứng riêng:
-    - Tiếng khi dừng tăng theo bậc: ding cho xám/xanh, 2 nốt cho đỏ, rải hợp âm 4 nốt cho vàng, chuỗi nốt dài có tiếng lấp lánh cho Mythical (Web Audio).
-    - Vàng: quầng sáng phập phồng 3 lần rồi đứng yên.
-    - Mythical: viền và quầng sáng chạy vòng màu, một lần lóe sáng hologram lan khắp dải quay, spectrum đổi màu liên tục khi bài đang phát.
-    - Thẻ kết quả của vàng có viền và nền phủ màu vàng, của Mythical thì viền chạy vòng màu.
-    - Bật reduced motion thì giữ trạng thái cuối, không có chuyển động.
-  - Mỗi lần pick là một roll gacha (`rollTier()` rồi `drawTrack()`):
-    - Tỉ lệ niêm yết: xám 65%, xanh 25%, đỏ 8.5%, bậc cao (vàng hoặc Mythical) 1.5%. Bậc không có bài thì tỉ lệ rơi xuống bậc dưới.
-    - Bảo hiểm: soft pity từ lượt 40 (+6% mỗi lượt), lượt 50 chắc chắn ra bậc cao, mỗi 10 lượt chắc chắn có đỏ trở lên.
-    - Mỗi lần ra bậc cao có 25% là Mythical (`MYTHIC_CHANCE`). Lần ra bậc cao thứ 3 kể từ Mythical gần nhất chắc chắn là Mythical (`MYTHIC_GUARANTEE`). Mô phỏng 100k lượt: trung bình 32 lượt một lần ra bậc cao, 74 lượt một Mythical.
-    - Bộ đếm `gold`, `red`, `mythic` lưu trong `lutsra.dev.randomFolder.pity`, giữ qua các lượt và qua lần mở app. Màn roll hiện bộ đếm ("Gold pity x/50 · Red y/10 · Mythical m/3"), ẩn trong lúc quay.
-    - Tỉ lệ co giãn theo nguồn (`RateScale`): trọng số mỗi bậc, và cả tỉ lệ nâng lên Mythical, được nhân với tỉ lệ (phần của bậc đó trong nguồn) / (phần của bậc đó trong cả thư viện). Thống kê thư viện là `RandomSessionService.libraryTiers`, tính bằng `tierCounts()`.
-      - Roll cả thư viện hay một vùng thì gần như không đổi.
-      - Folder toàn bài hit thì ra hit nhiều hơn. Ví dụ VN/Anh Chính (1 Base, 1 Gold, 6 Mythical): trước đây bài Base ra 98.6%, vì Blue và Red không có bài nên tỉ lệ của chúng dồn về Base. Giờ còn 54%, Gold 7%, Mythical 39%.
-    - Ô đệm trên dải quay rút theo tỉ lệ đó (không tính pity), bình thường không bao giờ là vàng hay Mythical, để hai bậc này chỉ hiện khi bài trúng thuộc bậc đó. Nếu nguồn có dưới 5 bài từ Base đến Red (`MIN_FILLER_TRACKS`), ô đệm lấy từ cả nguồn, để dải quay không lặp đi lặp lại một bài.
-    - Dưới dải quay có spectrum đối xứng: 40 dải (50 Hz–23 kHz) lan ra hai bên từ vạch chỉ, cột rủ từ trên xuống và thò xuống dưới thẻ kết quả, màu theo bậc rarity của bài đang phát. Spectrum ẩn (giữ chỗ) khi reel đang quay hoặc queue thường còn đang phát, chỉ hiện khi bài gacha đã phát. Dùng lại `app-spectrum-visualizer` với các input `mirrored`, `flipped`, `bare`, `barCount`, `minHz`/`maxHz`, `colorVar`; giá trị mặc định giữ nguyên spectrum ở Now Playing.
-    - Ô đệm trên dải rút theo tỉ lệ gốc. Dialog tùy chọn có khối Rates chỉ đọc.
-  - Lượt phát như **nguồn ngoài** của player (`player.playExternal()` với `ExternalSource`: `next`, `peek`, `previous`). Queue thường được cất ở bài và giây hiện tại, vẫn nhận Add to queue / Play next; `player.backToQueue()` phát tiếp đúng chỗ đó, `stopExternal()` dừng hẳn khi queue rỗng; phát bất cứ thứ gì từ thư viện hoặc bấm một bài trong queue thì lượt kết thúc.\n  - Lượt giữ lịch sử riêng: Previous/Next đi qua lịch sử (Previous về đầu bài nếu đã nghe quá 3 giây), hết lịch sử mới pick bài mới. Bài kế được pick sẵn qua `peek` cho crossfade/gapless, trừ khi trang sẽ quay reel cho nó.
-  - Tùy chọn trong `app-random-options-dialog` (`lutsra.dev.randomFolder.options`):
-    - Include subfolders.
-    - Roll every track: mỗi bài quay 3 giây và nhạc chờ quay xong. Nếu đang ở màn khác, hoặc cửa sổ đang ẩn hay thu nhỏ (`document.hidden`, ví dụ khi chuyển bài bằng phím media lúc app chạy nền), thì pick im lặng và phát ngay. Cửa sổ bị ẩn giữa lúc đang quay thì reel kết thúc luôn. Lớp an toàn: reel bị đứng quá 4 giây thì session tự phát bài. Khi tắt, chỉ roll bài đầu, các bài sau pick im lặng.
-    - No repeats in a round: hết pool thì dừng và báo (khi Infinite roulette tắt).
-    - Infinite roulette (mặc định tắt, chỉ bật được khi có No repeats): hết pool thì tự bắt đầu lại, bài vừa phát không bị pick ngay lượt kế; pity giữ nguyên.
-  - Roll, Roll again hoặc Change folder rồi roll lại sẽ bắt đầu lượt mới. Màn kết quả (Change folder, dải quay, card) giữ nguyên khi chuyển trang, cho tới khi lượt kết thúc: rời lượt (Back to queue, Stop roulette, phát thứ khác) thì trang về danh sách thư mục, không còn reel hay spectrum.
-  - Suốt lượt (`player.modesLocked()`, bật khi có nguồn ngoài) nút shuffle/repeat bị ẩn ở player bar và Now Playing, phím S/R bị bỏ qua, và repeat được coi là off; trạng thái shuffle/repeat đã lưu không đổi và áp dụng lại khi lượt kết thúc. Queue chỉ bị ẩn khi ở trang (`RightPanelService.queueHidden`); ở trang khác vẫn mở được và là queue thường.\n  - Drawer Queue hiện dải "Roulette is playing" với nút **Back to queue**, hoặc **Stop roulette** khi queue rỗng (cả hai gọi `player.backToQueue()`). Bài đang cất có nhãn "Resumes here" (`.parked`: viền accent trái, không tô như bài đang phát). Thẻ kết quả trên trang có cùng nút đó dưới Roll again (`session.leave()`).
-- Thử nghiệm độ phổ biến (cũng chỉ hiện khi bật developer mode), trong màn Folders:
-  - Bảng file có thêm cột **Views** và nút **Fetch views**. Nút này tra lại lượt xem YouTube cho các bài đang hiện trong bảng, kể cả bài đã có số.
-  - Toolbar có nút **Fetch missing views (N)**: tra mọi bài chưa có số dưới folder đang mở, kể cả thư mục con. Đứng ở root là quét cả thư viện, khoảng 1,2 giây mỗi bài. Việc quét vẫn chạy khi chuyển sang trang khác (`PopularityFetchService`).
-  - Mỗi lần Scan library hoặc Scan this folder xong, app tự tra views cho mọi bài chưa có số trong thư viện. Việc tự tra chỉ bắt đầu sau khi đã mở màn Folders ít nhất một lần.
-  - Trong lúc tra, ngay dưới khung tiến trình scan có thêm khung **Fetching views** (đã tra x / n bài, thanh tiến độ, nút **Stop**).
-  - Tắt developer mode thì việc tra đang chạy dừng luôn.
-  - Toolbar có nút bật/tắt **No match (N)**, hiện ở folder có thư mục con. Khi bật, bảng chỉ liệt kê các bài không khớp được video nào, kèm đường dẫn folder của từng bài.
-  - Việc tra do `PopularityService` (`electron/services`) đảm nhận: chạy file `yt-dlp` không qua shell, mỗi process khoảng 100 query truyền qua tham số dòng lệnh (yt-dlp đọc stdin sai bảng mã với chữ có dấu trên Windows). Stop diệt cả cây process. Máy phải cài sẵn yt-dlp, ví dụ bằng `winget install yt-dlp.yt-dlp`.
-  - Báo cáo phân bố: `node scripts/popularity-report.mjs` đọc database ở chế độ chỉ đọc, ghi ra `plan/reports/popularity-distribution.md`. Báo cáo gồm phân vị lượt xem theo vùng (thư mục cấp 1 dưới root; Random ass xếp hạng theo cả thư viện) và thử 3 cách chia bậc. App dùng cách C (40/30/20/10).
-  - Kết quả lưu vào bảng `track_popularity` trong database. Lần sau mở folder thì cột Views hiện ngay số đã lưu mà không cần tra lại.
-  - Cách chọn video (`electron/utils/youtube-match.ts`), search bằng nghệ sĩ đầu tiên cộng tên bài, xét 10 kết quả đầu:
-    - Tiêu đề video phải có đủ mọi từ của tên bài, thứ tự nào cũng được, từ lặp phải lặp đủ số lần. Trước khi so đã bỏ phần feat. và phần ngoặc đứng tách rời; ngoặc nằm giữa từ như "Go(o)d" thì giữ.
-    - Loại video có chữ cover, remix, live, extended, karaoke, practice, fancam…, trừ khi tên bài hoặc tên nghệ sĩ có chữ đó. Tên bài có chữ "…mix" (ví dụ Machimix) thì cho phép video remix.
-    - Ngược lại, tên bài có remix, "…mix", instrumental hoặc inst thì video cũng phải có chữ đó, để bản remix hay instrumental không lấy view của MV gốc.
-    - Video không được ngắn hơn file quá 30 giây. Video dài hơn file được tối đa 180 giây (MV hay có intro); riêng file dưới 90 giây chỉ được dài hơn tối đa 30 giây.
-    - Ưu tiên video có tên nghệ sĩ trong tiêu đề hoặc tên kênh, sau đó chọn video nhiều view nhất.
-    - Bài chưa khớp được search lại lần hai với tên bài bỏ chữ cuối, vì YouTube trả về rỗng với một số chữ (ví dụ "Drake Janice STFU"). Lần hai chỉ ghi đè khi khớp được.
-    - Không có video nào thỏa thì ô hiện "No match".
-  - Lượt xem này là nguồn xếp bậc rarity của màn Music Roulette (xem ở trên).
+- **Hai bản build (editions):** bản **public** là chính repo này; bản **full** thêm bản developer nằm trong `dev/`, một repo private riêng mà repo này bỏ qua (`.gitignore`). Tài liệu của bản developer nằm ở `dev/README.md`.
+  - Code public chỉ chạm tới bản developer qua các "điểm cắm": `src/app/dev-hooks/index.ts` (renderer), `electron/dev-hooks.ts` (main process) và `electron/dev-hooks-preload.ts` (preload). Trong repo này chúng là stub không thêm gì; bản full thay bằng `dev/renderer/index.ts`, `dev/electron/index.ts`, `dev/electron/preload.ts`.
+  - Cơ chế chung mà các điểm cắm dùng: `ContentSheetService.embedded` (trang nhúng một website: thu ô tìm thư viện, trình phát của Lutstra chỉ hiện khi đang phát, Console bỏ inspector), `NavigationHistoryService.setInnerHistory` (Back/Forward đi qua lịch sử riêng của trang trước), `ExternalSource.label`, và `FolderView` của Folders (`override` thay danh sách file, cột phụ `.col-extra`).
+  - `scripts/edition.mjs` chọn bản build: theo `LUTSTRA_EDITION=full|public`, không có thì là full khi có thư mục `dev/`. `npm start`, `npm run build`, `npm run electron`, `npm run package:win` đi theo đó; `npm run electron:public` và `npm run package:win:public` ép bản public (installer ra `release/public`).
+  - Không đưa code, tên hay hành vi của bản developer vào file public: thêm điểm cắm chung rồi đặt tính năng trong `dev/`.
 
 ## 3. Ba layout, một bảng màu
 `<html data-layout>` nhận một trong ba giá trị. Mỗi layout khác nhau ở **vị trí** của điều hướng, nội dung và player, không khác nhau ở màu.

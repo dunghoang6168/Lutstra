@@ -12,7 +12,7 @@ export interface TrackFacts {
   /** When the file appeared in the library (its last-modified time), ms. */
   addedAt: number | null;
   inPlaylist: boolean;
-  /** YouTube views as a percentile within the library, 0–1; null when unknown. */
+  /** Online popularity as a percentile within the library, 0–1; null when unknown. */
   popularity: number | null;
 }
 

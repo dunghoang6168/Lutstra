@@ -55,7 +55,10 @@ app.whenReady().then(async () => {
   const artist = await js(`[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).find(h=>h.startsWith('/artists/'))`);
   await win.loadURL(BASE + '/playlists'); await wait(3000);
   const playlist = await js(`[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).find(h=>h.startsWith('/playlists/'))`);
-  const routes = ['/home', '/songs', '/albums', '/albums/album-midnight', '/artists', artist, '/playlists', playlist, '/folders', '/history', '/daily-mix', '/settings', '/now-playing', '/random-folder'];
+  // The developer edition lists its own pages.
+  const devRoutesFile = path.join(__dirname, '..', 'dev', 'ui-sweep-routes.json');
+  const devRoutes = fs.existsSync(devRoutesFile) ? JSON.parse(fs.readFileSync(devRoutesFile, 'utf8')) : [];
+  const routes = ['/home', '/songs', '/albums', '/albums/album-midnight', '/artists', artist, '/playlists', playlist, '/folders', '/history', '/daily-mix', '/settings', '/now-playing', ...devRoutes];
   const report = [];
   for (const layout of ['inset', 'classic', 'liquid-glass']) {
     await js(`localStorage.setItem('lutsra.layout.mode','${layout}')`);

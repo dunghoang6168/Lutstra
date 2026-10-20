@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { DesktopApi, NativeAudioHostEvent, NativeMediaKeyAction } from '../src/app/core/desktop/desktop-api';
 import type { ArtistMetadataUpdate, AudioHostState, ScanProgress } from '../src/app/core/models';
-import type { PopularityProgress } from '../src/app/core/contracts/popularity.gateway';
+import { devPreloadApi } from './dev-hooks-preload';
 
 const api: DesktopApi = {
   runtime: 'electron',
@@ -125,16 +125,6 @@ const api: DesktopApi = {
     getSession: () => ipcRenderer.invoke('session:get'),
     saveSession: (session) => ipcRenderer.invoke('session:save', session),
   },
-  popularity: {
-    get: (trackIds) => ipcRenderer.invoke('popularity:get', trackIds),
-    fetchBatch: (trackIds) => ipcRenderer.invoke('popularity:fetch-batch', trackIds),
-    cancel: () => ipcRenderer.invoke('popularity:cancel'),
-    onProgress: (listener) => {
-      const handler = (_event: Electron.IpcRendererEvent, value: PopularityProgress) => listener(value);
-      ipcRenderer.on('popularity:progress', handler);
-      return () => ipcRenderer.removeListener('popularity:progress', handler);
-    },
-  },
   history: {
     record: (event) => ipcRenderer.invoke('history:record', event),
     list: (request) => ipcRenderer.invoke('history:list', request),
@@ -143,4 +133,5 @@ const api: DesktopApi = {
   },
 };
 
-contextBridge.exposeInMainWorld('desktop', api);
+// The developer edition adds its own APIs beside these (dev-hooks-preload.ts).
+contextBridge.exposeInMainWorld('desktop', { ...api, ...devPreloadApi });

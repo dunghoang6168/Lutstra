@@ -336,18 +336,6 @@
 @keyframes scrim-in { from { opacity: 0; } }
 @keyframes scrim-out { to { opacity: 0; } }
 
-/* Developer Random folder: the mythical tier's hologram, a hue that cycles through every colour.
-   Registered so it can animate; shared by the reel and the result card. */
-@property --holo-hue {
-  syntax: '<number>';
-  inherits: true;
-  initial-value: 320;
-}
-@keyframes holo-cycle {
-  from { --holo-hue: 0; }
-  to { --holo-hue: 360; }
-}
-
 /* Tooltip: the shared top-layer popover behind the appTip directive (shared/directives/tip.directive.ts). */
 .app-tip {
   --tip-shift: translateY(4px);

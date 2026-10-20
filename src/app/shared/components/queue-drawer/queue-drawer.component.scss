@@ -191,7 +191,7 @@
       font-weight: 600;
     }
 
-    /* Where the queue resumes after the roulette: marked, not lit like the playing row. */
+    /* Where the queue resumes after an external source: marked, not lit like the playing row. */
     .queue-item.parked {
       box-shadow: inset 2px 0 0 var(--accent-primary);
     }

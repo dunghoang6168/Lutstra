@@ -26,17 +26,6 @@ html[data-theme='dark'] {
   --color-scrollbar-thumb: rgba(255, 255, 255, 0.14);
   --color-scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
   --status-warning-text: #f59e0b;
-
-  /* Case-opening rarity tiers 1-4, for the developer Random folder reel only (CS:GO grade colours). */
-  --rarity-1: #b0c3d9;
-  --rarity-2: #4b69ff;
-  --rarity-3: #eb4b4b;
-  --rarity-4: #e4ae39;
-  /* Tier 5 (mythical) has no colour of its own: it cycles every hue (--holo-hue, one clock per
-     Music Roulette page, read as --holo-live), so it cannot pass for a single-colour tier on any screen. */
-  --rarity-holo: linear-gradient(90deg, #ff5f6d, #ffc371, #5fe08a, #4bc8ff, #a66bff, #ff5fd2);
-  --holo-l: 76%;
-  --holo-c: 0.17;
 }
 
 /* --------------------------------------------------------------------------
@@ -67,15 +56,6 @@ html[data-theme='light'] {
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
   --color-scrollbar-thumb: rgba(15, 23, 42, 0.18);
   --color-scrollbar-thumb-hover: rgba(15, 23, 42, 0.32);
-
-  /* Rarity tiers, darkened to stay visible on light surfaces. */
-  --rarity-1: #64748b;
-  --rarity-2: #3550e0;
-  --rarity-3: #cc3333;
-  --rarity-4: #a87a10;
-  --rarity-holo: linear-gradient(90deg, #d63447, #c77a12, #1f9d55, #1f86c4, #7a45e0, #c42fa3);
-  --holo-l: 56%;
-  --holo-c: 0.2;
 }
 
 /* --------------------------------------------------------------------------

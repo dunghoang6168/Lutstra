@@ -11,7 +11,7 @@ export class RightPanelService {
   private trackDetailsOpener: HTMLElement | null = null;
 
   private readonly hiddenOnPage = signal(false);
-  /** Hidden on the Random folder page; elsewhere the queue shows even while a roulette round plays. */
+  /** Hidden by a page that plays an external source; elsewhere the queue shows even while one plays. */
   readonly queueHidden = computed(() => this.hiddenOnPage());
 
   hideQueue(hidden: boolean): void {

@@ -23,6 +23,8 @@ import { RecentPlaysService } from './core/layout/recent-plays.service';
 import { AcrylicScrollbarService } from './core/layout/acrylic-scrollbar.service';
 import { LIBRARY_GATEWAY } from './core/contracts';
 import { getDesktopApi } from './core/desktop/desktop-api';
+import { ContentSheetService } from './core/layout/content-sheet.service';
+import { devShellContent } from './dev-hooks';
 
 const SIDEBAR_COLLAPSED_KEY = 'lutsra.sidebar.collapsed';
 const SIDEBAR_HIDDEN_KEY = 'lutsra.sidebar.hidden';
@@ -98,6 +100,9 @@ export class AppComponent implements AfterViewChecked {
   readonly layout = this.layoutPreference.mode;
   readonly hasTrackOrQueue = computed(() => this.player.currentTrack() !== null || this.player.queue().length > 0);
   private readonly onNowPlaying = computed(() => this.currentUrl().split(/[?#]/, 1)[0] === '/now-playing');
+  /** A page that embeds a site sets this; see ContentSheetService. */
+  readonly embeddedPage = inject(ContentSheetService).embedded;
+  readonly devShellContent = devShellContent;
   /** Ambient lays the playing artwork under every page (unless turned off in Settings), Gallery only on Now Playing,
    *  Console never (no glow). */
   readonly backdropArtwork = computed(() => {
@@ -106,8 +111,10 @@ export class AppComponent implements AfterViewChecked {
     if (this.layout() === 'liquid-glass' && !this.layoutPreference.ambientArtwork()) return null;
     return this.layout() === 'liquid-glass' || this.onNowPlaying() ? artwork : null;
   });
-  /** Console's strip is permanent; Gallery's rail and Ambient's dock appear once there is music. */
+  /** Console's strip is permanent; Gallery's rail and Ambient's dock appear once there is music.
+   *  On an embedded page each shows only while Lutstra plays, leaving the room to the page's own player. */
   readonly showPlayer = computed(() => {
+    if (this.embeddedPage() && !this.player.isPlaying()) return false;
     if (this.layout() === 'classic') return true;
     if (!this.hasTrackOrQueue()) return false;
     return this.layout() === 'liquid-glass' || !this.onNowPlaying();
@@ -115,7 +122,8 @@ export class AppComponent implements AfterViewChecked {
   /** Gallery's rail width as dragged, clamped so the sheet keeps at least 480px. */
   private readonly railWidthPreference = signal(readSavedRailWidth());
   readonly railWidth = computed(() => clampRailWidth(this.railWidthPreference(), this.windowWidth()));
-  readonly consoleInspector = computed(() => this.layout() === 'classic' && this.windowWidth() >= 1100);
+  /** Console's inspector describes library files, so an embedded page goes without it. */
+  readonly consoleInspector = computed(() => this.layout() === 'classic' && this.windowWidth() >= 1100 && !this.embeddedPage());
   /** Audio notices dismiss themselves; hover or focus holds the countdown (WCAG 2.2.1). */
   readonly noticeDurationMs = 8000;
   readonly noticePaused = signal(false);

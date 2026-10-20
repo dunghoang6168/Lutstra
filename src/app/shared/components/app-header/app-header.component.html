@@ -25,17 +25,26 @@
   </button>
 </ng-template>
 
-<!-- Developer mode: Music Roulette (the random-folder page) is its own icon, apart from the Folders section. -->
-<ng-template #randomFolder>
-  @if (devMode.enabled()) {
-    <a routerLink="/random-folder" routerLinkActive="active" class="header-button" aria-label="Music Roulette" appTip="Music Roulette" tipPlacement="bottom">
-      <span class="gacha-icon" aria-hidden="true"></span>
-    </a>
+<!-- The Developer menu (developer edition only): every developer page, apart from the library's sections. -->
+<ng-template #developerMenu>
+  @if (devMenu && devMenu.visible()) {
+    <details class="dev-menu" #devMenuElement>
+      <summary class="header-button" [class.active]="devMenuActive()" aria-label="Developer" appTip="Developer" tipPlacement="bottom">
+        <app-icon name="flask" [size]="18" />
+      </summary>
+      <nav class="tabs-menu-list dev-menu-list" aria-label="Developer pages">
+        @for (entry of devMenu.entries; track entry.path) {
+          <a [routerLink]="entry.path" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeDevMenu()">
+            <span class="dev-menu-icon" aria-hidden="true" [style.mask-image]="'url(' + entry.icon + ')'"></span>{{ entry.label }}
+          </a>
+        }
+      </nav>
+    </details>
   }
 </ng-template>
 
 <header class="app-header" [attr.data-variant]="layoutPreference.mode()">
-  <div class="titlebar-content" [class.compact-search-open]="compactSearchOpen()">
+  <div class="titlebar-content" [class.compact-search-open]="compactSearchOpen()" [class.search-folded]="searchFolded()">
     @switch (layoutPreference.mode()) {
       @case ('inset') {
         <!-- Gallery: section tabs replace the sidebar. -->
@@ -62,7 +71,7 @@
           <ng-container *ngTemplateOutlet="compactSearchButton" />
           <app-global-search />
           <ng-container *ngTemplateOutlet="status" />
-          <ng-container *ngTemplateOutlet="randomFolder" />
+          <ng-container *ngTemplateOutlet="developerMenu" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>
@@ -85,7 +94,7 @@
         <div class="header-drag-space" aria-hidden="true"></div>
         <div class="header-right float-cluster">
           <ng-container *ngTemplateOutlet="status" />
-          <ng-container *ngTemplateOutlet="randomFolder" />
+          <ng-container *ngTemplateOutlet="developerMenu" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>
@@ -107,7 +116,7 @@
         <app-global-search />
         <div class="header-right">
           <ng-container *ngTemplateOutlet="status" />
-          <ng-container *ngTemplateOutlet="randomFolder" />
+          <ng-container *ngTemplateOutlet="developerMenu" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">
             <app-icon name="settings" [size]="18" />
           </a>

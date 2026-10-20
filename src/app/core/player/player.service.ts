@@ -19,10 +19,12 @@ export interface QueueSnapshot {
 }
 
 /**
- * Plays tracks outside the queue (the developer roulette). While one is active the queue stays the
+ * Plays tracks outside the queue (a developer page's source). While one is active the queue stays the
  * user's own: it is parked at its current entry and position and still takes Add to queue / Play next.
  */
 export interface ExternalSource {
+  /** Names the source in the queue drawer: "<label> is playing", "Stop <label>". */
+  readonly label: string;
   /**
    * The track after the current one, consumed. After `peek()` it must return the peeked track.
    * Null pauses playback; the source may start a track later with `playExternal()` (a reel).
@@ -134,7 +136,7 @@ export class PlayerService implements OnDestroy {
   /** The source playing outside the queue, if any. */
   readonly externalSource = computed(() => this.external()?.source ?? null);
   /**
-   * True while the developer roulette picks what plays next (a queue-end handler or an external source).
+   * True while an external source picks what plays next (a queue-end handler or an external source).
    * Shuffle and repeat do not apply then: the UI hides them and playback treats repeat as off, without
    * changing the saved modes.
    */
@@ -418,7 +420,7 @@ export class PlayerService implements OnDestroy {
     const queue = this.queue();
     const index = this.currentIndex();
     const external = this.external();
-    // While the roulette plays, the parked queue entry and its resume point are what to keep.
+    // While an external source plays, the parked queue entry and its resume point are what to keep.
     const position = Math.floor(external ? external.resumeAt : index >= 0 ? this.currentTime() : 0);
     const now = Date.now();
     const last = this.savedSession;
@@ -529,7 +531,7 @@ export class PlayerService implements OnDestroy {
     const safeIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
     const entries = this.createQueueEntries(tracks);
     this.failedEntryIds.clear();
-    // Playing something from the library ends any external source (the roulette).
+    // Playing something from the library ends any external source.
     this.external.set(null);
 
     this.originalQueue = [...entries];
@@ -1320,7 +1322,7 @@ export class PlayerService implements OnDestroy {
   }
 
   // ==========================================
-  // External Source (developer roulette)
+  // External Source
   // ==========================================
 
   /**

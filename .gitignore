@@ -67,3 +67,6 @@ native/audio-host/obj-tests/
 
 # Agent plans, prompts and notes
 /plan/
+
+# The private developer edition (its own repository; see AGENTS.md, "Editions")
+/dev/

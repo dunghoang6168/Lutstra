@@ -1,16 +1,17 @@
 import {
-  ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, input, output, signal, viewChild,
+  ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { LIBRARY_GATEWAY } from '../../../core/contracts';
 import { getDesktopApi } from '../../../core/desktop/desktop-api';
 import { NavigationHistoryService } from '../../../core/layout/navigation-history.service';
 import { LayoutPreferenceService } from '../../../core/layout/layout-preference.service';
 import { type ScanProgress } from '../../../core/models';
-import { DevModeService } from '../../../core/settings/dev-mode.service';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { devMenu } from '../../../dev-hooks';
 import { GlobalSearchComponent } from '../global-search/global-search.component';
 import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
@@ -26,6 +27,8 @@ import { WindowControlsComponent } from '../window-controls/window-controls.comp
 })
 export class AppHeaderComponent {
   readonly sidebarHidden = input(false);
+  /** An embedded page: the library search folds into its icon (Ctrl K still opens it), so the page's own search stands alone. */
+  readonly searchFolded = input(false);
   readonly toggleSidebarVisibility = output<void>();
   readonly layoutPreference = inject(LayoutPreferenceService);
   private readonly gateway = inject(LIBRARY_GATEWAY);
@@ -37,7 +40,6 @@ export class AppHeaderComponent {
 
   readonly navHistory = inject(NavigationHistoryService);
   /** Gallery's section tabs, shared by the wide navigation and compact menu. */
-  readonly devMode = inject(DevModeService);
   readonly tabs = computed(() => [
     { path: '/home', label: 'Home' },
     { path: '/songs', label: 'Songs' },
@@ -47,6 +49,15 @@ export class AppHeaderComponent {
     { path: '/folders', label: 'Folders' },
     { path: '/history', label: 'History' },
   ]);
+  /** The Developer menu beside Settings; only the developer edition has one. */
+  readonly devMenu = devMenu;
+  private readonly devMenuElement = viewChild<ElementRef<HTMLDetailsElement>>('devMenuElement');
+  private readonly url = toSignal(inject(Router).events.pipe(
+    filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+    map((event) => event.urlAfterRedirects),
+  ), { initialValue: '' });
+  /** Pressed while one of its pages shows. */
+  readonly devMenuActive = computed(() => (this.devMenu?.entries ?? []).some((entry) => this.url().startsWith(entry.path)));
   readonly scanProgress = toSignal(this.gateway.scanProgress$, {
     initialValue: {
       isScanning: false, scannedFiles: 0, audioFiles: 0, currentPath: null, error: null,
@@ -80,6 +91,7 @@ export class AppHeaderComponent {
   @HostListener('window:keydown', ['$event'])
   onWindowKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Escape' && this.compactSearchOpen()) this.closeCompactSearch();
+    if (event.key === 'Escape') this.closeDevMenu();
     if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'k') {
       event.preventDefault();
       this.openCompactSearch();
@@ -101,11 +113,17 @@ export class AppHeaderComponent {
     this.search().close();
   }
 
+  closeDevMenu(): void {
+    const menu = this.devMenuElement()?.nativeElement;
+    if (menu) menu.open = false;
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.compactSearchOpen() || !(event.target instanceof Element)) return;
+    if (!(event.target instanceof Element)) return;
     const target = event.target;
-    if (target.closest('app-global-search, .compact-search-button')) return;
+    if (!target.closest('.dev-menu')) this.closeDevMenu();
+    if (!this.compactSearchOpen() || target.closest('app-global-search, .compact-search-button')) return;
     this.closeCompactSearch();
   }
 }

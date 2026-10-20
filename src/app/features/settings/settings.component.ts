@@ -10,7 +10,6 @@ import { LIBRARY_GATEWAY, SETTINGS_GATEWAY } from '../../core/contracts';
 import { AccentColor, AudioEngineBackend, AudioHostState, MusicFolder, RepeatMode, SYSTEM_DEFAULT_OUTPUT_ID, ThemePreset, ACCENT_SWATCHES } from '../../core/models';
 import { PlayerService } from '../../core/player/player.service';
 import { QueueActionsService } from '../../core/player/queue-actions.service';
-import { DevModeService } from '../../core/settings/dev-mode.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { LayoutPreferenceService } from '../../core/layout/layout-preference.service';
 import { getDesktopApi } from '../../core/desktop/desktop-api';
@@ -20,7 +19,7 @@ import { RangeSliderComponent } from '../../shared/components/range-slider/range
 import { SongColumnsSettingsComponent } from './song-columns-settings.component';
 import { LayoutSettingsComponent } from './layout-settings.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
-import { DevModeDialogComponent } from './dev-mode-dialog/dev-mode-dialog.component';
+import { devAboutHeading, devAboutItem } from '../../dev-hooks';
 import { ConfirmClearHistoryDialogComponent } from './confirm-clear-history-dialog/confirm-clear-history-dialog.component';
 import { ListeningHistoryService } from '../../core/history/listening-history.service';
 import { TipDirective } from '../../shared/directives/tip.directive';
@@ -54,7 +53,7 @@ export interface ThemePresetOption {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, ConfirmClearHistoryDialogComponent, DevModeDialogComponent, TipDirective],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, ConfirmClearHistoryDialogComponent, TipDirective],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
@@ -89,22 +88,12 @@ export class SettingsComponent implements OnInit {
   readonly themeService = inject(ThemeService);
   readonly layoutPreference = inject(LayoutPreferenceService);
   readonly player = inject(PlayerService);
-  private readonly devMode = inject(DevModeService);
-  readonly devModeEnabled = this.devMode.enabled;
-  readonly showDevModeDialog = signal(false);
+  /** The developer edition's parts of the About card (null in the public edition). */
+  readonly devAboutHeading = devAboutHeading;
+  readonly devAboutItem = devAboutItem;
   private readonly queueActions = inject(QueueActionsService);
   readonly isDesktop = Boolean(getDesktopApi());
   readonly isAndroid = Capacitor.getPlatform() === 'android';
-
-  onDevModeUnlocked(): void {
-    this.showDevModeDialog.set(false);
-    this.queueActions.notify('Developer mode on');
-  }
-
-  onExitDevMode(): void {
-    this.devMode.disable();
-    this.queueActions.notify('Developer mode off');
-  }
 
   readonly themePresets: ThemePresetOption[] = [
     {

@@ -36,15 +36,15 @@
         </div>
       </div>
 
-      <!-- The roulette plays in place of the queue, which waits at its parked entry. -->
-      @if (player.externalSource()) {
+      <!-- An external source plays in place of the queue, which waits at its parked entry. -->
+      @if (player.externalSource(); as source) {
         <div class="external-banner" role="status">
           <span class="external-label">
             <app-icon name="sparkles" [size]="14" aria-hidden="true" />
-            Roulette is playing
+            {{ source.label }} is playing
           </span>
           <button type="button" class="external-action" (click)="player.backToQueue()">
-            {{ player.queue().length ? 'Back to queue' : 'Stop roulette' }}
+            {{ player.queue().length ? 'Back to queue' : 'Stop ' + source.label.toLowerCase() }}
           </button>
         </div>
       }

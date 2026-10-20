@@ -1,6 +1,14 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { NavigationCancel, NavigationEnd, NavigationError, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+/** A page with a history of its own (an embedded site), walked before the app's. */
+export interface InnerHistory {
+  canGoBack: Signal<boolean>;
+  canGoForward: Signal<boolean>;
+  back(): void;
+  forward(): void;
+}
 
 @Injectable({ providedIn: 'root' })
 export class NavigationHistoryService {
@@ -9,11 +17,12 @@ export class NavigationHistoryService {
   private readonly entries = signal<string[]>([]);
   private readonly currentIndex = signal(-1);
   private pendingIndex: number | null = null;
+  private readonly inner = signal<InnerHistory | null>(null);
 
-  readonly canGoBack = computed(() => this.currentIndex() > 0);
+  readonly canGoBack = computed(() => this.inner()?.canGoBack() || this.currentIndex() > 0);
   readonly canGoForward = computed(() => {
     const index = this.currentIndex();
-    return index >= 0 && index < this.entries().length - 1;
+    return this.inner()?.canGoForward() || (index >= 0 && index < this.entries().length - 1);
   });
 
   constructor() {
@@ -24,8 +33,20 @@ export class NavigationHistoryService {
     });
   }
 
-  back(): void { this.navigateToIndex(this.currentIndex() - 1); }
-  forward(): void { this.navigateToIndex(this.currentIndex() + 1); }
+  back(): void {
+    const inner = this.inner();
+    if (inner?.canGoBack()) inner.back();
+    else this.navigateToIndex(this.currentIndex() - 1);
+  }
+
+  forward(): void {
+    const inner = this.inner();
+    if (inner?.canGoForward()) inner.forward();
+    else this.navigateToIndex(this.currentIndex() + 1);
+  }
+
+  /** Set while a page with its own history is shown; null when it leaves. */
+  setInnerHistory(history: InnerHistory | null): void { this.inner.set(history); }
 
   private navigateToIndex(index: number): void {
     const destination = this.entries()[index];

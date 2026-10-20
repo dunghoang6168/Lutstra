@@ -105,6 +105,20 @@ app-window-controls { flex: 0 0 auto; }
 .tabs-menu-list a:hover { color: var(--text-primary); background: var(--bg-surface-hover); }
 .tabs-menu-list a.active { color: var(--text-primary); background: var(--bg-surface-active); }
 
+/* Developer menu: the tabs menu's list, opened from a header button and aligned to its right edge. */
+.dev-menu { position: relative; -webkit-app-region: no-drag; }
+.dev-menu summary { list-style: none; }
+.dev-menu summary::-webkit-details-marker { display: none; }
+.dev-menu-list { left: auto; right: 0; }
+.dev-menu-list a { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.dev-menu-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background: currentColor;
+  mask: center / contain no-repeat;
+}
+
 /* ---------- Console: flush 44px title bar ---------- */
 :host-context(.layout-classic) { flex-basis: 44px; height: 44px; }
 [data-variant='classic'] { border-bottom: 1px solid var(--border-default); background: var(--color-navigation); }
@@ -144,6 +158,14 @@ app-window-controls { flex: 0 0 auto; }
 [data-variant='liquid-glass'] app-global-search { width: clamp(200px, 26vw, 340px); }
 [data-variant='liquid-glass'] .header-button { border-radius: var(--radius-full); }
 [data-variant='liquid-glass'] .header-drag-space { pointer-events: auto; }
+
+/* ---------- Embedded page: the library search folds into its icon (narrow windows already fold it) ---------- */
+@media (min-width: 651px) {
+  .search-folded .compact-search-button { display: inline-flex; }
+  .search-folded:not(.compact-search-open) app-global-search { display: none; }
+  /* Console keeps the search's grid cell, so Settings stays at the right. */
+  [data-variant='classic'] .search-folded:not(.compact-search-open) app-global-search { display: block; visibility: hidden; }
+}
 
 /* ---------- Narrow windows ---------- */
 @media (max-width: 1040px) {
@@ -204,12 +226,3 @@ app-window-controls { flex: 0 0 auto; }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   .float-cluster { background: var(--glass-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
-
-/* Random folder's gacha cards: outline at rest, solid on its page. Masked so it takes currentColor. */
-.gacha-icon {
-  width: 20px;
-  height: 20px;
-  background: currentColor;
-  mask: url('../../../../assets/icons/gacha_cards_outline.svg') center / contain no-repeat;
-}
-.header-button.active .gacha-icon { mask-image: url('../../../../assets/icons/gacha_cards_solid.svg'); }

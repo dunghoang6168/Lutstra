@@ -116,6 +116,30 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "full": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/dev-hooks/index.ts",
+                  "with": "dev/renderer/index.ts"
+                }
+              ],
+              "assets": [
+                {
+                  "glob": "**/*",
+                  "input": "public"
+                },
+                {
+                  "glob": "**/*",
+                  "input": "dev/renderer/assets",
+                  "output": "assets/dev"
+                }
+              ],
+              "styles": [
+                "node_modules/@fontsource-variable/manrope/wght.css",
+                "src/styles.scss",
+                "dev/renderer/styles.scss"
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -128,6 +152,9 @@
             },
             "development": {
               "buildTarget": "lutstra:build:development"
+            },
+            "full": {
+              "buildTarget": "lutstra:build:development,full"
             }
           },
           "defaultConfiguration": "development"

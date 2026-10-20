@@ -33,6 +33,7 @@
 
       <app-header
         [sidebarHidden]="isSidebarHidden()"
+        [searchFolded]="embeddedPage()"
         (toggleSidebarVisibility)="onToggleSidebarVisibility()"
       />
 
@@ -47,6 +48,9 @@
 
         <main class="main-content" role="main">
           <router-outlet />
+          @if (devShellContent) {
+            <ng-container *ngComponentOutlet="devShellContent" />
+          }
         </main>
 
         @if (consoleInspector()) {
@@ -71,7 +75,7 @@
         }
       </div>
 
-      @if (layout() === 'classic') {
+      @if (layout() === 'classic' && showPlayer()) {
         <app-player-bar class="console-strip" variant="strip"
           [isQueueOpen]="isQueueOpen()" (toggleQueue)="onToggleQueue()" />
       } @else if (layout() === 'liquid-glass' && showPlayer()) {

@@ -28,7 +28,7 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
   readonly bare = input(false);
   /** Colour token for the bars. Accent fades to `--accent-muted`; any other token is drawn solid. */
   readonly colorVar = input('--accent-primary');
-  /** Re-read the colour token every frame, for a token that animates (the Music Roulette hologram). */
+  /** Re-read the colour token every frame, for a token that animates (a colour that cycles). */
   readonly liveColor = input(false);
 
   private readonly analysis = inject(AUDIO_ANALYSIS_ENGINE);

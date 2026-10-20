@@ -1,7 +1,10 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
-/** YouTube views of a track, looked up with yt-dlp (developer mode experiment). */
+/**
+ * How often a track was played online, cached per track. Only the developer edition provides it
+ * (`devProviders`); Smart Shuffle uses it when present and does without it otherwise.
+ */
 export interface TrackPopularity {
   trackId: string;
   status: 'matched' | 'unmatched';
@@ -29,7 +32,7 @@ export interface PopularityBatchSummary {
 export interface PopularityGateway {
   /** Cached results only; never goes online. */
   getPopularity(trackIds: string[]): Promise<TrackPopularity[]>;
-  /** Searches YouTube for these tracks in one batch, caching each result as it arrives on `progress$`. */
+  /** Looks these tracks up online in one batch, caching each result as it arrives on `progress$`. */
   fetchPopularity(trackIds: string[]): Promise<PopularityBatchSummary>;
   cancelFetch(): Promise<void>;
   readonly progress$: Observable<PopularityProgress>;

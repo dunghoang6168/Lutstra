@@ -42,7 +42,7 @@ export interface HistoryPageRequest {
 }
 
 export const HISTORY_PAGE_SIZE = 200;
-/** The History page lists every listen except roulette rolls and removed suggestions, which stay in the log for the analysis. */
+/** The History page lists every listen except those of an external source (`roulette`) and removed suggestions, which stay in the log for the analysis. */
 export function shownInHistory(event: Pick<PlayEvent, 'source' | 'endReason'>): boolean {
   return event.source !== 'roulette' && event.endReason !== 'removed';
 }

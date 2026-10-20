@@ -7,14 +7,13 @@ import { ScannerService } from '../services/scanner.service.js';
 import { TrackDetailsService } from '../services/track-details.service.js';
 import { ArtistMetadataService } from '../services/artist-metadata.service.js';
 import { LyricsService } from '../services/lyrics.service.js';
-import { PopularityService } from '../services/popularity.service.js';
 import { AudioHostService } from '../services/audio-host.service.js';
 import { validPlaybackSession, validSettings } from './settings-validation.js';
 import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validHistoryPageRequest, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validPlayEvent, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
 import { updateWindowSnapBounds } from '../window-snap.js';
 import { updateMediaControls } from '../media-controls.js';
 
-export function registerIpc(database: DatabaseService, scanner: ScannerService, trackDetails: TrackDetailsService, artistMetadata: ArtistMetadataService, lyrics: LyricsService, popularity: PopularityService, audioHost: AudioHostService, getWindow: () => BrowserWindow | null, development: boolean, setNativeMediaKeysActive: (enabled: boolean) => void): void {
+export function registerIpc(database: DatabaseService, scanner: ScannerService, trackDetails: TrackDetailsService, artistMetadata: ArtistMetadataService, lyrics: LyricsService, audioHost: AudioHostService, getWindow: () => BrowserWindow | null, development: boolean, setNativeMediaKeysActive: (enabled: boolean) => void): void {
   handle('system:ping', () => 'pong', development);
   handle('media-keys:set-native-active', (_event, enabled) => setNativeMediaKeysActive(validBoolean(enabled)), development);
   handle('media-controls:update', (_event, info) => updateMediaControls(validMediaControlsInfo(info, (hash) => database.resolveArtwork(hash)?.path ?? null)), development);
@@ -64,9 +63,6 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('library:get-track-details', (_event, trackId) => trackDetails.get(validId(trackId)), development);
   handle('library:get-lyrics', (_event, trackId) => lyrics.get(validId(trackId)), development);
   handle('library:find-tracks-with-lyrics', (_event, trackIds) => lyrics.findTracksWithLyrics(validIdArray(trackIds)), development);
-  handle('popularity:get', (_event, trackIds) => popularity.get(validIdArray(trackIds)), development);
-  handle('popularity:fetch-batch', (_event, trackIds) => popularity.fetchBatch(validIdArray(trackIds)), development);
-  handle('popularity:cancel', () => popularity.cancel(), development);
   handle('history:record', (_event, value) => database.recordPlayEvent(validPlayEvent(value)), development);
   handle('history:list', (_event, request) => database.listHistory(validHistoryPageRequest(request)), development);
   handle('history:events', () => database.listPlayEvents(), development);
@@ -129,7 +125,8 @@ export function broadcastProgress(window: BrowserWindow | null, progress: ScanPr
   if (window && !window.isDestroyed()) window.webContents.send('library:scan-progress', progress);
 }
 
-function handle(channel: string, listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown, development: boolean): void {
+/** Registers an IPC handler that rejects senders other than the app's own renderer. */
+export function handle(channel: string, listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown, development: boolean): void {
   ipcMain.handle(channel, async (event, ...args) => {
     if (!trustedSender(event, development)) throw new Error('Untrusted IPC sender');
     try { return await listener(event, ...args); } catch (error) { console.error(`[ipc:${channel}]`, error); throw channel.startsWith('audio-host:') ? withCodeInMessage(error) : error; }

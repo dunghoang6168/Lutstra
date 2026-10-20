@@ -7,20 +7,22 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "node scripts/edition.mjs ng serve",
     "build": "npm run build:web && npm run build:electron",
-    "build:web": "ng build",
+    "build:web": "node scripts/edition.mjs ng build",
     "build:electron": "tsup --config tsup.config.ts && node scripts/fix-electron-bundle.mjs && node scripts/build-window-snap.mjs",
     "build:audio-host": "node scripts/build-audio-host.mjs",
     "prepare:audio-host": "node scripts/prepare-audio-host-deps.mjs",
     "build:native:required": "node scripts/build-window-snap.mjs --required",
     "build:android": "ng build --configuration android && cap sync android",
     "build:android:diagnostics": "ng build --configuration android-diagnostics && cap sync android",
-    "dev": "concurrently -k -n WEB,ELECTRON -c cyan,magenta \"ng serve\" \"npm run dev:electron\"",
+    "dev": "concurrently -k -n WEB,ELECTRON -c cyan,magenta \"node scripts/edition.mjs ng serve\" \"npm run dev:electron\"",
     "dev:electron": "npm run build:electron && npm run build:audio-host && wait-on http://localhost:4200 && node scripts/run-electron.mjs --dev",
     "electron": "npm run build && npm run build:audio-host && node scripts/run-electron.mjs",
-    "package:win": "npm run build && npm run build:native:required && npm run build:audio-host && electron-builder --win",
-    "package:win:dir": "npm run build && npm run build:native:required && npm run build:audio-host && electron-builder --win --dir",
+    "electron:public": "node scripts/edition.mjs --public npm run electron",
+    "package:win": "npm run build && npm run build:native:required && npm run build:audio-host && node scripts/edition.mjs electron-builder --win",
+    "package:win:dir": "npm run build && npm run build:native:required && npm run build:audio-host && node scripts/edition.mjs electron-builder --win --dir",
+    "package:win:public": "node scripts/edition.mjs --public npm run package:win",
     "test:audio": "vitest run tests/audio-engine.spec.ts",
     "test:audio-host": "node scripts/test-audio-host.mjs",
     "test:audio-host:smoke": "node scripts/smoke-audio-host.mjs",
@@ -69,7 +71,13 @@
       "dist-electron/native/*.node"
     ],
     "extraResources": [
-      { "from": "dist-electron/audio-host", "to": "audio-host", "filter": ["**/*"] }
+      {
+        "from": "dist-electron/audio-host",
+        "to": "audio-host",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "directories": {
       "output": "release"
