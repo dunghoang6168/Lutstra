@@ -43,6 +43,8 @@ export interface AudioPathStatus {
   channelConversionActive: boolean;
   bitPerfectEligible: boolean;
   processingReasons: string[];
+  /** The native host's EQ is changing the signal (on, and not flat). */
+  eqActive?: boolean;
   /** Actual endpoint period after driver alignment, in milliseconds. */
   bufferMs?: number;
   /** Bounded stop-fade waits that expired without a render acknowledgement. */

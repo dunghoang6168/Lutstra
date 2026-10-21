@@ -39,7 +39,7 @@ describe('Exclusive IPC and persistence', () => {
     service.requestVoid = async (type: string, payload: any) => { commands.push([type,payload]); service.currentPosition = 0; };
     service.loadTrack = async (id: string) => { commands.push(['load', { id }]); service.currentPosition = 0; };
     await service.rehydratePausedSession();
-    expect(commands.map(([type]) => type)).toEqual(['set-fallback','set-output-mode','select-device','set-volume','set-mute','load','seek','pause']);
+    expect(commands.map(([type]) => type)).toEqual(['set-fallback','set-output-mode','select-device','set-volume','set-mute','set-eq','load','seek','pause']);
     expect(commands[1][1]).toEqual({ mode: 'exclusive-dsp', bufferMs: 80 });
     expect(commands.find(([type]) => type === 'seek')![1]).toEqual({ positionSeconds: 12.5 });
     expect(service.currentPosition).toBe(12.5);

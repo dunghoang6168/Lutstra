@@ -1,4 +1,5 @@
 import { MusicFolder } from './folder.model';
+import { EqPreset, EqSettings } from './eq.model';
 
 export type RepeatMode = 'off' | 'one' | 'all';
 export type PlaybackMode = 'off' | 'shuffle' | 'smart-shuffle' | 'repeat-all' | 'repeat-one' | 'combined';
@@ -124,4 +125,8 @@ export interface Settings {
   addTracksTab: AddTracksTab;
   /** Android 12+: take the accent from the wallpaper (Material You) instead of accentColor. */
   dynamicAccent?: boolean;
+  /** EQ per output, keyed by the preferred output id; an output without one plays flat. */
+  eq?: Record<string, EqSettings>;
+  /** The user's own presets, after the built-in ones. */
+  eqPresets?: EqPreset[];
 }

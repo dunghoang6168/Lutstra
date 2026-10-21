@@ -50,6 +50,11 @@ for (const device of devices) {
 }
 const status = await request('get-path-status');
 if (status?.backend !== 'native-shared' || !status.outputFormat?.sampleRate || !status.outputFormat?.channels) throw new Error('WASAPI mix format was not reported.');
+await request('set-eq', { enabled: true, preampDb: -6, bands: [0, 1000, 27.8, 1.41, 1, 100, -3, 0.707] });
+for (const bad of [{ preampDb: 7, bands: [] }, { preampDb: 0, bands: [0, 1000, 31, 1] }, { preampDb: 0, bands: [0, 1000, 6] }]) {
+  if (await request('set-eq', { enabled: true, ...bad }).then(() => true, () => false)) throw new Error(`set-eq accepted ${JSON.stringify(bad)}.`);
+}
+await request('set-eq', { enabled: false, preampDb: 0, bands: [] });
 await request('shutdown');
 await new Promise((resolve) => child.once('exit', resolve));
 server.close();

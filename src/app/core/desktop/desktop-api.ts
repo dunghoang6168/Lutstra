@@ -1,5 +1,5 @@
 import { LibrarySnapshot } from '../contracts/library.gateway';
-import { AudioHostState, AudioOutputDevice, AudioPathStatus, ArtistMatchCandidate, ArtistMetadataUpdate, ArtistOnlineMetadata, FolderNode, HistoryEntry, HistoryPageRequest, MusicFolder, PlayEvent, PlaybackError, PlaybackSession, PlaybackState, PlaybackTimeEvent, PlaybackVolumeEvent, Playlist, ScanProgress, Settings, Track, TrackDetails } from '../models';
+import { AudioHostState, AudioOutputDevice, AudioPathStatus, EqCurve, ArtistMatchCandidate, ArtistMetadataUpdate, ArtistOnlineMetadata, FolderNode, HistoryEntry, HistoryPageRequest, MusicFolder, PlayEvent, PlaybackError, PlaybackSession, PlaybackState, PlaybackTimeEvent, PlaybackVolumeEvent, Playlist, ScanProgress, Settings, Track, TrackDetails } from '../models';
 
 export type NativeAudioHostEvent =
   | { kind: 'state'; value: { state: PlaybackState; trackId?: string; error?: PlaybackError } }
@@ -43,6 +43,7 @@ export interface DesktopApi {
     setFallbackEnabled(enabled: boolean): Promise<void>;
     getPathStatus(): Promise<AudioPathStatus>;
     setSpectrumEnabled(enabled: boolean): Promise<void>;
+    setEq(curve: EqCurve): Promise<void>;
     onEvent(listener: (event: NativeAudioHostEvent) => void): () => void;
     onStateChange(listener: (state: AudioHostState) => void): () => void;
   };

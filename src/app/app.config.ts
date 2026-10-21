@@ -26,6 +26,7 @@ import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway'
 import { AndroidPlaybackEngine } from './core/android/android-playback.engine';
 import { AndroidSettingsGateway } from './core/android/android-settings.gateway';
 import { AndroidListeningHistoryGateway } from './core/android/android-listening-history.gateway';
+import { EqService } from './core/eq/eq.service';
 import { devProviders } from './dev-hooks';
 
 const isDesktop = () => Boolean(getDesktopApi());
@@ -54,6 +55,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => void inject(MediaSessionService)),
     provideAppInitializer(() => void inject(ListeningHistoryService)),
     provideAppInitializer(() => void inject(SmartShuffleService)),
+    provideAppInitializer(() => void inject(EqService)),
     ...devProviders,
   ],
 };

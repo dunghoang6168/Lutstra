@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { EqService } from '../../../core/eq/eq.service';
 import { PlayerService } from '../../../core/player/player.service';
 import { formatKhz, formatTrackFormat } from '../../../features/home/library-quality';
 import { TipDirective } from '../../directives/tip.directive';
@@ -24,6 +25,7 @@ const STATE_HELP: Record<PathState, string> = {
 })
 export class SignalPathComponent {
   private readonly player = inject(PlayerService);
+  private readonly eq = inject(EqService);
   readonly source = computed(() => {
     const track = this.player.currentTrack();
     return track ? formatTrackFormat(track) : null;
@@ -39,7 +41,13 @@ export class SignalPathComponent {
     return path.resamplingActive || path.channelConversionActive ? 'converted' : path.mode === 'exclusive-dsp' ? 'exclusive' : 'shared';
   });
 
+  /** EQ comes first: it changes the samples before any mixer sees them. */
   readonly pathLabel = computed(() => {
+    const label = this.outputLabel();
+    return label && this.eq.processing() ? `EQ · ${label}` : label;
+  });
+
+  private readonly outputLabel = computed(() => {
     const path = this.player.audioPathStatus();
     if (!path) return '';
     const rate = path.outputFormat?.sampleRate;
@@ -60,7 +68,8 @@ export class SignalPathComponent {
     const path = this.player.audioPathStatus();
     const source = this.source()?.label ?? '';
     if (!path) return `Source ${source}`;
-    const reasons = path.processingReasons.join(', ');
+    // Path status catches up with the EQ only on its next refresh, so name it from the setting.
+    const reasons = [...path.processingReasons.filter((reason) => reason !== 'Equalizer'), ...(this.eq.processing() ? ['Equalizer'] : [])].join(', ');
     return `Source ${source} · ${path.deviceName}${reasons ? ` · ${reasons}` : ''}\n${STATE_HELP[this.state()]}`;
   });
 }

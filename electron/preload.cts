@@ -47,6 +47,7 @@ const api: DesktopApi = {
     setFallbackEnabled: (enabled) => ipcRenderer.invoke('audio-host:set-fallback', enabled),
     getPathStatus: () => ipcRenderer.invoke('audio-host:get-path-status'),
     setSpectrumEnabled: (enabled) => ipcRenderer.invoke('audio-host:set-spectrum', enabled),
+    setEq: (curve) => ipcRenderer.invoke('audio-host:set-eq', curve),
     onEvent: (listener) => {
       const handler = (_event: Electron.IpcRendererEvent, value: NativeAudioHostEvent) => listener(value);
       ipcRenderer.on('audio-host:event', handler);

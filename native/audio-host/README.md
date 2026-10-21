@@ -147,3 +147,14 @@ and eight pause phases at 80 ms without fade timeouts. Audio tests stayed muted;
 Exclusive passes owned TE-C temporarily. Stress used generated 44.1/48/96 kHz
 fixtures: 605 requests, 605 responses, 10 endpoint and 10 mode switches. Settings
 captures use status fixtures; they are UI evidence, not listening evidence.
+
+`set-eq` takes `enabled`, `preampDb` (-12..+6) and `bands`, a flat array of
+`[type, freq, gainDb, q]` (type 0 peak, 1 low shelf, 2 high shelf; at most 15 bands;
+filter gain -30..+30, since the renderer solves the bands' interaction so the
+summed response meets each +-12 dB slider at its centre). `equalizer.h` runs RBJ biquads in double on the mixed buffer after
+the crossfade and before the spectrum tap and volume, so its state runs through a
+gapless splice. Render picks new settings up with a try_lock and recomputes them for
+each endpoint rate. Bands at 0 dB, and bands at or above 0.45 x rate, are skipped; flat at
+0 dB preamp leaves samples bit-identical. With EQ active, path status lists
+`Equalizer` and sets `eqActive`, and `time` events carry `clipDb` when output
+went past full scale since the previous one.

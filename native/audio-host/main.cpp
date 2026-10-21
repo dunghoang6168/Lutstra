@@ -234,6 +234,41 @@ static bool boolField(const std::string &j, const std::string &k) {
   p = j.find_first_not_of(" \t\r\n", p + 1);
   return p != std::string::npos && j.compare(p, 4, "true") == 0;
 }
+// "bands" is flat: [type, freq, gainDb, q, ...]. Out-of-range input is a protocol error.
+// A filter may pass the +-12 dB sliders: the renderer's interaction matching needs up to ~28 dB.
+static std::optional<EqSettings> eqField(const std::string &j) {
+  EqSettings s;
+  s.preampDb = numberField(j, "preampDb");
+  if (s.preampDb < -12 || s.preampDb > 6)
+    return std::nullopt;
+  auto p = keyPos(j, "bands");
+  if (p == std::string::npos || (p = j.find('[', p)) == std::string::npos)
+    return std::nullopt;
+  std::vector<double> values;
+  for (const char *c = j.c_str() + p + 1;;) {
+    while (*c == ' ' || *c == ',')
+      ++c;
+    if (*c == ']')
+      break;
+    char *e = nullptr;
+    const double v = strtod(c, &e);
+    if (e == c || values.size() == EqSettings::kMaxBands * 4)
+      return std::nullopt;
+    values.push_back(v);
+    c = e;
+  }
+  if (values.size() % 4)
+    return std::nullopt;
+  for (size_t i = 0; i < values.size(); i += 4) {
+    const EqBand b{static_cast<int>(values[i]), values[i + 1], values[i + 2], values[i + 3]};
+    if (b.type < 0 || b.type > 2 || b.type != values[i] || b.freq < 10 || b.freq > 40000 ||
+        b.gainDb < -30 || b.gainDb > 30 || b.q < 0.1 || b.q > 20)
+      return std::nullopt;
+    s.bands[s.count++] = b;
+  }
+  s.enabled = boolField(j, "enabled");
+  return s;
+}
 static void response(const std::string &id,
                      const std::string &payload = "null") {
   sendJson("{\"protocolVersion\":1,\"id\":\"" + escapeJson(id) +
@@ -367,6 +402,12 @@ int wmain(int argc, wchar_t **argv) {
     else if (type == "set-spectrum") {
       host.setSpectrum(boolField(j, "enabled"));
       response(id);
+    } else if (type == "set-eq") {
+      if (const auto eq = eqField(j)) {
+        host.setEq(*eq);
+        response(id);
+      } else
+        failure(id, "AUDIO_HOST_PROTOCOL_ERROR");
     } else if (type == "shutdown") {
       response(id);
       break;

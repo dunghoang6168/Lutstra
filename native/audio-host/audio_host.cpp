@@ -14,6 +14,7 @@
 #include <share.h>
 #include <sstream>
 #include <utility>
+#include <xmmintrin.h>
 
 using Microsoft::WRL::ComPtr;
 constexpr int kFormatSwitchPrerollMs = 0;
@@ -918,6 +919,15 @@ void WasapiHost::setSpectrum(bool enabled) {
   spectrumEnabled_ = enabled;
 }
 
+void WasapiHost::setEq(const EqSettings &settings) {
+  {
+    std::lock_guard lock(eqMutex_);
+    eqPending_ = settings;
+  }
+  eqVersion_.fetch_add(1, std::memory_order_release);
+  // Paused render still wakes on its timeout, so the next buffer picks this up.
+}
+
 void WasapiHost::cancelPrepared() {
   std::lock_guard lock(controlMutex_);
   if (desiredIncomingToken_)
@@ -981,6 +991,7 @@ std::string WasapiHost::statusJson() {
   if (channels) reasons += "\",\"Channel conversion";
   if (exclusive_ && source.bitDepth > output.bitDepth) reasons += "\",\"Bit-depth reduction";
   if (exclusive_ && volume_.load() < 1) reasons += "\",\"Software volume";
+  if (eqActive_) reasons += "\",\"Equalizer";
   if (muted_) reasons += "\",\"Muted";
   if (!connected_) reasons += "\",\"Selected output disconnected; fallback uses WASAPI Shared";
   return "{\"preferredDeviceId\":\"" + jsonEscape(narrow(preferredId_)) +
@@ -1003,6 +1014,7 @@ std::string WasapiHost::statusJson() {
          "\"resamplingActive\":" +
          (resample ? "true" : "false") +
          ",\"channelConversionActive\":" + (channels ? "true" : "false") +
+         ",\"eqActive\":" + (eqActive_ ? "true" : "false") +
          ",\"bitPerfectEligible\":false,\"processingReasons\":[\"" + reasons +
          "\"],\"bufferMs\":" + std::to_string(mixFormat_ ? 1000.0 * bufferFrames_ / mixFormat_->nSamplesPerSec : 0) +
          ",\"stopFadeTimeouts\":" + std::to_string(stopFadeTimeouts_.load()) +
@@ -1389,9 +1401,13 @@ void WasapiHost::sendTime(bool lossy) {
   // snapshot after pause has sent its final, reliable position.
   if (lossy && !playing_)
     return;
+  // clipDb: how far the loudest sample since the last time event went past full scale with EQ on.
+  // ponytail: time frames keep only the newest, so a clip in a dropped frame is lost; fine for a warning light.
+  const float peak = eqPeak_.exchange(0, std::memory_order_relaxed);
+  const std::string clip = peak > 1 ? ",\"clipDb\":" + std::to_string(20 * std::log10(peak)) : "";
   sendEvent("{\"kind\":\"time\",\"value\":{\"currentTime\":" +
             std::to_string(position_.load()) + ",\"duration\":" +
-            std::to_string(activeDurationSnapshot_.load()) + "}}", lossy);
+            std::to_string(activeDurationSnapshot_.load()) + clip + "}}", lossy);
 }
 
 void WasapiHost::sendError(const std::string &trackId, const std::string &code,
@@ -1541,6 +1557,10 @@ void WasapiHost::renderLoopSafe() {
   std::vector<float> incoming(outgoing.size());
   DWORD task = 0;
   HANDLE mmcss = AvSetMmThreadCharacteristicsW(L"Pro Audio", &task);
+  // Flush denormals to zero: EQ state decaying through silence would otherwise crawl.
+  _mm_setcsr(_mm_getcsr() | 0x8040);
+  // The endpoint (and its rate) is fixed for this thread's life, so apply EQ for it now.
+  eqApplied_ = eqVersion_.load(std::memory_order_acquire) - 1;
   const bool tracing = diagFile() != nullptr;
   auto statsStart = std::chrono::steady_clock::now();
   uint64_t statsEvents = 0, statsTimeouts = 0, statsFrames = 0;
@@ -1707,6 +1727,17 @@ void WasapiHost::renderLoopSafe() {
         }
       }
     }
+    const uint64_t eqVersion = eqVersion_.load(std::memory_order_acquire);
+    if (eqVersion != eqApplied_ && eqMutex_.try_lock()) {
+      const EqSettings settings = eqPending_;
+      eqMutex_.unlock();
+      equalizer_.configure(settings, static_cast<int>(mixFormat_->nSamplesPerSec));
+      eqApplied_ = eqVersion;
+      eqActive_ = equalizer_.active();
+    }
+    // After the crossfade mix: one filter set whose state runs straight through a
+    // gapless splice. The spectrum then shows what is heard.
+    equalizer_.process(outgoing.data(), frames, channels);
     if (spectrumEnabled_) {
       size_t write = spectrumWrite_.load(std::memory_order_relaxed);
       for (UINT32 frame = 0; frame < frames; ++frame) {
@@ -1732,11 +1763,20 @@ void WasapiHost::renderLoopSafe() {
       for (UINT32 channel = 0; channel < channels; ++channel)
         outgoing[static_cast<size_t>(frame) * channels + channel] *= smoothedGain_;
     }
+    if (equalizer_.active()) {
+      float peak = 0;
+      for (size_t i = 0; i < samples; ++i)
+        peak = std::max(peak, std::abs(outgoing[i]));
+      if (peak > eqPeak_.load(std::memory_order_relaxed))
+        eqPeak_.store(peak, std::memory_order_relaxed);
+    }
     const bool exclusiveFinalPcm = exclusive_ && !stoppingPlayback && !promoted && !incoming_ &&
         activeDrained && read > 0 && active_->bufferedSamples() == 0;
     if (exclusiveFinalPcm) {
       const UINT32 musicFrames = static_cast<UINT32>(read / channels);
       const UINT32 fadeFrames = std::min<UINT32>(musicFrames, mixFormat_->nSamplesPerSec / 100);
+      // The EQ's ring after the last music frame would follow the fade unfaded.
+      std::fill(outgoing.begin() + read, outgoing.begin() + samples, 0.0f);
       for (UINT32 frame = 0; frame < fadeFrames; ++frame) {
         const float gain = static_cast<float>(fadeFrames - frame - 1) / fadeFrames;
         for (UINT32 channel = 0; channel < channels; ++channel)

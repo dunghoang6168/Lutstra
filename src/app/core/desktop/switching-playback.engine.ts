@@ -1,6 +1,6 @@
 import { BehaviorSubject, Observable, Subject, Subscription } from 'rxjs';
 import type { AudioAnalysisEngine, PlaybackEngine } from '../contracts';
-import type { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, OutputMode, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent, Track } from '../models';
+import type { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, EqCurve, OutputMode, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent, Track } from '../models';
 
 export class SwitchingPlaybackEngine implements PlaybackEngine, AudioAnalysisEngine {
   private backend: AudioEngineBackend = 'chromium';
@@ -8,6 +8,7 @@ export class SwitchingPlaybackEngine implements PlaybackEngine, AudioAnalysisEng
   private muted = false;
   private fallbackEnabled = false;
   private analysisRequested = false;
+  private eq: EqCurve | null = null;
   private subscriptions = new Subscription();
   private readonly stateSubject = new BehaviorSubject<PlaybackStateEvent>({ state: 'idle', track: null });
   private readonly timeSubject = new Subject<PlaybackTimeEvent>();
@@ -37,6 +38,7 @@ export class SwitchingPlaybackEngine implements PlaybackEngine, AudioAnalysisEng
     this.active.setMute(this.muted);
     // Settings restore runs before the saved backend is activated; re-apply here.
     this.active.setOutputFallbackEnabled(this.fallbackEnabled);
+    if (this.eq) this.active.setEq?.(this.eq);
     if (this.analysisRequested) await this.activeAnalysis.prepareFrequencyAnalysis();
   }
   load(track: Track): Promise<void> { return this.active.load(track); }
@@ -52,6 +54,8 @@ export class SwitchingPlaybackEngine implements PlaybackEngine, AudioAnalysisEng
   selectOutputDevice(deviceId: string): Promise<void> { return this.active.selectOutputDevice(deviceId); }
   setOutputFallbackEnabled(enabled: boolean): void { this.fallbackEnabled = enabled; this.active.setOutputFallbackEnabled(enabled); }
   setOutputMode(mode: OutputMode, bufferMs = 20): Promise<void> { return this.active.setOutputMode(mode, bufferMs); }
+  // Only the native host has an EQ (Chromium Shared is frozen); sending it while Chromium plays would start the host.
+  setEq(curve: EqCurve): void { this.eq = curve; this.active.setEq?.(curve); }
   getAudioPathStatus(): Promise<AudioPathStatus> { return this.active.getAudioPathStatus(); }
   subscribeDeviceChanges(listener: () => void): () => void {
     const removeChromium = this.chromium.subscribeDeviceChanges(() => { if (this.backend === 'chromium') listener(); });

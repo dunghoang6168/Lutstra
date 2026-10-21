@@ -12,3 +12,4 @@ export * from './audio-output.model';
 export * from './scan.model';
 export * from './lyrics.model';
 export * from './listening-history.model';
+export * from './eq.model';

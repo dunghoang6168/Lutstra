@@ -1,7 +1,7 @@
 import { NgZone } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import type { AudioAnalysisEngine, PlaybackEngine } from '../contracts';
-import type { AudioHostState, AudioOutputDevice, AudioPathStatus, OutputMode, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent, Track } from '../models';
+import type { AudioHostState, AudioOutputDevice, AudioPathStatus, EqCurve, OutputMode, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent, Track } from '../models';
 import { getDesktopApi, type NativeAudioHostEvent } from './desktop-api';
 
 // Matches the host: 1024 bins on a fixed 0..24 kHz axis, like the Chromium analyser.
@@ -112,6 +112,8 @@ export class NativeAudioPlaybackEngine implements PlaybackEngine, AudioAnalysisE
     if (mode === 'exclusive-bitperfect') throw Object.assign(new Error('Bit-perfect mode is not available yet.'), { code: 'OUTPUT_MODE_UNSUPPORTED' });
     await this.api!.setOutputMode(mode, bufferMs);
   }
+  // Electron keeps the last curve and sends it again whenever the host restarts.
+  setEq(curve: EqCurve): void { void this.api!.setEq(curve).catch(() => undefined); }
   getAudioPathStatus(): Promise<AudioPathStatus> { return this.api!.getPathStatus(); }
   subscribeDeviceChanges(listener: () => void): () => void { this.deviceListeners.add(listener); return () => this.deviceListeners.delete(listener); }
   getBackend(): 'native-shared' { return 'native-shared'; }

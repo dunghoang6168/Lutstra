@@ -65,6 +65,15 @@ Sơ đồ đầy đủ ở mục "Kiến trúc" của README. Bản ngắn:
       - Hiện mọi lượt nghe đã ghi, kể cả lượt skip, trừ lượt từ nguồn phát ngoài và bài gợi ý bị xóa (`shownInHistory`). Các lượt này vẫn được lưu để phân tích.
       - Settings > Playback có nút **Clear history** (hỏi lại trước khi xóa).
   - `PlaybackEngine` là ranh giới với backend: Native Shared (Native Audio Host, mặc định) hoặc Chromium Shared (dự phòng).
+  - **Equalizer** (Settings › Equalizer, card nằm giữa Playback và Audio output):
+    - 15 band ISO 2/3 octave (25 Hz đến 16 kHz), mỗi band ±12 dB, bước 0.5 dB, preamp từ −12 đến +6 dB. Auto preamp (mặc định bật) hạ preamp đúng bằng band tăng cao nhất.
+    - Mỗi output giữ EQ riêng (DAC, loa, loa Bluetooth), theo output đang chọn; output chưa chỉnh thì phẳng. Có 5 preset có sẵn và preset của người dùng.
+    - Nút **Zero all** ở hàng Preset đưa mọi band (và preamp chỉnh tay) về 0 dB. Bấm đúp vào số dB của một band, hoặc nhấn Delete/Backspace trên thanh trượt, thì band đó (hoặc preamp) về 0.
+    - Đồ thị đáp tuyến chia ba vùng Bass (tới 200 Hz), Mid (tới 3.2 kHz) và Treble. Trỏ chuột vào một vùng, hoặc vào/focus một thanh trượt của vùng đó, thì vùng và các thanh trượt của nó nổi accent nhạt từ dưới lên.
+    - Chỉ chạy trên Native Audio Host, ở cả Shared lẫn Exclusive. Chromium Shared không có EQ, nên card bị khoá và có giải thích.
+    - Mỗi band là bộ lọc peak Q 1.41, rộng hơn khoảng cách giữa các band. `matchedGains()` giải ma trận tương tác giữa các band (Välimäki và Liski, 2017) để đáp tuyến tại mỗi tâm band đúng bằng số trên thanh trượt, giữa các tâm không bị lõm. Gain riêng của từng bộ lọc có thể tới ±30 dB.
+    - Host chạy biquad RBJ bằng `double` trên buffer đã trộn sau crossfade (`native/audio-host/equalizer.h`), nên gapless vẫn liền mạch. EQ tắt hoặc phẳng thì mẫu ra giống hệt mẫu vào.
+    - EQ đang làm đổi âm thanh thì signal path ghi "EQ ·" và mục Processing có "Equalizer". Tín hiệu vượt 0 dBFS thì đèn Clipping sáng.
   - Media flyout của Windows (Quick Settings, lock screen): khi chạy Chromium Shared, Chromium tự đẩy `navigator.mediaSession` lên. Khi chạy Native Shared, `MediaSessionService` gửi bài đang phát qua IPC `media-controls:update`, rồi `electron/media-controls.ts` gọi SMTC trong addon `native/window-snap/media_controls.cc`. Nút bấm trên flyout đi về theo channel `media-keys:action`.
 - **Electron (`electron/`):** main process, IPC đã validate, SQLite, scanner và protocol `music://`. Renderer không chạm filesystem hay IPC thô.
 

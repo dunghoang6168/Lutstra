@@ -17,6 +17,7 @@
 #include "spsc_ring_buffer.h"
 
 #include "exclusive_format.h"
+#include "equalizer.h"
 struct DeviceInfo { std::wstring id; std::wstring name; bool isDefault{}; AudioFormatInfo mix; std::vector<SupportedFormatInfo> supportedFormats; };
 
 class DecoderPipeline {
@@ -80,6 +81,7 @@ public:
   void cancelPrepared(); bool transition(double seconds);
   void setFallback(bool enabled);
   void setSpectrum(bool enabled);
+  void setEq(const EqSettings& settings);
   std::string statusJson();
 private:
   std::vector<SupportedFormatInfo> probeFormatsLocked(const std::wstring& endpointId);
@@ -203,5 +205,15 @@ private:
   std::array<std::atomic<float>, 8192> spectrumRing_{};
   std::atomic<size_t> spectrumWrite_{0};
   std::atomic<int> spectrumRate_{0};
+  // Control writes eqPending_ under eqMutex_ and bumps eqVersion_; render only
+  // try_locks to copy it, so a busy control thread never stalls a buffer.
+  std::mutex eqMutex_;
+  EqSettings eqPending_{};
+  std::atomic<uint64_t> eqVersion_{0};
+  std::atomic<bool> eqActive_{false};
+  // Loudest output sample since telemetry last read it, while EQ is active.
+  std::atomic<float> eqPeak_{0};
+  Equalizer equalizer_;
+  uint64_t eqApplied_{};
   std::mutex controlMutex_;
 };

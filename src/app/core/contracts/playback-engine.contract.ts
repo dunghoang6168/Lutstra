@@ -1,6 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, OutputMode, Track, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent } from '../models';
+import { AudioEngineBackend, AudioOutputDevice, AudioPathStatus, EqCurve, OutputMode, Track, PlaybackStateEvent, PlaybackTimeEvent, PlaybackVolumeEvent } from '../models';
 
 export interface PlaybackEngine {
   load(track: Track): Promise<void>;
@@ -16,6 +16,8 @@ export interface PlaybackEngine {
   selectOutputDevice(deviceId: string): Promise<void>;
   setOutputFallbackEnabled(enabled: boolean): void;
   setOutputMode(mode: OutputMode, bufferMs?: number): Promise<void>;
+  /** Engines without an EQ leave this out. */
+  setEq?(curve: EqCurve): void;
   getAudioPathStatus(): Promise<AudioPathStatus>;
   subscribeDeviceChanges(listener: () => void): () => void;
   getBackend(): AudioEngineBackend;

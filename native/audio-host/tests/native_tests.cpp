@@ -3,6 +3,7 @@
 #include "../spsc_ring_buffer.h"
 #include "../sample_writer.h"
 #include "../spectrum_analyzer.h"
+#include "../equalizer.h"
 #include <atomic>
 #ifdef NDEBUG
 #undef NDEBUG
@@ -265,6 +266,85 @@ static void spectrumAnalyzerTest() {
   }
 }
 
+static EqSettings eqWith(std::initializer_list<EqBand> bands, double preampDb = 0) {
+  EqSettings settings;
+  settings.enabled = true;
+  settings.preampDb = preampDb;
+  for (const EqBand &band : bands)
+    settings.bands[settings.count++] = band;
+  return settings;
+}
+
+// Gain in dB of a stereo tone through the EQ, measured as RMS over the second
+// second so the filters have settled and every tone fits whole cycles.
+static double eqGainDb(const EqSettings &settings, int rate, double hz) {
+  Equalizer eq;
+  eq.configure(settings, rate);
+  std::vector<float> tone(static_cast<size_t>(rate) * 2 * 2);
+  for (size_t i = 0; i < tone.size() / 2; ++i)
+    tone[2 * i] = tone[2 * i + 1] = 0.25f * static_cast<float>(std::sin(2.0 * 3.14159265358979323846 * hz * i / rate));
+  const std::vector<float> input = tone;
+  eq.process(tone.data(), tone.size() / 2, 2);
+  double in = 0, out = 0;
+  for (size_t i = tone.size() / 2; i < tone.size(); ++i) {
+    in += static_cast<double>(input[i]) * input[i];
+    out += static_cast<double>(tone[i]) * tone[i];
+  }
+  return 10 * std::log10(out / in);
+}
+
+static void equalizerTest() {
+  // Flat (or off) leaves samples bit-identical, so EQ never costs bit-perfect when unused.
+  std::vector<float> noise(4096);
+  uint32_t seed = 0x45514c55u;
+  for (float &sample : noise) {
+    seed = seed * 1664525u + 1013904223u;
+    sample = static_cast<float>(static_cast<int32_t>(seed)) / 2147483648.0f;
+  }
+  EqSettings flat = eqWith({});
+  for (const double hz : {25.0, 40.0, 63.0, 100.0, 1000.0, 16000.0})
+    flat.bands[flat.count++] = {0, hz, 0, 2.15};
+  EqSettings off = eqWith({{0, 1000, 6, 1.41}}, -3);
+  off.enabled = false;
+  for (const EqSettings &settings : {flat, off}) {
+    Equalizer eq;
+    eq.configure(settings, 44100);
+    assert(!eq.active());
+    std::vector<float> copy = noise;
+    eq.process(copy.data(), copy.size() / 2, 2);
+    assert(std::memcmp(copy.data(), noise.data(), copy.size() * sizeof(float)) == 0);
+  }
+
+  // A peak band reaches its gain at its centre, including 25 Hz at 192 kHz.
+  for (const int rate : {44100, 96000, 192000}) {
+    assert(std::abs(eqGainDb(eqWith({{0, 1000, 6, 2.15}}), rate, 1000) - 6) < 0.1);
+    assert(std::abs(eqGainDb(eqWith({{0, 1000, -12, 2.15}}), rate, 1000) + 12) < 0.1);
+    assert(std::abs(eqGainDb(eqWith({{0, 25, 12, 2.15}}), rate, 25) - 12) < 0.1);
+    assert(std::abs(eqGainDb(eqWith({{0, 1000, 6, 2.15}}), rate, 10000)) < 0.1);
+  }
+  // Shelves lift their side and leave the other alone; preamp is plain gain.
+  assert(std::abs(eqGainDb(eqWith({{1, 100, 6, 0.707}}), 48000, 20) - 6) < 0.3);
+  assert(std::abs(eqGainDb(eqWith({{1, 100, 6, 0.707}}), 48000, 5000)) < 0.1);
+  assert(std::abs(eqGainDb(eqWith({{2, 8000, 6, 0.707}}), 48000, 18000) - 6) < 0.3);
+  assert(std::abs(eqGainDb(eqWith({{2, 8000, 6, 0.707}}), 48000, 200)) < 0.1);
+  assert(std::abs(eqGainDb(eqWith({}, -6), 48000, 1000) + 6) < 0.01);
+
+  // A band too close to Nyquist is skipped rather than warped.
+  Equalizer nyquist;
+  nyquist.configure(eqWith({{0, 16000, 6, 2.15}}), 32000);
+  assert(!nyquist.active());
+
+  // Silence after loud input decays to silence without NaN.
+  Equalizer ringing;
+  ringing.configure(eqWith({{0, 25, 12, 2.15}, {0, 16000, 12, 2.15}}), 44100);
+  std::vector<float> burst(44100 * 2, 0.0f);
+  std::copy(noise.begin(), noise.end(), burst.begin());
+  ringing.process(burst.data(), burst.size() / 2, 2);
+  for (const float sample : burst)
+    assert(std::isfinite(sample));
+  assert(std::abs(burst[burst.size() - 1]) < 1e-6f);
+}
+
 int main() {
   exclusiveFormatTest();
   exclusiveFadeTest();
@@ -276,5 +356,6 @@ int main() {
   constantSumCrossfadeTest();
   gainRampTest();
   spectrumAnalyzerTest();
+  equalizerTest();
   return 0;
 }

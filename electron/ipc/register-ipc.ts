@@ -1,6 +1,6 @@
 import { dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import path from 'node:path';
-import { MusicFolder, ScanProgress } from '../../src/app/core/models/index.js';
+import { EqCurve, MusicFolder, ScanProgress, isEqCurve } from '../../src/app/core/models/index.js';
 import { canonicalPath, pathsOverlap } from '../utils/path-utils.js';
 import { DatabaseService } from '../services/database.service.js';
 import { ScannerService } from '../services/scanner.service.js';
@@ -34,6 +34,7 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('audio-host:set-fallback', (_event, enabled) => audioHost.setFallbackEnabled(validBoolean(enabled)), development);
   handle('audio-host:get-path-status', () => audioHost.getPathStatus(), development);
   handle('audio-host:set-spectrum', (_event, enabled) => audioHost.setSpectrumEnabled(validBoolean(enabled)), development);
+  handle('audio-host:set-eq', (_event, curve) => audioHost.setEq(validEqCurve(curve)), development);
   handle('window:set-title-bar-appearance', (_event, mode) => {
     const appearance = validTitleBarAppearance(mode);
     const window = getWindow();
@@ -156,6 +157,11 @@ function validFiniteNumber(value: unknown, minimum: number, maximum: number): nu
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) throw new Error('Invalid numeric value');
   return value;
 }
+function validEqCurve(value: unknown): EqCurve {
+  if (!isEqCurve(value)) throw new Error('Invalid EQ');
+  return value;
+}
+
 function validBoolean(value: unknown): boolean {
   if (typeof value !== 'boolean') throw new Error('Invalid boolean value');
   return value;

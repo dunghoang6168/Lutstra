@@ -29,6 +29,8 @@ export interface PlaybackError {
 export interface PlaybackTimeEvent {
   currentTime: number; // in seconds
   duration: number; // in seconds
+  /** Native host with EQ on: how far output went past full scale since the previous event, in dB. */
+  clipDb?: number;
 }
 
 export interface PlaybackStateEvent {

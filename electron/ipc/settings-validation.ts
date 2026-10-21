@@ -1,5 +1,5 @@
 import { validOutputMode, validExclusiveBufferMs, validIdArray } from './ipc-validation.js';
-import { isAccentColor, isAddTracksTab, isAudioVisualizationMode, isLayoutMode, isSongColumn, isSongColumnOrder, isThemePreset, type PlaybackSession } from '../../src/app/core/models/index.js';
+import { isAccentColor, isAddTracksTab, isEqPreset, isEqSettings, isAudioVisualizationMode, isLayoutMode, isSongColumn, isSongColumnOrder, isThemePreset, type PlaybackSession } from '../../src/app/core/models/index.js';
 
 export function validSettings(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid settings');
@@ -35,6 +35,18 @@ export function validSettings(value: unknown): Record<string, unknown> {
   if ('songColumnOrder' in input) {
     if (!isSongColumnOrder(input['songColumnOrder'])) throw new Error('Invalid Songs column order');
     result['songColumnOrder'] = [...input['songColumnOrder']];
+  }
+  if ('eq' in input) {
+    const eq = input['eq'];
+    if (!eq || typeof eq !== 'object' || Array.isArray(eq)) throw new Error('Invalid EQ');
+    const entries = Object.entries(eq);
+    if (entries.length > 64 || !entries.every(([output, settings]) => output.length >= 1 && output.length <= 512 && isEqSettings(settings))) throw new Error('Invalid EQ');
+    result['eq'] = Object.fromEntries(entries);
+  }
+  if ('eqPresets' in input) {
+    const presets = input['eqPresets'];
+    if (!Array.isArray(presets) || presets.length > 50 || !presets.every(isEqPreset)) throw new Error('Invalid EQ presets');
+    result['eqPresets'] = presets;
   }
   return result;
 }

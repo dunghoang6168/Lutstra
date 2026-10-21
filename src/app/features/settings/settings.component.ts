@@ -17,6 +17,7 @@ import { Capacitor } from '@capacitor/core';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { RangeSliderComponent } from '../../shared/components/range-slider/range-slider.component';
 import { SongColumnsSettingsComponent } from './song-columns-settings.component';
+import { EqSettingsComponent } from './eq-settings.component';
 import { LayoutSettingsComponent } from './layout-settings.component';
 import { ConfirmRemoveFolderDialogComponent } from '../../shared/components/confirm-remove-folder-dialog/confirm-remove-folder-dialog.component';
 import { devAboutHeading, devAboutItem } from '../../dev-hooks';
@@ -53,7 +54,7 @@ export interface ThemePresetOption {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, ConfirmClearHistoryDialogComponent, TipDirective],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, RangeSliderComponent, SongColumnsSettingsComponent, EqSettingsComponent, LayoutSettingsComponent, SearchableFilterSelectComponent, ConfirmRemoveFolderDialogComponent, ConfirmClearHistoryDialogComponent, TipDirective],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })

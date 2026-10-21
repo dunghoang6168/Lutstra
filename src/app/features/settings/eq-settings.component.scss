@@ -1,0 +1,111 @@
+:host { display: block; }
+.settings-card { padding: var(--space-6); }
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.card-header h2 { font-size: var(--font-size-md); font-weight: 700; }
+.card-desc { display: block; font-size: var(--font-size-xs); color: var(--text-muted); }
+.output-name { color: var(--text-secondary); }
+.header-controls { display: flex; align-items: center; gap: var(--space-2); }
+
+/* Same rows and toggles as the other Settings cards. */
+.pref-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+.pref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.pref-row:last-child { border-bottom: none; padding-bottom: 0; }
+.pref-label { display: flex; flex-direction: column; min-width: 0; }
+.pref-title { font-size: var(--font-size-sm); font-weight: 600; font-variant-caps: var(--type-label-variant); letter-spacing: var(--type-label-tracking); }
+.pref-desc { font-size: var(--font-size-xs); color: var(--text-muted); }
+.pref-control { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.btn-toggle {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+.btn-toggle.active { background: var(--color-accent-muted); border-color: var(--color-accent); color: var(--color-text-accent); }
+.btn-toggle:disabled { color: var(--text-muted); cursor: default; opacity: 0.6; }
+.eq-preset { width: 14rem; max-width: 100%; }
+.eq-preset[inert] { opacity: 0.6; }
+.eq-name {
+  min-width: 11rem;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: thin solid var(--border-default);
+  border-radius: var(--control-radius);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+.save-row { flex-wrap: wrap; }
+.save-error { flex-basis: 100%; font-size: var(--font-size-xs); color: var(--status-error); }
+
+.clip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--control-radius);
+  background: var(--status-error-fill);
+  color: var(--color-on-error);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+.clip::before { content: ''; width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: var(--color-on-error); }
+.eq-unavailable {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* Response graph and the 15 bands */
+.eq-body { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+.eq-body.off { opacity: 0.55; }
+.eq-graph { width: 100%; min-width: 38rem; height: auto; display: block; margin-bottom: var(--space-2); }
+.eq-graph line { stroke: var(--border-subtle); stroke-width: 1; pointer-events: none; }
+.eq-graph text, .eq-graph .response { pointer-events: none; }
+/* A region lights from the bottom when pointed at, with its sliders: it shows which sliders shape which part of the curve. */
+.eq-graph .region { fill: transparent; }
+.eq-graph .region.lit { fill: url(#eq-region-rise); }
+.eq-graph .rise-start { stop-color: var(--accent-primary); stop-opacity: 0.32; }
+.eq-graph .rise-end { stop-color: var(--accent-primary); stop-opacity: 0; }
+.eq-graph .region-edge { stroke: var(--border-default); stroke-dasharray: 3 3; }
+.eq-graph line.zero { stroke: var(--border-default); }
+.eq-graph text { fill: var(--text-muted); font-family: var(--font-family-mono); font-size: var(--font-size-xs); }
+.eq-graph .region-label { font-family: inherit; font-weight: 600; font-variant-caps: var(--type-label-variant); letter-spacing: var(--type-label-tracking); }
+.eq-graph .region-label.lit { fill: var(--text-accent); }
+.eq-graph .response { fill: none; stroke: var(--accent-primary); stroke-width: 2; stroke-linejoin: round; }
+.eq-body.off .eq-graph .response { stroke: var(--text-muted); }
+.bands-scroll { overflow-x: auto; padding-bottom: var(--space-1); }
+.bands { display: grid; grid-template-columns: 4rem repeat(15, minmax(2.25rem, 1fr)); align-items: end; min-width: 38rem; }
+.band { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding-top: var(--space-1); }
+.band.region-start { border-top-left-radius: var(--radius-md); border-bottom-left-radius: var(--radius-md); }
+.band.region-end { border-top-right-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md); }
+.band.lit { background: linear-gradient(to top, var(--color-accent-muted), transparent); }
+.band.lit .band-label { color: var(--text-accent); }
+.band.preamp { border-right: 1px solid var(--border-subtle); }
+.band-value, .band-label { font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; font-size: var(--font-size-xs); }
+/* Double-click a value to put its band back to 0 dB (Delete on the slider does the same). */
+.band-value { color: var(--text-secondary); cursor: pointer; user-select: none; }
+.band-value.boost { color: var(--text-accent); }
+.band-label { color: var(--text-muted); }
+.preamp .band-label { font-family: inherit; font-weight: 600; }
+.band-track { height: 10.5rem; }
+:host-context(html[data-layout='classic']) .band-track { height: 8.25rem; }

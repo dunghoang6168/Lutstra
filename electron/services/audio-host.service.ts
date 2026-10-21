@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { realpath } from 'node:fs/promises';
 import net, { type Server, type Socket } from 'node:net';
 import path from 'node:path';
-import type { AudioHostState, AudioOutputDevice, AudioPathStatus } from '../../src/app/core/models/index.js';
+import type { AudioHostState, AudioOutputDevice, AudioPathStatus, EqCurve } from '../../src/app/core/models/index.js';
 import type { DatabaseService } from './database.service.js';
 
 const PROTOCOL_VERSION = 1;
@@ -38,6 +38,7 @@ export class AudioHostService {
   private volume = 0.8;
   private muted = false;
   private fallbackEnabled = false;
+  private eq: EqCurve = { enabled: false, preampDb: 0, bands: [] };
 
   constructor(
     private readonly database: DatabaseService,
@@ -95,6 +96,7 @@ export class AudioHostService {
   setFallbackEnabled(enabled: boolean): Promise<void> { this.fallbackEnabled = enabled; return this.requestVoid('set-fallback', { enabled }); }
   getPathStatus(): Promise<AudioPathStatus> { return this.request('get-path-status') as Promise<AudioPathStatus>; }
   setSpectrumEnabled(enabled: boolean): Promise<void> { return this.requestVoid('set-spectrum', { enabled }); }
+  setEq(curve: EqCurve): Promise<void> { this.eq = curve; return this.requestVoid('set-eq', hostEq(curve)); }
 
   async stop(): Promise<void> {
     this.intentionalStop = true;
@@ -309,6 +311,7 @@ export class AudioHostService {
       await this.requestVoid('select-device', { deviceId: this.selectedDeviceId });
       await this.requestVoid('set-volume', { volume: this.volume });
       await this.requestVoid('set-mute', { isMuted: this.muted });
+      await this.requestVoid('set-eq', hostEq(this.eq));
       if (this.currentTrackId) {
         await this.loadTrack(this.currentTrackId);
         await this.requestVoid('seek', { positionSeconds: position });
@@ -324,6 +327,12 @@ export class AudioHostService {
       }
     }
   }
+}
+
+/** The host's set-eq payload: bands go flat, [type, freq, gainDb, q, ...], since its JSON reader matches keys anywhere in the frame. */
+function hostEq(curve: EqCurve): JsonObject {
+  const types = { peak: 0, lowshelf: 1, highshelf: 2 } as const;
+  return { enabled: curve.enabled, preampDb: curve.preampDb, bands: curve.bands.flatMap((band) => [types[band.type], band.freq, band.gainDb, band.q]) };
 }
 
 function safeHostMessage(value: unknown): string {
