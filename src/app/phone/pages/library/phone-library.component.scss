@@ -74,3 +74,21 @@
 
 /* End-of-list marker: rendering more rows starts as it nears the screen. */
 .list-end { height: 1px; }
+
+/* Chips and toolbar stay at the top of the scroller; scrolling down slides them away, scrolling up brings them back. */
+.library-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-app);
+  transition: transform var(--motion-dur) var(--motion-ease), box-shadow var(--motion-dur) var(--motion-ease);
+}
+
+/* Away from the top, a hairline and a shadow part the bar from the rows under it. */
+.library-bar.bar-pinned { box-shadow: 0 1px 0 var(--border-subtle), var(--shadow-md); }
+
+/* Keyboard focus inside the bar keeps it in view. */
+.library-bar.bar-hidden:not(:focus-within) {
+  transform: translateY(-100%);
+  box-shadow: none;
+}

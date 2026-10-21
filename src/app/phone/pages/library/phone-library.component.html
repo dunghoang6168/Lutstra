@@ -1,45 +1,49 @@
-<nav class="chips" aria-label="Library sections">
-  @for (item of tabs; track item.id) {
-    <a class="chip" [class.active]="tab() === item.id" [routerLink]="[]" [queryParams]="{ tab: item.id }" replaceUrl (click)="resetShown()"
-      [attr.aria-current]="tab() === item.id ? 'page' : null">{{ item.label }}</a>
+<!-- Quick return: the bar slides away while scrolling down and comes back on any scroll up. -->
+<div #bar class="library-bar" [class.bar-hidden]="barHidden()" [class.bar-pinned]="barPinned()">
+  <nav class="chips" aria-label="Library sections">
+    @for (item of tabs; track item.id) {
+      <a class="chip" [class.active]="tab() === item.id" [routerLink]="[]" [queryParams]="{ tab: item.id }" replaceUrl (click)="resetShown()"
+        [attr.aria-current]="tab() === item.id ? 'page' : null">{{ item.label }}</a>
+    }
+  </nav>
+  @if (loaded() && !library.error() && (allTracks().length || tab() === 'playlists')) {
+    <div class="toolbar">
+      <button type="button" class="shuffle-btn" (click)="shuffleAll()" [disabled]="!allTracks().length">
+        <app-icon name="shuffle" [size]="18" /> Shuffle
+      </button>
+      <span class="count">{{ count() }}</span>
+      @switch (tab()) {
+        @case ('songs') {
+          <select class="sort" aria-label="Sort tracks" (change)="onSort($event)">
+            @for (option of songSorts; track option[0]) {
+              <option [value]="option[0]" [selected]="songSort() === option[0]">{{ option[1] }}</option>
+            }
+          </select>
+        }
+        @case ('albums') {
+          <select class="sort" aria-label="Sort albums" (change)="onSort($event)">
+            @for (option of albumSorts; track option[0]) {
+              <option [value]="option[0]" [selected]="albumSort() === option[0]">{{ option[1] }}</option>
+            }
+          </select>
+        }
+        @case ('artists') {
+          <select class="sort" aria-label="Sort artists" (change)="onSort($event)">
+            @for (option of artistSorts; track option[0]) {
+              <option [value]="option[0]" [selected]="artistSort() === option[0]">{{ option[1] }}</option>
+            }
+          </select>
+        }
+      }
+    </div>
   }
-</nav>
+</div>
 
 @if (library.error(); as error) {
   <p class="page-note" role="alert">{{ error }}</p>
 } @else if (loaded() && !allTracks().length && tab() !== 'playlists') {
   <p class="page-note">No tracks yet. Choose music folders in Settings.</p>
 } @else if (loaded()) {
-  <div class="toolbar">
-    <button type="button" class="shuffle-btn" (click)="shuffleAll()" [disabled]="!allTracks().length">
-      <app-icon name="shuffle" [size]="18" /> Shuffle
-    </button>
-    <span class="count">{{ count() }}</span>
-    @switch (tab()) {
-      @case ('songs') {
-        <select class="sort" aria-label="Sort tracks" (change)="onSort($event)">
-          @for (option of songSorts; track option[0]) {
-            <option [value]="option[0]" [selected]="songSort() === option[0]">{{ option[1] }}</option>
-          }
-        </select>
-      }
-      @case ('albums') {
-        <select class="sort" aria-label="Sort albums" (change)="onSort($event)">
-          @for (option of albumSorts; track option[0]) {
-            <option [value]="option[0]" [selected]="albumSort() === option[0]">{{ option[1] }}</option>
-          }
-        </select>
-      }
-      @case ('artists') {
-        <select class="sort" aria-label="Sort artists" (change)="onSort($event)">
-          @for (option of artistSorts; track option[0]) {
-            <option [value]="option[0]" [selected]="artistSort() === option[0]">{{ option[1] }}</option>
-          }
-        </select>
-      }
-    }
-  </div>
-
   @switch (tab()) {
     @case ('songs') {
       <div class="list">

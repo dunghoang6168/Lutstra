@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -73,11 +73,40 @@ export class PhoneLibraryComponent {
     }
   });
 
+  /** Quick return: the chips and toolbar hide while scrolling down and come back on any scroll up. */
+  readonly barHidden = signal(false);
+  readonly barPinned = signal(false);
+  private readonly bar = viewChild.required<ElementRef<HTMLElement>>('bar');
+
   constructor() {
+    this.followScroll();
     // A fresh visit starts at the first page; Back keeps what was shown so the shell's saved scroll offset fits.
     if (inject(Router).currentNavigation()?.trigger !== 'popstate') this.shown.set(LIBRARY_PAGE);
     void this.library.ensureLoaded();
     void this.library.loadPlaylists();
+  }
+
+  /** The page scrolls inside the shell's content area, so the bar follows that scroller's direction. */
+  private followScroll(): void {
+    const host = inject(ElementRef<HTMLElement>).nativeElement;
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      const scroller = host.closest('.phone-content');
+      if (!scroller) return;
+      let last = scroller.scrollTop;
+      const onScroll = (): void => {
+        const top = scroller.scrollTop;
+        this.barPinned.set(top > 0);
+        // Near the top the bar sits in its own place, so it stays.
+        if (top <= this.bar().nativeElement.offsetHeight) { this.barHidden.set(false); last = top; return; }
+        // A few pixels of finger jitter do not flip it.
+        if (Math.abs(top - last) < SCROLL_SLOP) return;
+        this.barHidden.set(top > last);
+        last = top;
+      };
+      scroller.addEventListener('scroll', onScroll, { passive: true });
+      destroyRef.onDestroy(() => scroller.removeEventListener('scroll', onScroll));
+    });
   }
 
   showMore(): void {
@@ -103,6 +132,9 @@ export class PhoneLibraryComponent {
     else this.artistSort.set(value as ArtistSort);
   }
 }
+
+/** Pixels of scroll in one direction before the bar reacts. */
+const SCROLL_SLOP = 6;
 
 function plural(count: number, noun: string): string {
   return `${formatCount.format(count)} ${noun}${count === 1 ? '' : 's'}`;
