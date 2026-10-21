@@ -1,0 +1,85 @@
+@if (eq.bitPerfect()) {
+  <div class="note" role="note">
+    <app-icon name="info" [size]="20" />
+    <div class="note-text">
+      <p>The USB DAC is set to <b>Bit-perfect</b>, which sends the file untouched, so EQ and effects can’t run. Switch it to <b>Shared</b> or <b>File rate</b> to use them.</p>
+      <a class="note-action" routerLink="/settings">USB DAC settings</a>
+    </div>
+  </div>
+}
+
+<div class="eq" [class.off]="eq.bitPerfect()">
+  <svg class="curve" [attr.viewBox]="'0 0 ' + curveW + ' ' + curveH" preserveAspectRatio="none" role="img"
+    [attr.aria-label]="'Frequency response, ' + (eq.presetName() ?? 'custom')">
+    <line class="grid" x1="0" [attr.x2]="curveW" [attr.y1]="gridInset" [attr.y2]="gridInset" />
+    <line class="grid zero" x1="0" [attr.x2]="curveW" [attr.y1]="curveH / 2" [attr.y2]="curveH / 2" />
+    <line class="grid" x1="0" [attr.x2]="curveW" [attr.y1]="curveH - gridInset" [attr.y2]="curveH - gridInset" />
+    <path class="curve-fill" [attr.d]="curveFill()" />
+    <path class="curve-line" [attr.d]="curvePath()" />
+  </svg>
+
+  <div class="bands">
+    @for (band of bands(); track band.index) {
+      <div class="band">
+        <label class="rail vertical" [style.--pos]="band.pos" [style.--from]="band.fillFrom" [style.--size]="band.fillSize">
+          <input type="range" [min]="-limit" [max]="limit" step="0.5" [value]="band.gain" [disabled]="eq.bitPerfect()"
+            [attr.aria-label]="band.label + ' Hz gain'" [attr.aria-valuetext]="dbText(band.gain) + ' dB'"
+            (input)="onGain(band.index, $event)" (dblclick)="eq.setGain(band.index, 0)" />
+          <span class="tick top" aria-hidden="true"></span>
+          <span class="tick bottom" aria-hidden="true"></span>
+          <span class="line" aria-hidden="true"></span>
+          <span class="fill" aria-hidden="true"></span>
+          <span class="thumb" aria-hidden="true"><span></span></span>
+        </label>
+        <span class="band-label">{{ band.label }}</span>
+        <span class="band-value" [class.set]="band.gain !== 0">{{ dbText(band.gain) }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="preamp">
+    <span class="preamp-label">Preamp</span>
+    <label class="rail horizontal" [style.--pos]="preamp().pos" [style.--from]="preamp().fillFrom" [style.--size]="preamp().fillSize">
+      <input type="range" [min]="-preampSteps" [max]="preampSteps" step="1" [value]="preamp().at" [disabled]="eq.bitPerfect()"
+        aria-label="Preamp" [attr.aria-valuetext]="dbText(preamp().value) + ' dB'"
+        (input)="onPreamp($event)" (dblclick)="eq.setPreamp(0)" />
+      <span class="tick start" aria-hidden="true"></span>
+      <span class="tick end" aria-hidden="true"></span>
+      <span class="tick zero" aria-hidden="true"></span>
+      <span class="line" aria-hidden="true"></span>
+      <span class="fill" aria-hidden="true"></span>
+      <span class="thumb" aria-hidden="true"><span></span></span>
+    </label>
+    <span class="preamp-value">{{ dbText(preamp().value) }} dB</span>
+  </div>
+
+  <nav class="presets" aria-label="Presets">
+    @for (preset of eq.presets(); track preset.name) {
+      <button type="button" class="chip" [class.active]="eq.presetName() === preset.name" [attr.aria-pressed]="eq.presetName() === preset.name"
+        [disabled]="eq.bitPerfect()" (click)="eq.applyPreset(preset.name)" (contextmenu)="onPresetHold($event, preset.name)">{{ preset.name }}</button>
+    }
+    <button type="button" class="chip save" [disabled]="eq.bitPerfect()" (click)="savePreset()" aria-label="Save as preset">
+      <app-icon name="plus" [size]="16" /> Save
+    </button>
+  </nav>
+
+  <div class="effects">
+    @for (effect of effects(); track effect.name) {
+      <div class="effect">
+        <label class="knob">
+          <input type="range" min="0" max="100" step="1" [value]="effect.amount" [disabled]="!effect.on || eq.bitPerfect()"
+            [attr.aria-label]="effect.label + ' amount'" [attr.aria-valuetext]="effect.amount + '%'" (input)="onEffectAmount(effect.name, $event)" />
+          <svg width="80" height="70" viewBox="0 0 80 70" aria-hidden="true">
+            <path class="knob-track" [attr.d]="effect.track" />
+            @if (effect.fill) { <path class="knob-fill" [attr.d]="effect.fill" /> }
+            <circle class="knob-dot" [attr.cx]="effect.kx" [attr.cy]="effect.ky" r="6" />
+          </svg>
+          <span class="knob-value">{{ effect.amount }}%</span>
+        </label>
+        <button type="button" role="switch" class="switch" [attr.aria-checked]="effect.on" [attr.aria-label]="effect.label"
+          [disabled]="eq.bitPerfect()" (click)="eq.setEffect(effect.name, { on: !effect.on })"><span></span></button>
+        <span class="effect-label">{{ effect.label }}</span>
+      </div>
+    }
+  </div>
+</div>

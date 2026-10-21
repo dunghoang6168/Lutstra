@@ -36,6 +36,9 @@ export interface NativePlayback {
   setUsbMode(options: { mode: UsbMode }): Promise<NativeOutput>;
   requestBluetoothAccess(): Promise<NativeOutput>;
   addListener(event: 'output', listener: (output: NativeOutput) => void): Promise<PluginListenerHandle>;
+  /** The phone EQ's filters (`EqAudioSink`); a flat spec passes audio through untouched. */
+  setEq(spec: { preampDb: number; filters: { type: 'peak' | 'lowshelf' | 'highshelf'; freq: number; gainDb: number; q: number }[]; crossfeed: number }): Promise<void>;
+  getEqStats(): Promise<{ running: boolean; hasWork: boolean; frames?: number; nanos?: number; clippedSamples?: number; peak?: number }>;
 }
 
 /** capture: another app records playback (a screen mirror's remote submix), and media goes there. */

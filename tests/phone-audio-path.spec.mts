@@ -62,4 +62,14 @@ describe('phone audio path', () => {
     const ldac = describeOutput(out({ device: { kind: 'bluetooth', name: 'ROSE' }, bluetooth: { codec: 'LDAC', sampleRate: 96000, bits: 32, ldac: 'adaptive' } }));
     expect(ldac).toMatchObject({ label: 'LDAC adaptive', outBits: '32-bit', khz: '96' });
   });
+
+  it('names the EQ while it shapes the sound, and no longer calls the path untouched', () => {
+    const path = audioPath(out({ stream: float(48000) }), 16, 'Bass');
+    expect(path.steps.map((step) => step.label)).toEqual(['Decoder', 'EQ', 'Lutstra → Android', 'Android mixer', 'Output']);
+    expect(text(path.steps[1].value)).toBe('Bass');
+    expect(path.steps[2].detail).not.toContain('No EQ');
+    expect(text(path.verdict.parts)).toMatch(/^EQ shapes the sound · /);
+    expect(path.verdict.ok).toBe(false);
+    expect(audioPath(out()).steps[1].detail).toContain('No EQ');
+  });
 });

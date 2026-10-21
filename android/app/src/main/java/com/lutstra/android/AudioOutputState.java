@@ -179,6 +179,13 @@ final class AudioOutputState implements AudioOutputProvider {
 
     void onTrackInitialized(AudioSink.AudioTrackConfig config) { stream = config; publish(); }
 
+    /** Whether Lutstra asked the USB DAC for its bit-perfect mixer; the EQ leaves the samples alone then. */
+    boolean bitPerfectRequested() {
+        Object request = requested;
+        return Build.VERSION.SDK_INT >= 34 && request instanceof AudioMixerAttributes
+            && ((AudioMixerAttributes) request).getMixerBehavior() == AudioMixerAttributes.MIXER_BEHAVIOR_BIT_PERFECT;
+    }
+
     /** The MediaCodec decoder ExoPlayer opened (e.g. c2.android.flac.decoder), for the Audio path sheet. */
     private volatile String decoder;
 

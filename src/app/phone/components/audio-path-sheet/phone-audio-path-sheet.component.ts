@@ -7,6 +7,7 @@ import { audioPathOpen, loadOutput, output } from '../../app-shell';
 import { PathPart, PathStep, audioPath } from '../../audio-path';
 import { focusQuietly } from '../../focus';
 import { SheetDragDirective } from '../../sheet-drag.directive';
+import { PhoneEqService } from '../../eq/phone-eq.service';
 
 const ICONS: Record<PathStep['icon'] | 'file', IconName> = {
   file: 'file-audio', decoder: 'cpu', app: 'music', mixer: 'sliders', bluetooth: 'bluetooth', usb: 'usb', speaker: 'speaker', wired: 'headphones',
@@ -26,13 +27,14 @@ const ICONS: Record<PathStep['icon'] | 'file', IconName> = {
 })
 export class PhoneAudioPathSheetComponent {
   private readonly player = inject(PlayerService);
+  private readonly eq = inject(PhoneEqService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly opener = document.activeElement as HTMLElement | null;
   private readonly rootInjector = inject(EnvironmentInjector);
   readonly icons = ICONS;
   readonly path = computed(() => {
     const out = output();
-    return out ? audioPath(out, this.player.currentTrack()?.bitDepth ?? null) : null;
+    return out ? audioPath(out, this.player.currentTrack()?.bitDepth ?? null, this.eq.processing() ? this.eq.presetName() ?? 'Custom' : null) : null;
   });
   readonly mode = computed(() => ({ shared: 'Shared', match: 'File rate', bitperfect: 'Bit-perfect' } as Record<string, string>)[output()?.usbMode ?? 'shared'] ?? 'Shared');
   /** The file as the library read it: codec, bits, rate, channels, bitrate. */

@@ -14,6 +14,11 @@ export const phoneRoutes: Routes = [
     loadComponent: () => import('./pages/search/phone-search.component').then((m) => m.PhoneSearchComponent),
   },
   {
+    path: 'eq',
+    data: { title: 'EQ' },
+    loadComponent: () => import('./pages/eq/phone-eq.component').then((m) => m.PhoneEqComponent),
+  },
+  {
     path: 'library',
     data: { title: 'Library' },
     loadComponent: () => import('./pages/library/phone-library.component').then((m) => m.PhoneLibraryComponent),

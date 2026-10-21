@@ -22,11 +22,14 @@ public final class PlaybackService extends MediaSessionService {
     public void onCreate() {
         super.onCreate();
         output = new AudioOutputState(this);
+        // The EQ as last set, so playback started without the web (a headset button) still runs it.
+        EqSettingsStore.load(this);
         // Float output keeps 24-bit files at full resolution into the mixer (MediaCodec then decodes every file to float).
         DefaultRenderersFactory renderers = new DefaultRenderersFactory(this) {
             @Override
             protected AudioSink buildAudioSink(Context context, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
-                return new DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setAudioOutputProvider(output).build();
+                // The EQ wraps the sink: Media3 skips app audio processors on the float path.
+                return new EqAudioSink(new DefaultAudioSink.Builder(context).setEnableFloatOutput(true).setAudioOutputProvider(output).build(), output);
             }
         };
         ExoPlayer player = new ExoPlayer.Builder(this, renderers).build();

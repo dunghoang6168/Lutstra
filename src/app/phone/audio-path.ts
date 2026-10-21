@@ -39,8 +39,9 @@ function bitsAndRate(bits: string | null, khz: string | null): PathPart[] {
  * The Audio path sheet's steps after the file, after Poweramp's audio info chain: decoder, Lutstra → Android,
  * Android's mixer (or the USB mixer), and the output the device receives, bits before the rate. Only what Android
  * reports is stated; an unknown rate or bit depth is left out. `fileBits` lets the note say when bits are cut.
+ * `eq` names what the EQ runs (a preset, or Custom) while it is changing the sound; null when it passes audio through.
  */
-export function audioPath(out: NativeOutput, fileBits: number | null = null): AudioPath {
+export function audioPath(out: NativeOutput, fileBits: number | null = null, eq: string | null = null): AudioPath {
   const kind = out.device?.kind ?? null;
   const { mixer, stream } = out;
   const usb = kind === 'usb';
@@ -61,9 +62,10 @@ export function audioPath(out: NativeOutput, fileBits: number | null = null): Au
     icon: 'decoder', label: 'Decoder', value: [t(out.decoder ? decoderName(out.decoder) : 'Android decoder')],
     detail: out.decoder ?? undefined,
   });
+  if (eq) steps.push({ icon: 'app', label: 'EQ', value: [t(eq)], detail: 'Lutstra’s EQ and effects shape the sound before Android gets it.' });
   steps.push({
     icon: 'app', label: 'Lutstra → Android', value: [m('32-bit'), t(' float'), ...(streamKhz ? [t(' · '), m(streamKhz), t(' kHz')] : [])],
-    detail: 'Float is Android’s working format: 16- and 24-bit files fit in it exactly. No EQ, volume stays full.',
+    detail: `Float is Android’s working format: 16- and 24-bit files fit in it exactly. ${eq ? 'Volume stays full.' : 'No EQ, volume stays full.'}`,
   });
 
   let verdict: AudioPath['verdict'];
@@ -113,6 +115,10 @@ export function audioPath(out: NativeOutput, fileBits: number | null = null): Au
     }
   }
   steps.push(output);
+  if (eq) {
+    verdict = { parts: [t('EQ shapes the sound · '), ...verdict.parts], ok: false };
+    note = `${note} The EQ (${eq}) changes the sound on purpose.`;
+  }
   return { verdict, steps, note, usb };
 }
 

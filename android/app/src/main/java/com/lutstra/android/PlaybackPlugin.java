@@ -252,6 +252,34 @@ public final class PlaybackPlugin extends Plugin {
         return item.isNull(key) ? null : item.optString(key);
     }
 
+    /** Sets what the EQ runs: `{ preampDb, filters: [{ type: peak|lowshelf|highshelf, freq, gainDb, q }], crossfeed }`. */
+    @PluginMethod
+    public void setEq(PluginCall call) {
+        try {
+            EqDsp.spec = EqSettingsStore.parse(call.getData());
+            EqSettingsStore.save(getContext(), call.getData());
+            call.resolve();
+        } catch (IllegalArgumentException | JSONException error) {
+            call.reject(error.getMessage());
+        }
+    }
+
+    /** Whether the EQ is running, and what it has done: for the Audio path sheet and checks. */
+    @PluginMethod
+    public void getEqStats(PluginCall call) {
+        EqAudioSink sink = EqAudioSink.current;
+        JSObject result = new JSObject();
+        result.put("running", sink != null && sink.running());
+        result.put("hasWork", EqDsp.spec != null && !EqDsp.spec.isFlat());
+        if (sink != null) {
+            result.put("frames", sink.dsp.frames);
+            result.put("nanos", sink.dsp.nanos);
+            result.put("clippedSamples", sink.dsp.clippedSamples);
+            result.put("peak", (double) sink.dsp.peak);
+        }
+        call.resolve(result);
+    }
+
     @PluginMethod
     public void getState(PluginCall call) {
         withController(call, mediaController -> call.resolve(stateOf(mediaController)));

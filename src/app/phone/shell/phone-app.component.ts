@@ -21,6 +21,7 @@ import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { appShell, audioPathOpen } from '../app-shell';
 import { focusQuietly } from '../focus';
+import { PhoneEqService } from '../eq/phone-eq.service';
 
 /** Modals other than the shell's own sheets: the folder picker and the dialogs pages open. */
 /** Set once the mini player has shown, by a nudge, that it swipes. */
@@ -55,7 +56,7 @@ export class PhoneAppComponent {
   readonly queueOpen = signal(false);
   readonly tabs: { path: string; label: string; icon: IconName }[] = [
     { path: '/home', label: 'Home', icon: 'home' },
-    { path: '/search', label: 'Search', icon: 'search' },
+    { path: '/eq', label: 'EQ', icon: 'sliders' },
     { path: '/library', label: 'Library', icon: 'list-music' },
   ];
 
@@ -85,6 +86,8 @@ export class PhoneAppComponent {
   constructor() {
     // Records what plays, for Home's continue listening and recently played.
     inject(RecentPlaysService);
+    // Runs the EQ of the current output from the start, not only once the EQ tab opens.
+    inject(PhoneEqService);
     this.hintSwipeOnce();
     void this.loadPalette();
     let restoring = false;

@@ -1,0 +1,306 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--page-pad-x) var(--space-4);
+}
+
+.eq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Bit-perfect: the controls stay readable but show that nothing runs. */
+.eq.off { opacity: 0.55; }
+
+/* An output notice: amber marks output truth (DESIGN.md › Status), tinted from the status token. */
+.note {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--status-warning) 35%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+
+  > app-icon { flex: none; color: var(--status-warning-text); }
+}
+
+.note-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  p { margin: 0; font-size: var(--font-size-sm); line-height: 1.4; }
+}
+
+.note-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  color: var(--text-inverse);
+  background: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.curve {
+  display: block;
+  width: 100%;
+  height: 84px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+}
+
+.grid { stroke: var(--border-subtle); stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.grid.zero { stroke: var(--border-default); stroke-dasharray: none; }
+.curve-fill { fill: color-mix(in srgb, var(--accent-primary) 14%, transparent); }
+.curve-line { fill: none; stroke: var(--accent-primary); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+
+/* Poweramp-style rails: a thin line with end ticks, a fill from 0 dB, a pill thumb with a dash. */
+.rail {
+  --inset: 22px;
+  position: relative;
+  display: block;
+  touch-action: none; /* a drag on a rail moves it, never the page */
+
+  input {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .line, .fill, .tick { position: absolute; pointer-events: none; }
+  .line { background: var(--border-default); }
+  .fill { background: var(--accent-primary); box-shadow: 0 0 6px color-mix(in srgb, var(--accent-primary) 60%, transparent); }
+  .tick { background: var(--text-muted); opacity: 0.6; }
+
+  .thumb {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-md);
+    pointer-events: none;
+
+    span { border-radius: 2px; background: var(--text-primary); }
+  }
+
+  input:focus-visible ~ .thumb { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+  /* A 16px native thumb, so the input's travel lines up with the drawn rail between the ticks. */
+  input::-webkit-slider-thumb { width: 16px; height: 16px; appearance: none; }
+}
+
+.rail.vertical {
+  /* The band column centres its children, and a rail has no in-flow content, so it must be told to fill the column. */
+  align-self: stretch;
+  height: 200px;
+
+  /* The whole column is the touch target; the travel matches the drawn rail between the ticks. */
+  input {
+    inset: calc(var(--inset) - 8px) auto auto 0;
+    width: 100%;
+    height: calc(100% - 2 * (var(--inset) - 8px));
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+
+  .line { top: var(--inset); bottom: var(--inset); left: calc(50% - 1px); width: 2px; }
+  .tick { left: 20%; right: 20%; height: 1px; }
+  .tick.top { top: var(--inset); }
+  .tick.bottom { bottom: var(--inset); }
+  /* --pos, --from and --size are percentages of the travel, counted from the bottom (-12 dB). */
+  .fill {
+    left: calc(50% - 1px);
+    width: 2px;
+    bottom: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--from) / 100);
+    height: calc((100% - 2 * var(--inset)) * var(--size) / 100);
+  }
+  .thumb {
+    left: calc(50% - 13px);
+    bottom: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--pos) / 100 - 22px);
+    width: 26px;
+    height: 44px;
+
+    span { width: 12px; height: 3px; }
+  }
+}
+
+.rail.horizontal {
+  --inset: 22px;
+  flex: 1;
+  height: var(--touch-target);
+
+  input { inset: 0 calc(var(--inset) - 8px); width: auto; }
+
+  .line { left: var(--inset); right: var(--inset); top: calc(50% - 1px); height: 2px; }
+  .tick { top: 30%; bottom: 30%; width: 1px; }
+  .tick.start { left: var(--inset); }
+  .tick.end { right: var(--inset); }
+  .tick.zero { left: calc(50% - 0.5px); }
+  .fill {
+    top: calc(50% - 1px);
+    height: 2px;
+    left: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--from) / 100);
+    width: calc((100% - 2 * var(--inset)) * var(--size) / 100);
+  }
+  .thumb {
+    top: calc(50% - 13px);
+    left: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--pos) / 100 - 22px);
+    width: 44px;
+    height: 26px;
+
+    span { width: 3px; height: 12px; }
+  }
+}
+
+.bands { display: flex; }
+
+.band {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.band-label { margin-top: var(--space-1); font-size: var(--font-size-xs); font-weight: 700; }
+
+.band-value {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+
+  &.set { color: var(--text-primary); }
+}
+
+.preamp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+}
+
+.preamp-label { flex: none; font-size: var(--font-size-sm); font-weight: 700; }
+
+.preamp-value {
+  flex: none;
+  min-width: 6.5em; /* "-11.5 dB" on one line, so the rail does not jump as the value changes */
+  white-space: nowrap;
+  text-align: right;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.presets {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 calc(var(--page-pad-x) * -1);
+  padding: 0 var(--page-pad-x);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: none;
+  min-height: var(--space-10);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+
+  &.active { border-color: transparent; color: var(--text-accent); background: var(--accent-muted); }
+  &.save { border-style: dashed; }
+}
+
+.effects { display: flex; gap: var(--space-2); }
+
+.effect {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-1);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+}
+
+/* The knob turns with a sideways drag; up and down still scroll the page. */
+.knob {
+  position: relative;
+  width: 80px;
+  height: 70px;
+  touch-action: pan-y;
+
+  input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; }
+  svg { display: block; }
+}
+
+.knob-track { fill: none; stroke: var(--border-default); stroke-width: 5; stroke-linecap: round; }
+.knob-fill { fill: none; stroke: var(--accent-primary); stroke-width: 5; stroke-linecap: round; }
+.knob-dot { fill: var(--text-primary); }
+
+.knob-value {
+  position: absolute;
+  inset: 26px 0 auto;
+  text-align: center;
+  font-size: var(--font-size-md, 15px);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.effect:has(.switch[aria-checked='false']) {
+  .knob-fill { stroke: var(--text-muted); }
+  .knob-dot { fill: var(--text-muted); }
+  .knob-value { color: var(--text-muted); }
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* buttons centre by default (_base.scss); the thumb starts at the off end */
+  width: 44px;
+  height: 26px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-active);
+
+  span { width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--text-muted); transition: transform var(--motion-dur) var(--motion-ease); }
+
+  &[aria-checked='true'] {
+    background: var(--accent-primary);
+
+    span { transform: translateX(18px); background: var(--text-inverse); }
+  }
+}
+
+.effect-label { font-size: var(--font-size-sm); font-weight: 700; text-align: center; }
