@@ -1,4 +1,4 @@
-import { Directive, ElementRef, inject, input, output } from '@angular/core';
+import { Directive, ElementRef, NgZone, inject, input, output } from '@angular/core';
 import { haptic } from './haptics';
 
 export type SwipeDirection = 'left' | 'right';
@@ -36,6 +36,7 @@ export class SwipeDirective {
   readonly beforeEnter = input<() => Promise<unknown> | undefined>(() => undefined, { alias: 'swipeBeforeEnter' });
   readonly swiped = output<SwipeDirection>();
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly zone = inject(NgZone);
   private start: { id: number; x: number; y: number } | null = null;
   private samples: { x: number; t: number }[] = [];
   private swiping = false;
@@ -45,10 +46,14 @@ export class SwipeDirective {
   private swallowClick = false;
 
   constructor() {
-    this.host.addEventListener('pointerdown', (event) => this.down(event));
-    this.host.addEventListener('pointermove', (event) => this.move(event));
-    this.host.addEventListener('pointerup', (event) => this.up(event));
-    this.host.addEventListener('pointercancel', (event) => { if (event.pointerId === this.start?.id) this.settle(); });
+    // Outside Angular: a finger move only restyles the host, so it must not run change detection for the whole app.
+    // `swiped` goes back in through `emit`.
+    this.zone.runOutsideAngular(() => {
+      this.host.addEventListener('pointerdown', (event) => this.down(event));
+      this.host.addEventListener('pointermove', (event) => this.move(event));
+      this.host.addEventListener('pointerup', (event) => this.up(event));
+      this.host.addEventListener('pointercancel', (event) => { if (event.pointerId === this.start?.id) this.settle(); });
+    });
     // Capture runs before the host's own (click) binding, so a swipe never also counts as a tap.
     this.host.addEventListener('click', (event) => {
       if (!this.swallowClick) return;
@@ -115,7 +120,7 @@ export class SwipeDirective {
     try {
       if (this.mode() === 'dismiss') {
         await this.animate({ translate: `${sign * this.host.offsetWidth}px 0` }, 180, 'cubic-bezier(0.4, 0, 0.2, 1)');
-        this.swiped.emit(direction);
+        this.emit(direction);
         // The row normally goes away with its entry; if it is still here, it slides back.
         await new Promise((resolve) => setTimeout(resolve, 1000));
         if (this.host.isConnected) await this.animate({ translate: '0 0' }, 300, SETTLE_EASE);
@@ -123,13 +128,17 @@ export class SwipeDirective {
       }
       // Shared-axis swap: leave fading, change the track while invisible, come in from the other side.
       await this.animate({ translate: `${sign * innerWidth * 0.34}px 0`, opacity: 0 }, 130, 'cubic-bezier(0.4, 0, 1, 1)');
-      this.swiped.emit(direction);
+      this.emit(direction);
       await Promise.race([this.beforeEnter()(), new Promise((resolve) => setTimeout(resolve, ENTER_WAIT_MS))]);
       this.host.style.translate = `${-sign * innerWidth * 0.26}px 0`;
       await this.animate({ translate: '0 0', opacity: 1 }, 260, SETTLE_EASE);
     } finally {
       this.busy = false;
     }
+  }
+
+  private emit(direction: SwipeDirection): void {
+    this.zone.run(() => this.swiped.emit(direction));
   }
 
   private settle(): void {

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Injector, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, Injector, NgZone, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
@@ -50,6 +50,7 @@ export class PhoneQueueSheetComponent {
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');
   private readonly closeButton = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
   private readonly injector = inject(Injector);
+  private readonly zone = inject(NgZone);
   readonly close = output<void>();
   readonly drag = signal<QueueDrag | null>(null);
   readonly announcement = signal('');
@@ -122,11 +123,15 @@ export class PhoneQueueSheetComponent {
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', end);
       handle.removeEventListener('pointercancel', end);
-      this.dragEnd(e.type === 'pointerup');
+      this.zone.run(() => this.dragEnd(e.type === 'pointerup'));
     };
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', end);
-    handle.addEventListener('pointercancel', end);
+    // Outside Angular: a finger move restyles rows and sets `drag` only when the slot changes, so it must not
+    // run change detection for the whole app on every move.
+    this.zone.runOutsideAngular(() => {
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', end);
+      handle.addEventListener('pointercancel', end);
+    });
   }
 
   handleKeydown(event: KeyboardEvent, id: string): void {
