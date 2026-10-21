@@ -4,7 +4,7 @@ import { ListeningHistoryService } from '../core/history/listening-history.servi
 import { FolderNode, Playlist, QueueEntry, Track } from '../core/models';
 import { PlayerService } from '../core/player/player.service';
 import { QueueActionsService } from '../core/player/queue-actions.service';
-import { AlbumSort, ArtistSort, SongSort } from './library-sort';
+import { AlbumSort, ArtistSort, LIBRARY_PAGE, SongSort } from './library-sort';
 
 /** The phone pages' shared library state, playback starts and the track ⋯ sheet. */
 @Injectable({ providedIn: 'root' })
@@ -31,6 +31,8 @@ export class PhoneLibraryService {
   readonly songSort = signal<SongSort>('title');
   readonly albumSort = signal<AlbumSort>('title');
   readonly artistSort = signal<ArtistSort>('name');
+  /** How many rows the Library list renders; it grows as the list scrolls, and Back keeps it so the scroll offset still fits. */
+  readonly libraryShown = signal(LIBRARY_PAGE);
 
   constructor() {
     this.library.libraryChanged$?.subscribe(() => void this.reload());

@@ -1,5 +1,8 @@
 import { Album, Artist, Track } from '../core/models';
 
+/** Rows the Library renders at first and adds each time its end nears the screen. */
+export const LIBRARY_PAGE = 100;
+
 export const LIBRARY_TABS = ['songs', 'albums', 'artists', 'playlists', 'folders'] as const;
 export type LibraryTab = (typeof LIBRARY_TABS)[number];
 

@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { albumFormatMap, formatCount } from '../../../features/home/library-quality';
@@ -7,8 +7,9 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { PhoneTrackRowComponent } from '../../components/track-row/phone-track-row.component';
 import { PhoneLibraryService } from '../../phone-library.service';
+import { NearScreenDirective } from '../../near-screen.directive';
 import {
-  ALBUM_SORTS, ARTIST_SORTS, AlbumSort, ArtistSort, LibraryTab, SONG_SORTS, SongSort,
+  ALBUM_SORTS, ARTIST_SORTS, AlbumSort, ArtistSort, LIBRARY_PAGE, LibraryTab, SONG_SORTS, SongSort,
   isLibraryTab, sortAlbums, sortArtists, sortTracks,
 } from '../../library-sort';
 
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'app-phone-library',
   standalone: true,
-  imports: [RouterLink, IconComponent, CoverArtComponent, PhoneTrackRowComponent],
+  imports: [RouterLink, IconComponent, CoverArtComponent, PhoneTrackRowComponent, NearScreenDirective],
   templateUrl: './phone-library.component.html',
   styleUrls: ['../../phone-lists.scss', './phone-library.component.scss'],
 })
@@ -49,6 +50,19 @@ export class PhoneLibraryComponent {
   readonly artists = computed(() => sortArtists(this.library.snapshot()?.artists ?? [], this.artistSort()));
   readonly folders = computed(() => this.library.snapshot()?.folders ?? []);
   readonly playlists = this.library.playlists;
+  /** Long lists render in pages, so opening the Library does not build every row at once. */
+  readonly shown = this.library.libraryShown;
+  readonly visibleSongs = computed(() => this.songs().slice(0, this.shown()));
+  readonly visibleAlbums = computed(() => this.albums().slice(0, this.shown()));
+  readonly visibleArtists = computed(() => this.artists().slice(0, this.shown()));
+  readonly hasMore = computed(() => {
+    switch (this.tab()) {
+      case 'songs': return this.songs().length > this.shown();
+      case 'albums': return this.albums().length > this.shown();
+      case 'artists': return this.artists().length > this.shown();
+      default: return false;
+    }
+  });
   readonly count = computed(() => {
     switch (this.tab()) {
       case 'songs': return plural(this.songs().length, 'track');
@@ -60,8 +74,18 @@ export class PhoneLibraryComponent {
   });
 
   constructor() {
+    // A fresh visit starts at the first page; Back keeps what was shown so the shell's saved scroll offset fits.
+    if (inject(Router).currentNavigation()?.trigger !== 'popstate') this.shown.set(LIBRARY_PAGE);
     void this.library.ensureLoaded();
     void this.library.loadPlaylists();
+  }
+
+  showMore(): void {
+    this.shown.update((count) => count + LIBRARY_PAGE);
+  }
+
+  resetShown(): void {
+    this.shown.set(LIBRARY_PAGE);
   }
 
   playSong(index: number): void {

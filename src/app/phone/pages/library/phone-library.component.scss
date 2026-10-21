@@ -71,3 +71,6 @@
   font: inherit;
   font-size: var(--font-size-sm);
 }
+
+/* End-of-list marker: rendering more rows starts as it nears the screen. */
+.list-end { height: 1px; }

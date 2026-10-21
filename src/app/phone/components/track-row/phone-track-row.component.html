@@ -4,7 +4,7 @@
     @if (number() !== undefined) {
       <span class="row-number">{{ number() || '–' }}</span>
     } @else {
-      <app-cover-art class="row-cover" [src]="track().artwork" icon="music" [iconSize]="20" />
+      <app-cover-art class="row-cover" [src]="track().artwork" icon="music" [iconSize]="20" lazy />
     }
     <span class="row-text">
       <span class="row-title">{{ track().title }}</span>

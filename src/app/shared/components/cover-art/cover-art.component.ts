@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, booleanAttribute, effect, input } from '@angular/core';
 import { IconComponent, IconName } from '../icon/icon.component';
 import { CoverSwap } from './cover-swap';
 
@@ -17,6 +17,8 @@ export class CoverArtComponent {
   /** Placeholder glyph when there is no cover; null leaves the layer empty (backdrops, glows). */
   readonly icon = input<IconName | null>('disc');
   readonly iconSize = input(24);
+  /** Long lists: the browser loads the image only as it nears the screen. */
+  readonly lazy = input(false, { transform: booleanAttribute });
 
   protected readonly swap = new CoverSwap((src) => {
     const image = new Image();

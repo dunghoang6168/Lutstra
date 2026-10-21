@@ -3,7 +3,12 @@
     (animationend)="onAnimationEnd($event, layer.id)">
     @if (layer.src) {
       <!-- impeccable-ignore broken-image Angular artwork binding guarded by @if -->
-      <img [src]="layer.src" [alt]="last ? alt() : ''" />
+      <!-- Static, so loading="lazy" is set before src (a bound one would come after it and be ignored). -->
+      @if (lazy()) {
+        <img loading="lazy" decoding="async" [src]="layer.src" [alt]="last ? alt() : ''" />
+      } @else {
+        <img [src]="layer.src" [alt]="last ? alt() : ''" />
+      }
     } @else if (icon(); as name) {
       <span class="placeholder" aria-hidden="true"><app-icon [name]="name" [size]="iconSize()" /></span>
     }

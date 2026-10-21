@@ -5,6 +5,9 @@
   align-items: center;
   min-height: var(--row-height);
   padding-right: var(--space-1);
+  /* Long lists lay out and paint only the rows near the screen. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--row-height);
 }
 
 .row-main {
