@@ -87,8 +87,8 @@
 /* Away from the top, a hairline and a shadow part the bar from the rows under it. */
 .library-bar.bar-pinned { box-shadow: 0 1px 0 var(--border-subtle), var(--shadow-md); }
 
-/* Keyboard focus inside the bar keeps it in view. */
-.library-bar.bar-hidden:not(:focus-within) {
+/* Keyboard focus inside the bar keeps it in view; a tapped chip keeps focus too, but that must not pin it. */
+.library-bar.bar-hidden:not(:has(:focus-visible)) {
   transform: translateY(-100%);
   box-shadow: none;
 }
