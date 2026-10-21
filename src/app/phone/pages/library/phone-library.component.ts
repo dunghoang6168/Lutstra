@@ -8,6 +8,7 @@ import { CoverArtComponent } from '../../../shared/components/cover-art/cover-ar
 import { PhoneTrackRowComponent } from '../../components/track-row/phone-track-row.component';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { NearScreenDirective } from '../../near-screen.directive';
+import { SwipeDirection, SwipeDirective } from '../../swipe.directive';
 import {
   ALBUM_SORTS, ARTIST_SORTS, AlbumSort, ArtistSort, LIBRARY_PAGE, LibraryTab, SONG_SORTS, SongSort,
   isLibraryTab, sortAlbums, sortArtists, sortTracks,
@@ -17,7 +18,7 @@ import {
 @Component({
   selector: 'app-phone-library',
   standalone: true,
-  imports: [RouterLink, IconComponent, CoverArtComponent, PhoneTrackRowComponent, NearScreenDirective],
+  imports: [RouterLink, IconComponent, CoverArtComponent, PhoneTrackRowComponent, NearScreenDirective, SwipeDirective],
   templateUrl: './phone-library.component.html',
   styleUrls: ['../../phone-lists.scss', './phone-library.component.scss'],
 })
@@ -38,6 +39,15 @@ export class PhoneLibraryComponent {
   readonly tab = toSignal(inject(ActivatedRoute).queryParamMap.pipe(
     map((params) => { const tab = params.get('tab'); return isLibraryTab(tab) ? tab : 'songs'; }),
   ), { initialValue: 'songs' as LibraryTab });
+  private readonly router = inject(Router);
+  /** The first tab cannot go back and the last cannot go on. */
+  readonly swipeAllow = computed<'both' | SwipeDirection>(() => {
+    const index = this.tabs.findIndex((item) => item.id === this.tab());
+    return index <= 0 ? 'left' : index >= this.tabs.length - 1 ? 'right' : 'both';
+  });
+  private tabChange: Promise<unknown> = Promise.resolve();
+  /** The swipe brings the list back in once the new tab has rendered. */
+  readonly tabReady = (): Promise<unknown> => this.tabChange;
   readonly songSort = this.library.songSort;
   readonly albumSort = this.library.albumSort;
   readonly artistSort = this.library.artistSort;
@@ -81,7 +91,7 @@ export class PhoneLibraryComponent {
   constructor() {
     this.followScroll();
     // A fresh visit starts at the first page; Back keeps what was shown so the shell's saved scroll offset fits.
-    if (inject(Router).currentNavigation()?.trigger !== 'popstate') this.shown.set(LIBRARY_PAGE);
+    if (this.router.currentNavigation()?.trigger !== 'popstate') this.shown.set(LIBRARY_PAGE);
     void this.library.ensureLoaded();
     void this.library.loadPlaylists();
   }
@@ -107,6 +117,16 @@ export class PhoneLibraryComponent {
       scroller.addEventListener('scroll', onScroll, { passive: true });
       destroyRef.onDestroy(() => scroller.removeEventListener('scroll', onScroll));
     });
+  }
+
+  /** Swiping left shows the next tab, right the previous one, as the chips are laid out. */
+  tabSwiped(direction: SwipeDirection): void {
+    const index = this.tabs.findIndex((item) => item.id === this.tab()) + (direction === 'left' ? 1 : -1);
+    const next = this.tabs[index];
+    if (!next) return;
+    this.resetShown();
+    this.tabChange = this.router.navigate([], { queryParams: { tab: next.id }, replaceUrl: true })
+      .then(() => new Promise((resolve) => requestAnimationFrame(resolve)));
   }
 
   showMore(): void {

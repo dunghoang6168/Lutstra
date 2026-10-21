@@ -12,6 +12,10 @@ import { focusQuietly } from '../../focus';
 import { PlayheadSample, playheadAt } from '../../playhead';
 
 const REMAINING_KEY = 'lutstra.phone.timeRemaining';
+/** Swipe up to the queue: a slow drag must cover this share of the screen; a flick (px/ms) only `SWIPE_UP_MIN_PX`. */
+const SWIPE_UP_SHARE = 0.12;
+const SWIPE_UP_SPEED = 0.5;
+const SWIPE_UP_MIN_PX = 40;
 
 type TransportButton = 'prev' | 'play' | 'next';
 
@@ -77,6 +81,7 @@ export class PhoneNowPlayingComponent {
       this.player.isPlaying();
     });
     this.runPlayhead();
+    this.followSwipeUp();
     // Focus returns to the queue button once the sheet is gone and this one is no longer inert.
     let queueWasOpen = false;
     effect(() => {
@@ -88,6 +93,39 @@ export class PhoneNowPlayingComponent {
 
   openAudioPath(): void {
     audioPathOpen.set(true);
+  }
+
+  /**
+   * A swipe up opens the queue, after PixelPlayer's. It counts only when the sheet did not scroll and sits at its end,
+   * so on a short screen scrolling down still scrolls; the seek bar keeps its own drag. Outside Angular until it fires.
+   */
+  private followSwipeUp(): void {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const zone = inject(NgZone);
+    let start: { x: number; y: number; t: number; scroll: number } | null = null;
+    const sheet = () => host.querySelector<HTMLElement>('.now-playing');
+    zone.runOutsideAngular(() => {
+      host.addEventListener('touchstart', (event) => {
+        const touch = event.touches[0];
+        const target = event.target as Element;
+        start = event.touches.length === 1 && !target.closest('input') && !this.queueOpen()
+          ? { x: touch.clientX, y: touch.clientY, t: event.timeStamp, scroll: sheet()?.scrollTop ?? 0 }
+          : null;
+      }, { passive: true });
+      host.addEventListener('touchend', (event) => {
+        const from = start;
+        start = null;
+        const el = sheet();
+        if (!from || !el) return;
+        const touch = event.changedTouches[0];
+        const up = from.y - touch.clientY;
+        const sideways = Math.abs(touch.clientX - from.x);
+        const quick = up / Math.max(1, event.timeStamp - from.t) >= SWIPE_UP_SPEED;
+        const far = up >= innerHeight * SWIPE_UP_SHARE || (quick && up >= SWIPE_UP_MIN_PX);
+        const settled = el.scrollTop === from.scroll && el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+        if (far && up > 2 * sideways && settled) zone.run(() => this.openQueue.emit());
+      }, { passive: true });
+    });
   }
 
   /** Each frame, outside Angular: the bar's --p follows the playhead; the times change only on a new second. */

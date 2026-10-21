@@ -32,6 +32,8 @@ export class SwipeDirective {
   readonly mode = input<'skip' | 'dismiss'>('skip', { alias: 'swipeMode' });
   readonly threshold = input(0.22, { alias: 'swipeThreshold' });
   readonly disabled = input(false, { alias: 'swipeDisabled' });
+  /** Skip mode: which way the finger may swipe (a first or last tab allows only one). Dismiss is always left. */
+  readonly allow = input<'both' | SwipeDirection>('both', { alias: 'swipeAllow' });
   /** Skip mode: awaited (up to `ENTER_WAIT_MS`) after `swiped`, while the host is invisible, so it comes back in already changed. */
   readonly beforeEnter = input<() => Promise<unknown> | undefined>(() => undefined, { alias: 'swipeBeforeEnter' });
   readonly swiped = output<SwipeDirection>();
@@ -75,13 +77,13 @@ export class SwipeDirective {
     const dx = event.clientX - this.start.x;
     if (!this.swiping) {
       if (Math.abs(dx) < SLOP_PX || Math.abs(dx) < Math.abs(event.clientY - this.start.y)) return;
-      if (this.mode() === 'dismiss' && dx > 0) return;
+      if (!this.allows(dx)) return;
       this.swiping = true;
       this.host.setPointerCapture(event.pointerId);
     }
     this.samples = [...this.samples.filter((sample) => event.timeStamp - sample.t < 100), { x: event.clientX, t: event.timeStamp }];
     this.host.style.translate = `${this.visual(dx)}px 0`;
-    const armed = Math.abs(dx) >= innerWidth * this.threshold() && !(this.mode() === 'dismiss' && dx > 0);
+    const armed = Math.abs(dx) >= innerWidth * this.threshold() && this.allows(dx);
     if (armed !== this.armed) {
       this.armed = armed;
       haptic(armed ? 'activate' : 'deactivate');
@@ -96,16 +98,22 @@ export class SwipeDirective {
     const first = this.samples[0];
     const speed = event.timeStamp > first.t ? (event.clientX - first.x) / ((event.timeStamp - first.t) / 1000) : 0;
     const flung = Math.abs(speed) >= FLING_SPEED && Math.abs(dx) >= innerWidth * FLING_MIN && Math.sign(speed) === Math.sign(dx);
-    if ((this.armed || flung) && !(this.mode() === 'dismiss' && dx > 0)) void this.commit(dx < 0 ? 'left' : 'right');
+    if ((this.armed || flung) && this.allows(dx)) void this.commit(dx < 0 ? 'left' : 'right');
     else this.settle();
+  }
+
+  /** Whether a finger `dx` away from the start points a way this swipe may go. */
+  private allows(dx: number): boolean {
+    const allow = this.mode() === 'dismiss' ? 'left' : this.allow();
+    return allow === 'both' || (allow === 'left') === (dx < 0);
   }
 
   /** Where the host sits for a finger `dx` away from where it started. */
   private visual(dx: number): number {
     if (this.mode() === 'skip') {
-      // Asymptotic resistance: 1:1 at first, never past half the screen.
+      // Asymptotic resistance: 1:1 at first, never past half the screen; a way it may not go does not move it.
       const travel = innerWidth * 0.5;
-      return travel * Math.tanh(dx / travel);
+      return travel * Math.tanh((this.allows(dx) ? dx : 0) / travel);
     }
     if (!this.loose && Math.abs(dx) < TENSION_PX) return Math.min(0, dx) * (TENSION_SHOWN_PX / TENSION_PX);
     if (!this.loose) { this.loose = true; haptic('tick'); }

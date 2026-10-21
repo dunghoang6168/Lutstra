@@ -92,3 +92,9 @@
   transform: translateY(-100%);
   box-shadow: none;
 }
+
+/* The swipe surface fills the screen even on a short tab, so it can be swiped anywhere under the bar. */
+.library-pages {
+  min-height: 70dvh;
+  touch-action: pan-y; /* sideways is the swipe between tabs */
+}
