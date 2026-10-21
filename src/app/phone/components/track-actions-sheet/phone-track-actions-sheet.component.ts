@@ -9,6 +9,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { audioPathOpen, describeOutput, loadOutput, output } from '../../app-shell';
 import { PhoneLibraryService } from '../../phone-library.service';
 import { focusQuietly } from '../../focus';
+import { SheetDragDirective } from '../../sheet-drag.directive';
 
 /** Android paths are document URIs; the readable part follows the volume's ':' (FAT and exFAT forbid ':' in names). */
 function readablePath(path: string): string {
@@ -24,7 +25,7 @@ function readablePath(path: string): string {
 @Component({
   selector: 'app-phone-track-actions-sheet',
   standalone: true,
-  imports: [CoverArtComponent, IconComponent, RouterLink],
+  imports: [CoverArtComponent, IconComponent, RouterLink, SheetDragDirective],
   templateUrl: './phone-track-actions-sheet.component.html',
   styleUrl: './phone-track-actions-sheet.component.scss',
 })

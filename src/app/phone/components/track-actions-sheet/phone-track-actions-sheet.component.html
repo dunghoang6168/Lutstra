@@ -1,5 +1,6 @@
 <div class="scrim" aria-hidden="true" (click)="close()"></div>
 <section class="actions-sheet" role="dialog" aria-modal="true" aria-labelledby="trackActionsTitle"
+  appSheetDrag (sheetDismissed)="close()"
   (keydown.escape)="close()">
   <span class="grabber" aria-hidden="true"></span>
   <header class="sheet-head">

@@ -11,6 +11,7 @@ import { haptic } from '../../haptics';
 import { SwipeDirective } from '../../swipe.directive';
 import { dropSlot } from '../../queue-drag';
 import { focusQuietly } from '../../focus';
+import { SheetDragDirective } from '../../sheet-drag.directive';
 
 interface QueueDrag {
   id: string;
@@ -39,7 +40,7 @@ interface DragLayout {
 @Component({
   selector: 'app-phone-queue-sheet',
   standalone: true,
-  imports: [CoverArtComponent, DurationPipe, IconComponent, SwipeDirective],
+  imports: [CoverArtComponent, DurationPipe, IconComponent, SwipeDirective, SheetDragDirective],
   templateUrl: './phone-queue-sheet.component.html',
   styleUrl: './phone-queue-sheet.component.scss',
 })

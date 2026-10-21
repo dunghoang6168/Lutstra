@@ -6,6 +6,7 @@ import { IconComponent, IconName } from '../../../shared/components/icon/icon.co
 import { audioPathOpen, loadOutput, output } from '../../app-shell';
 import { PathPart, PathStep, audioPath } from '../../audio-path';
 import { focusQuietly } from '../../focus';
+import { SheetDragDirective } from '../../sheet-drag.directive';
 
 const ICONS: Record<PathStep['icon'] | 'file', IconName> = {
   file: 'file-audio', decoder: 'cpu', app: 'music', mixer: 'sliders', bluetooth: 'bluetooth', usb: 'usb', speaker: 'speaker', wired: 'headphones',
@@ -19,7 +20,7 @@ const ICONS: Record<PathStep['icon'] | 'file', IconName> = {
 @Component({
   selector: 'app-phone-audio-path-sheet',
   standalone: true,
-  imports: [IconComponent, RouterLink],
+  imports: [IconComponent, RouterLink, SheetDragDirective],
   templateUrl: './phone-audio-path-sheet.component.html',
   styleUrl: './phone-audio-path-sheet.component.scss',
 })
