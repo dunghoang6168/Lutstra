@@ -21,7 +21,7 @@ export class CoverToneService {
 }
 
 /** Samples the cover at 64 px. */
-async function readTone(src: string): Promise<CoverTone | null> {
+export async function readTone(src: string): Promise<CoverTone | null> {
   const image = new Image();
   image.src = src;
   try { await image.decode(); } catch { return null; }

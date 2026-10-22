@@ -19,7 +19,7 @@ import { CoverToneService } from '../cover-tone.service';
 import { SwipeDirection, SwipeDirective } from '../swipe.directive';
 import { RecentPlaysService } from '../../core/layout/recent-plays.service';
 import { ThemeService } from '../../core/theme/theme.service';
-import { appShell, audioPathOpen } from '../app-shell';
+import { appShell, audioPathOpen, pageBack } from '../app-shell';
 import { focusQuietly } from '../focus';
 import { PhoneEqService } from '../eq/phone-eq.service';
 
@@ -75,12 +75,15 @@ export class PhoneAppComponent {
       this.tabs.find((tab) => path === tab.path || path.startsWith(tab.path + '/'))?.path ?? previous?.value ?? '/home',
   });
   readonly onOwnTab = computed(() => this.path() === this.activeTab() || this.path().startsWith(this.activeTab() + '/'));
-  readonly title = computed(() => {
+  private readonly routeData = computed(() => {
     this.path();
     let route = this.router.routerState.snapshot.root;
     while (route.firstChild) route = route.firstChild;
-    return (route.data['title'] as string | undefined) ?? '';
+    return route.data;
   });
+  readonly title = computed(() => (this.routeData()['title'] as string | undefined) ?? '');
+  /** The page draws its own header (the Library's large title), so the shell's app bar steps aside. */
+  readonly ownHeader = computed(() => this.routeData()['ownHeader'] === true);
   readonly tone = inject(CoverToneService).tone;
 
   constructor() {
@@ -169,6 +172,7 @@ export class PhoneAppComponent {
     }
     if (this.queueOpen()) { this.queueOpen.set(false); return; }
     if (this.nowPlayingOpen()) { this.closeNowPlaying(); return; }
+    if (pageBack()?.()) return;
     if (this.path() === '/home') void appShell.moveToBack();
     else if (this.onTab()) void this.router.navigateByUrl('/home');
     else this.location.back();

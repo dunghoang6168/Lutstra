@@ -12,6 +12,10 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+/* A page with its own header (the Library) paints the status bar strip in that header's tint and scrolls itself. */
+.phone-shell.own-header { background: var(--phone-head-tint); }
+.own-header .phone-content { overflow: hidden; }
+
 .icon-btn {
   display: inline-grid;
   place-items: center;

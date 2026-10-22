@@ -18,6 +18,11 @@ export const appShell = registerPlugin<{
 export const output = signal<NativeOutput | null>(null);
 /** The Audio path sheet, opened from Now Playing's output chip or the ⋯ sheet's File info. */
 export const audioPathOpen = signal(false);
+/**
+ * A page's own step back, asked before the shell goes back a page; it returns true when it handled Back
+ * (the Library's Folders tab goes up one folder).
+ */
+export const pageBack = signal<(() => boolean) | null>(null);
 let watching = false;
 
 export async function loadOutput(): Promise<void> {

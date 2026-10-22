@@ -1,4 +1,4 @@
-import { Album, Artist, Track } from '../core/models';
+import { Album, Artist, Playlist, Track } from '../core/models';
 
 /** Rows the Library renders at first and adds each time its end nears the screen. */
 export const LIBRARY_PAGE = 100;
@@ -9,9 +9,11 @@ export type LibraryTab = (typeof LIBRARY_TABS)[number];
 export const SONG_SORTS = { title: 'Title', artist: 'Artist', album: 'Album', added: 'Recently added' } as const;
 export const ALBUM_SORTS = { title: 'Title', artist: 'Artist', year: 'Year' } as const;
 export const ARTIST_SORTS = { name: 'Name', tracks: 'Most tracks' } as const;
+export const PLAYLIST_SORTS = { name: 'Name', updated: 'Recently changed' } as const;
 export type SongSort = keyof typeof SONG_SORTS;
 export type AlbumSort = keyof typeof ALBUM_SORTS;
 export type ArtistSort = keyof typeof ARTIST_SORTS;
+export type PlaylistSort = keyof typeof PLAYLIST_SORTS;
 
 const text = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
@@ -35,4 +37,8 @@ export function sortAlbums(albums: readonly Album[], by: AlbumSort): Album[] {
 
 export function sortArtists(artists: readonly Artist[], by: ArtistSort): Artist[] {
   return [...artists].sort((a, b) => (by === 'tracks' ? b.trackIds.length - a.trackIds.length : 0) || text.compare(a.name, b.name));
+}
+
+export function sortPlaylists(playlists: readonly Playlist[], by: PlaylistSort): Playlist[] {
+  return [...playlists].sort((a, b) => (by === 'updated' ? b.updatedAt - a.updatedAt : 0) || text.compare(a.name, b.name));
 }

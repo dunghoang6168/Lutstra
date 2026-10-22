@@ -4,7 +4,7 @@ import { ListeningHistoryService } from '../core/history/listening-history.servi
 import { FolderNode, Playlist, QueueEntry, Track } from '../core/models';
 import { PlayerService } from '../core/player/player.service';
 import { QueueActionsService } from '../core/player/queue-actions.service';
-import { AlbumSort, ArtistSort, LIBRARY_PAGE, SongSort } from './library-sort';
+import { AlbumSort, ArtistSort, LibraryTab, PlaylistSort, SongSort } from './library-sort';
 
 /** The phone pages' shared library state, playback starts and the track ⋯ sheet. */
 @Injectable({ providedIn: 'root' })
@@ -31,8 +31,13 @@ export class PhoneLibraryService {
   readonly songSort = signal<SongSort>('title');
   readonly albumSort = signal<AlbumSort>('title');
   readonly artistSort = signal<ArtistSort>('name');
-  /** How many rows the Library list renders; it grows as the list scrolls, and Back keeps it so the scroll offset still fits. */
-  readonly libraryShown = signal(LIBRARY_PAGE);
+  readonly playlistSort = signal<PlaylistSort>('name');
+  /**
+   * Per Library tab: how many rows it renders (grows as it scrolls) and where it was scrolled. Back from a detail
+   * page keeps both, so each tab comes back where it was.
+   */
+  readonly tabShown = signal<Partial<Record<LibraryTab, number>>>({});
+  readonly tabScroll = new Map<LibraryTab, number>();
 
   constructor() {
     this.library.libraryChanged$?.subscribe(() => void this.reload());
@@ -54,6 +59,11 @@ export class PhoneLibraryService {
 
   async loadPlaylists(): Promise<void> {
     try { this.playlists.set(await this.playlistGateway.getPlaylists()); } catch { /* The tab shows what it had. */ }
+  }
+
+  async createPlaylist(name: string): Promise<void> {
+    await this.playlistGateway.createPlaylist(name);
+    await this.loadPlaylists();
   }
 
   folderTree(rootId: string): Promise<FolderNode | null> {

@@ -379,6 +379,8 @@ html[data-layout='phone'] {
   /* Now Playing's cover colours change with the cover's crossfade. */
   --np-tint-dur: 1200ms;
   --sheet-radius: 28px;
+  /* The Library's large-title band, after PixelPlayer's tinted top bar. */
+  --phone-head-tint: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-app));
 }
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {

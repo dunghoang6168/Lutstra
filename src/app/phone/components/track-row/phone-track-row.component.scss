@@ -1,13 +1,38 @@
-:host { display: block; }
+/* A rounded card per track, 8px apart, after PixelPlayer's song items. */
+:host {
+  display: block;
+  padding: var(--space-1) var(--space-3);
+}
 
 .track-row {
+  --row-fill: var(--bg-surface);
+  --row-ink: var(--text-primary);
+  --row-ink-2: var(--text-secondary);
   display: flex;
   align-items: center;
-  min-height: var(--row-height);
+  min-height: 72px;
   padding-right: var(--space-1);
+  overflow: hidden;
+  border-radius: 20px;
+  color: var(--row-ink);
+  background: var(--row-fill);
+  transition: background-color var(--motion-dur) var(--motion-ease);
   /* Long lists lay out and paint only the rows near the screen. */
   content-visibility: auto;
-  contain-intrinsic-size: auto var(--row-height);
+  contain-intrinsic-size: auto 72px;
+}
+
+/* The playing track: a filled card in the accent's hue, at a lightness that keeps its text readable. */
+.track-row.playing {
+  --row-fill: oklch(from var(--accent-primary) 0.42 min(c, 0.1) h);
+  --row-ink: #fff;
+  --row-ink-2: rgb(255 255 255 / 0.8);
+}
+
+:host-context(html[data-theme='light']) .track-row.playing {
+  --row-fill: oklch(from var(--accent-primary) 0.88 min(c, 0.07) h);
+  --row-ink: oklch(from var(--accent-primary) 0.22 0.04 h);
+  --row-ink-2: oklch(from var(--accent-primary) 0.35 0.04 h);
 }
 
 .row-main {
@@ -17,20 +42,20 @@
   gap: var(--space-3);
   flex: 1;
   min-width: 0;
-  min-height: var(--row-height);
-  padding-left: var(--page-pad-x);
+  min-height: 72px;
+  padding-left: var(--space-3);
   text-align: left;
   color: inherit;
 }
 
-.row-main:active:not(:disabled) { background: var(--bg-surface-hover); }
+.row-main:active:not(:disabled) { background: color-mix(in srgb, var(--row-ink) 8%, transparent); }
 
 .row-cover {
   flex: none;
   width: var(--phone-cover-thumb);
   height: var(--phone-cover-thumb);
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .row-number {
@@ -47,6 +72,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -57,9 +83,7 @@
   white-space: nowrap;
 }
 
-.row-title { font-size: var(--font-size-base); font-weight: 600; }
-.playing .row-title,
-.playing .row-number { color: var(--text-accent); }
+.row-title { font-size: var(--font-size-base); font-weight: 700; }
 
 .row-meta {
   display: flex;
@@ -67,7 +91,7 @@
   gap: var(--space-2);
   min-width: 0;
   font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+  color: var(--row-ink-2);
 }
 
 .row-format,
@@ -80,6 +104,37 @@
 }
 
 .row-format.hires { color: var(--text-accent); }
+.playing :is(.row-format, .row-time, .row-number) { color: var(--row-ink-2); }
+
+/* Three small bars before the playing title; they move while it plays. */
+.bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  margin-right: var(--space-2);
+  vertical-align: baseline;
+
+  i {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: currentColor;
+    transform-origin: bottom;
+  }
+
+  i:nth-child(1) { scale: 1 0.6; }
+  i:nth-child(3) { scale: 1 0.45; }
+}
+
+.bars.live i { animation: bar 900ms ease-in-out infinite alternate; }
+.bars.live i:nth-child(2) { animation-delay: -300ms; }
+.bars.live i:nth-child(3) { animation-delay: -600ms; }
+
+@keyframes bar {
+  from { scale: 1 0.3; }
+  to { scale: 1 1; }
+}
 
 /* Amber means absence. */
 .unavailable .row-title { color: var(--text-muted); }
@@ -89,15 +144,23 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: var(--touch-target);
-  height: var(--touch-target);
+  width: 44px;
+  height: 44px;
+  margin: 0 var(--space-1);
   border-radius: var(--radius-full);
-  color: var(--text-secondary);
+  color: var(--row-ink-2);
+  background: color-mix(in srgb, var(--row-ink) 7%, transparent);
 }
 
+.playing .row-more { color: var(--row-ink); background: var(--bg-app); }
 .row-more:active { background: var(--bg-surface-hover); }
 
 button:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars.live i { animation: none; }
+  .track-row { transition: none; }
 }

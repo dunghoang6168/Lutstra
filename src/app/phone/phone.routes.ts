@@ -20,7 +20,7 @@ export const phoneRoutes: Routes = [
   },
   {
     path: 'library',
-    data: { title: 'Library' },
+    data: { title: 'Library', ownHeader: true },
     loadComponent: () => import('./pages/library/phone-library.component').then((m) => m.PhoneLibraryComponent),
   },
   {
@@ -37,11 +37,6 @@ export const phoneRoutes: Routes = [
     path: 'library/playlists/:id',
     data: { title: 'Playlist' },
     loadComponent: () => import('./pages/playlist/phone-playlist.component').then((m) => m.PhonePlaylistComponent),
-  },
-  {
-    path: 'library/folders/:id',
-    data: { title: 'Folder' },
-    loadComponent: () => import('./pages/folder/phone-folder.component').then((m) => m.PhoneFolderComponent),
   },
   {
     path: 'settings',

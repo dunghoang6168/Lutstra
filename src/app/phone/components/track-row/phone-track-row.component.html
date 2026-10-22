@@ -7,7 +7,12 @@
       <app-cover-art class="row-cover" [src]="track().artwork" icon="music" [iconSize]="20" lazy />
     }
     <span class="row-text">
-      <span class="row-title">{{ track().title }}</span>
+      <span class="row-title">
+        @if (playing()) {
+          <span class="bars" [class.live]="player.isPlaybackActive()" aria-hidden="true"><i></i><i></i><i></i></span>
+        }
+        {{ track().title }}
+      </span>
       <span class="row-meta">
         @if (track().isAvailable) {
           <span class="row-artist">{{ track().artist ?? 'Unknown artist' }}</span>

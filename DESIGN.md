@@ -236,7 +236,7 @@ The palette is cool graphite or cloud paper, with exactly one user-chosen hue on
 
 **The Absence Rule.** Amber means a file or output is not there. If nothing is missing or disconnected, no amber appears on screen.
 
-**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player, the Home hero and the desktop Now Playing. The one exception is the phone's Now Playing and mini player (owner's choice, 2026-10-18): after PixelPlayer, every control there, Play included, takes its colour from the cover (`cover-tone.ts`, `.cover-tinted` in `_base.scss`, OKLCH tones fixed per role so each label keeps 4.5:1; a grey cover gives grey controls), while the rest of the phone keeps the accent. On the phone, a page's one primary action (Settings › Choose folders) is ink too, by the owner's choice (2026-10-17): the phone keeps accent for meaning only, so it never fills a button there.
+**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player, the Home hero and the desktop Now Playing. The one exception is the phone's Now Playing and mini player (owner's choice, 2026-10-18): after PixelPlayer, every control there, Play included, takes its colour from the cover (`cover-tone.ts`, `.cover-tinted` in `_base.scss`, OKLCH tones fixed per role so each label keeps 4.5:1; a grey cover gives grey controls), while the rest of the phone keeps the accent. On the phone, a page's one primary action (Settings › Choose folders) is ink too, by the owner's choice (2026-10-17): the phone keeps accent for meaning only, so it never fills a button there. The owner overturned that for the phone Library on 2026-10-22: after PixelPlayer, its action buttons are accent tonal buttons (below), and the lit chip and the Settings button take the strong accent tone.
 
 ## Typography
 
@@ -315,6 +315,8 @@ Radius belongs to the layout, not the component. Gallery uses soft sheets (r20) 
 - **Secondary:** surface-hover fill, 1px border and text colour. Used for in-page actions such as Shuffle library.
 - **Icon controls:** 32-34px, transparent, `--control-radius`. They fill with secondary text on surface-hover when hovered, and the active state uses `accent-text`.
 - **Play/pause:** a solid ink circle (36px in the strip and pill, 30px in Console, 56px in the Gallery rail). It scales 1.05 on hover and 0.97 on press.
+- **Tonal** (`.tonal-btn`, `_primitives.scss`; owner's choice 2026-10-22, after PixelPlayer's FilledTonalButton): 42px, round ends, a solid fill with a dark label, 0.96 on press. The fills are the accent's hue at a fixed OKLCH lightness per theme (`--tonal-accent`, `.neutral` → `--tonal-neutral`, label `--on-tonal`), so the label keeps its contrast with every accent. `.icon` is a 42px round icon button. Inside `.btn-join` the edges that meet go to 8px with a 4px gap. Used by the phone Library's action row (Shuffle, New, sort).
+- **Scrollbar** (`app-scrollbar`, `shared/components/scrollbar`; 2026-10-22, after PixelPlayer's ExpressiveScrollBar): an 8px `--tonal-track` track split around a 48px `--tonal-strong` thumb with 8px gaps; held, the thumb widens to 28px with ⇕, and dragging shows a 40px bubble with the row's first letter. It hides while its scroller cannot scroll and stays out of the accessibility tree, since native scrolling still works. Phone Library tabs use it; it is built to work on the desktop too.
 
 ### Navigation
 - **Gallery tabs:** pill tabs at 15px/600 in secondary text. The active tab gets a surface fill with `--shadow-sm`.
@@ -361,7 +363,7 @@ Every track list (Songs, album, artist and playlist detail, Console Home, queue)
 Text set on artwork (the Folders hero) stays white over a `--scrim-*` overlay in both themes, and its fallback gradient ends in `color-mix(in srgb, var(--accent-primary) 18%, black)`. This is the one place a literal white text colour is allowed.
 
 ### Copy
-Interface copy is sentence case. Each concept has a single name throughout: **track** for an item ("Songs" names the page only), **library folder**, **Rescan library**, **output device**, **Native Shared** / **Chromium Shared**. Toggles show On/Off and keep a constant accessible name with `aria-pressed`. Errors name what failed and the next step. The product name is shown as **Lutstra**; storage keys stay `lutsra.*`.
+Interface copy is sentence case; the one exception is the phone Library's tab chips, upper case after PixelPlayer (owner's choice, 2026-10-22). Each concept has a single name throughout: **track** for an item ("Songs" names the page only), **library folder**, **Rescan library**, **output device**, **Native Shared** / **Chromium Shared**. Toggles show On/Off and keep a constant accessible name with `aria-pressed`. Errors name what failed and the next step. The product name is shown as **Lutstra**; storage keys stay `lutsra.*`.
 
 ## Do's and Don'ts
 

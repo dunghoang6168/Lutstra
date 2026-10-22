@@ -1,100 +1,575 @@
+/*
+ * Library after PixelPlayer: a tinted band with the large title and chips, and a sheet with rounded top corners
+ * that overlaps it. Scrolled down, the whole column slides up by the title and chips; it grows by the same amount
+ * at once, so the sheet still reaches the bottom, and shrinks back only after sliding down.
+ */
+:host {
+  --head-title: 76px;
+  --head-chips: 60px;
+  --sheet-overlap: 32px;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+.lib {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: transform var(--motion-dur) var(--motion-ease), height 0s var(--motion-dur);
+}
+
+.lib.collapsed {
+  height: calc(100% + var(--head-title) + var(--head-chips));
+  transform: translateY(calc(-1 * (var(--head-title) + var(--head-chips))));
+  transition: transform var(--motion-dur) var(--motion-ease), height 0s;
+}
+
+/* The band runs on under the sheet's corners, so they show its tint. */
+.head {
+  flex: none;
+  padding-bottom: var(--sheet-overlap);
+  background: var(--phone-head-tint);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--head-title);
+  padding: var(--space-2) var(--space-4) 0 22px;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 2.625rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.head-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.head-btn.strong {
+  color: var(--on-tonal-strong);
+  background: var(--tonal-strong);
+}
+
 .chips {
   display: flex;
+  align-items: flex-start;
   gap: var(--space-2);
-  padding: 0 var(--page-pad-x) var(--space-3);
+  height: var(--head-chips);
+  padding: 6px var(--page-pad-x) 0;
   overflow-x: auto;
   scrollbar-width: none;
 
   &::-webkit-scrollbar { display: none; }
 }
 
+/* PixelPlayer's tab pills: filled, upper case; the lit one takes the strong accent tone. */
 .chip {
-  display: inline-flex;
-  align-items: center;
   flex: none;
-  min-height: var(--space-10);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--border-default);
+  height: 44px;
+  padding: 0 20px;
   border-radius: var(--radius-full);
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  background: var(--bg-surface);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  text-decoration: none;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 .chip.active {
-  border-color: transparent;
+  color: var(--on-tonal-strong);
+  background: var(--tonal-strong);
+  font-weight: 800;
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: calc(-1 * var(--sheet-overlap));
+  overflow: hidden;
+  border-radius: 32px 32px 0 0;
+  background: var(--bg-app);
+  transition: border-radius var(--motion-dur) var(--motion-ease);
+}
+
+.collapsed .sheet { border-radius: 0; }
+
+/* Both layers share one cell, so the buttons and the folder path cross as one slides out and the other in. */
+.actions {
+  display: grid;
+  flex: none;
+  align-items: center;
+  height: 68px;
+  padding: 0 var(--page-pad-x);
+  overflow: hidden;
+}
+
+.action-layer {
+  display: flex;
+  grid-area: 1 / 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/*
+ * The main button and Playlists' Shuffle (LibraryActionRow): one beat (--row-beat) for the label, the icon's turn,
+ * the joined corner and Shuffle opening out, all transitions, so a swipe that turns back mid-way reverses them.
+ */
+.actions { --row-beat: 300ms; --row-ease: cubic-bezier(0.2, 0, 0, 1); }
+
+.btn-pair { display: inline-flex; flex: none; }
+
+.main-btn {
+  gap: 0;
+  transition: transform var(--transition-fast), border-radius var(--row-beat) var(--row-ease);
+}
+
+.main-btn.joined { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+
+.main-icon {
+  display: inline-grid;
+  transition: rotate var(--row-beat) var(--row-ease);
+
+  > app-icon { grid-area: 1 / 1; opacity: 0; transition: opacity 100ms ease; }
+  /* The outgoing icon and label fade first and the new ones after, so the two never show on top of each other. */
+  > app-icon.on { opacity: 1; transition: opacity 150ms ease 90ms; }
+}
+
+.main-icon.turned { rotate: 360deg; }
+
+/* Each label sits in a track that opens from 0fr to 1fr, so the button's width follows the label smoothly. */
+.swap {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transition: grid-template-columns var(--row-beat) var(--row-ease), opacity 100ms ease;
+
+  > span { min-width: 0; padding-left: var(--space-2); white-space: nowrap; }
+}
+
+.swap.on {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  transition: grid-template-columns var(--row-beat) var(--row-ease), opacity 150ms ease 90ms;
+}
+
+/* Shuffle beside New opens out the same way; clip-path keeps its shadow while cutting it at the sides. */
+.extra {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  clip-path: inset(-10px 0 -10px 0);
+  transition: grid-template-columns var(--row-beat) var(--row-ease);
+}
+
+.extra.on { grid-template-columns: 1fr; }
+
+.extra-inner {
+  display: flex;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+.extra .tonal-btn {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  opacity: 0;
+  scale: 0.85;
+  transform-origin: left center;
+  transition: opacity 150ms ease, scale var(--row-beat) var(--row-ease);
+}
+
+/* Opening, it settles with a little overshoot, as PixelPlayer's Import does. */
+.extra.on .tonal-btn {
+  opacity: 1;
+  scale: 1;
+  transition: opacity 200ms ease 60ms, scale 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.gone { visibility: hidden; }
+
+.count {
+  flex: 1;
+  min-width: 0;
+  padding-left: var(--space-1);
+  overflow: hidden;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.crumb-up {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  color: var(--on-tonal);
+  background: var(--tonal-neutral);
+}
+
+.crumb-up:disabled { opacity: 0.4; }
+
+.crumbs {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+
+  li { display: flex; flex: none; align-items: center; }
+}
+
+.crumb {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.crumb.current { color: var(--text-accent); font-weight: 800; }
+.crumb-sep { flex: none; color: var(--text-muted); }
+
+/* Action row changes (LibraryActionRow): to Folders the buttons rise out and the path rises in; back, the reverse. */
+.from-below { animation: rise-in var(--motion-dur) var(--motion-ease); }
+.to-above { animation: rise-out var(--motion-dur) var(--motion-ease) forwards; }
+.from-above { animation: drop-in var(--motion-dur) var(--motion-ease); }
+.to-below { animation: drop-out var(--motion-dur) var(--motion-ease) forwards; }
+
+@keyframes rise-in { from { opacity: 0; translate: 0 100%; } }
+@keyframes rise-out { to { opacity: 0; translate: 0 -100%; } }
+@keyframes drop-in { from { opacity: 0; translate: 0 -100%; } }
+@keyframes drop-out { to { opacity: 0; translate: 0 100%; } }
+
+/* The five tabs side by side; native scrolling with snap points follows the finger, flings and settles. */
+.pager {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.pane {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* The right padding clears the scrollbar. */
+.pane-scroll {
+  position: absolute;
+  inset: 0;
+  padding: 2px 10px var(--space-6) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.list-end { height: 1px; }
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 72px;
+  padding: 0 var(--space-3);
+  border-radius: 20px;
+  color: inherit;
+  background: var(--bg-surface);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+.card:active { background: var(--bg-surface-hover); }
+
+.card-art {
+  flex: none;
+  width: var(--phone-cover-thumb);
+  height: var(--phone-cover-thumb);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.card-art.round { border-radius: var(--radius-full); }
+
+.card-art.folder {
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
   color: var(--text-accent);
   background: var(--accent-muted);
 }
 
-.toolbar {
+.card-art.mosaic {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.card-text {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--page-pad-x) var(--space-2);
-}
-
-.shuffle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--space-10);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-full);
-  color: var(--text-inverse);
-  background: var(--text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
-.shuffle-btn:disabled { opacity: 0.5; }
-
-.count {
   flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.card-title,
+.card-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-title { font-size: var(--font-size-base); font-weight: 700; }
+.card-sub { font-size: var(--font-size-xs); color: var(--text-secondary); }
+
+.card-path {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
 
-/* One width for every tab's sort, so the toolbar does not jump when the tab changes. */
-.sort {
-  flex: none;
-  width: calc(var(--space-10) * 5); /* fits "Recently added" and the arrow */
-  min-height: var(--space-10);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-default);
+/* Album cards: the cover fades into a ground in its own colour (.cover-tinted from appCoverTone). */
+.acards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  list-style: none;
+}
+
+.acard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  color: var(--np-on-skip);
+  background: var(--np-base);
+  text-decoration: none;
+  transition: background-color var(--motion-dur) var(--motion-ease);
+}
+
+.acard-art {
+  position: relative;
+  aspect-ratio: 3 / 2;
+}
+
+.acard-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 30%, var(--np-base));
+}
+
+.acard-cover { border-radius: 0; }
+
+.acard-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 84px;
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.acard-title,
+.acard-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acard-title { font-size: var(--font-size-base); font-weight: 800; }
+.acard-artist { font-size: var(--font-size-xs); color: var(--np-text-2); }
+
+.acard-line {
+  overflow: hidden;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  color: var(--np-text-2);
+
+  .hires { color: var(--np-on); }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 60%;
+  padding: var(--space-8) var(--space-10);
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-2);
   border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+}
+
+.empty-title { margin: 0; font-size: var(--font-size-xl); font-weight: 800; }
+.empty-text { margin: 0; color: var(--text-secondary); }
+
+/* Sort: a bottom sheet in the top layer. */
+.sort-sheet {
+  width: 100%;
+  max-width: 100%;
+  max-height: 80dvh;
+  margin: auto 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.sort-sheet[open] { animation: sheet-up var(--motion-dur) var(--motion-ease); }
+.sort-sheet::backdrop { background: var(--scrim-strong); }
+
+@keyframes sheet-up { from { transform: translateY(100%); } }
+
+.sort-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 var(--page-pad-x) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.grabber {
+  align-self: center;
+  width: var(--space-8);
+  height: var(--space-1);
+  margin: var(--space-2) 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--border-default);
+}
+
+.sort-title {
+  margin: 0 0 var(--space-2);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-align: left;
+}
+
+.sort-option.on {
+  color: var(--text-accent);
+  background: var(--accent-muted);
+}
+
+/* New playlist: a centred card. */
+.new-dialog {
+  width: min(100% - 2 * var(--page-pad-x), 400px);
+  /* The reset's `margin: 0` would pin it to the top left; auto centres a modal dialog. */
+  margin: auto;
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--sheet-radius);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.new-dialog::backdrop { background: var(--scrim-strong); }
+
+.new-title { margin: 0 0 var(--space-4); font-size: var(--font-size-xl); font-weight: 800; }
+.new-label { display: block; margin-bottom: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+.new-input {
+  width: 100%;
+  height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   background: var(--bg-surface);
   font: inherit;
-  font-size: var(--font-size-sm);
 }
 
-/* End-of-list marker: rendering more rows starts as it nears the screen. */
-.list-end { height: 1px; }
-
-/* Chips and toolbar stay at the top of the scroller; scrolling down slides them away, scrolling up brings them back. */
-.library-bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-app);
-  transition: transform var(--motion-dur) var(--motion-ease), box-shadow var(--motion-dur) var(--motion-ease);
+.new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
-/* Away from the top, a hairline and a shadow part the bar from the rows under it. */
-.library-bar.bar-pinned { box-shadow: 0 1px 0 var(--border-subtle), var(--shadow-md); }
-
-/* Keyboard focus inside the bar keeps it in view; a tapped chip keeps focus too, but that must not pin it. */
-.library-bar.bar-hidden:not(:has(:focus-visible)) {
-  transform: translateY(-100%);
-  box-shadow: none;
-}
-
-/* The swipe surface fills the screen even on a short tab, so it can be swiped anywhere under the bar. */
-.library-pages {
-  min-height: 70dvh;
-  touch-action: pan-y; /* sideways is the swipe between tabs */
+@media (prefers-reduced-motion: reduce) {
+  .lib, .lib.collapsed, .sheet, .chip, .acard { transition: none; }
+  .from-below, .to-above, .from-above, .to-below, .sort-sheet[open] { animation: none; }
+  .main-btn, .main-icon, .main-icon > app-icon, .swap, .extra, .extra .tonal-btn, .extra.on .tonal-btn { transition: none; }
 }

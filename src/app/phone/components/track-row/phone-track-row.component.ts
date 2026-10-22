@@ -7,7 +7,10 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
 import { PhoneLibraryService } from '../../phone-library.service';
 
-/** One track: tap plays it, ⋯ opens the action sheet. With `number`, the track number replaces the cover (album pages). */
+/**
+ * One track as a rounded card, after PixelPlayer: tap plays it, ⋯ opens the action sheet. The playing track's
+ * card is filled and shows small bars before its title. With `number`, the track number replaces the cover (album pages).
+ */
 @Component({
   selector: 'app-phone-track-row',
   standalone: true,
@@ -19,7 +22,7 @@ export class PhoneTrackRowComponent {
   readonly track = input.required<Track>();
   readonly number = input<number | null | undefined>(undefined);
   readonly play = output<void>();
-  private readonly player = inject(PlayerService);
+  readonly player = inject(PlayerService);
   private readonly library = inject(PhoneLibraryService);
   readonly playing = computed(() => this.player.currentTrack()?.id === this.track().id);
   readonly format = computed(() => formatTrackFormat(this.track()));
