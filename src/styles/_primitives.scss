@@ -19,6 +19,68 @@
   transition: all var(--transition-fast);
 }
 
+/*
+ * Tonal colours, after Material 3's tonal containers: the accent's hue at a fixed lightness per theme, so the dark
+ * label keeps its contrast whatever the accent. `strong` is the selected chip, the Settings button and the scrollbar.
+ */
+:root {
+  --tonal-accent: oklch(from var(--accent-primary) 0.74 min(c, 0.1) h);
+  --tonal-neutral: oklch(from var(--accent-primary) 0.68 0.02 h);
+  --on-tonal: oklch(from var(--accent-primary) 0.2 0.03 h);
+  --tonal-strong: oklch(from var(--accent-primary) 0.82 min(c, 0.12) h);
+  --on-tonal-strong: oklch(from var(--accent-primary) 0.22 0.04 h);
+  --tonal-track: oklch(from var(--accent-primary) 0.36 0.03 h);
+}
+
+html[data-theme='light'] {
+  --tonal-accent: oklch(from var(--accent-primary) 0.86 min(c, 0.08) h);
+  --tonal-neutral: oklch(from var(--accent-primary) 0.88 0.015 h);
+  --on-tonal: oklch(from var(--accent-primary) 0.25 0.04 h);
+  --tonal-strong: oklch(from var(--accent-primary) 0.45 min(c, 0.14) h);
+  --on-tonal-strong: oklch(from var(--accent-primary) 0.98 0.01 h);
+  --tonal-track: oklch(from var(--accent-primary) 0.86 0.03 h);
+}
+
+/*
+ * Tonal button, after PixelPlayer's FilledTonalButton: 42px, round ends, solid fill, dark label. Accent by default,
+ * `.neutral` for a secondary action, `.icon` for an icon alone. Inside `.btn-join` the edges that meet go to 8px.
+ */
+.tonal-btn {
+  --tonal-bg: var(--tonal-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: var(--space-2);
+  height: 42px;
+  padding: 0 var(--space-4) 0 14px;
+  border: 0;
+  border-radius: 21px;
+  color: var(--on-tonal);
+  background: var(--tonal-bg);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: transform var(--transition-fast), border-radius var(--motion-dur, 320ms) var(--motion-ease, ease);
+
+  &:active:not(:disabled) { transform: scale(0.96); }
+  &:disabled { opacity: 0.4; box-shadow: none; cursor: default; }
+  &.neutral { --tonal-bg: var(--tonal-neutral); }
+  &.icon { width: 42px; padding: 0; }
+}
+
+.btn-join {
+  display: inline-flex;
+  gap: 4px;
+
+  > .tonal-btn:not(:first-child) { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+  > .tonal-btn:not(:last-child) { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+}
+
 .btn-sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-sm);

@@ -1,0 +1,80 @@
+/* Sizes follow PixelPlayer's ExpressiveScrollBar: 8px track and thumb, 48px thumb that widens to 28px when held. */
+:host {
+  position: absolute;
+  top: var(--scrollbar-inset-top, 8px);
+  right: 0;
+  bottom: var(--scrollbar-inset-bottom, 8px);
+  z-index: 1;
+  width: 22px;
+  touch-action: none;
+  user-select: none;
+}
+
+:host(.off) { visibility: hidden; }
+
+.track,
+.thumb {
+  position: absolute;
+  right: 4px;
+  width: 8px;
+}
+
+.track {
+  border-radius: 4px;
+  background: var(--tonal-track);
+}
+
+.above { top: 0; }
+.below { bottom: 0; }
+
+.thumb {
+  top: 0;
+  display: grid;
+  place-items: center;
+  height: 48px;
+  border-radius: 4px;
+  color: var(--on-tonal-strong);
+  background: var(--tonal-strong);
+  transition: width 200ms ease, border-radius 200ms ease;
+}
+
+.grip {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+:host(.pressed) .thumb {
+  width: 28px;
+  border-radius: 14px 6px 6px 14px;
+}
+
+:host(.pressed) .grip { opacity: 1; }
+
+.bubble {
+  position: absolute;
+  top: -20px;
+  right: 42px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-primary);
+  background: var(--tonal-track);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+  font-size: 1.25rem;
+  font-weight: 800;
+  opacity: 0;
+  scale: 0.82;
+  transition: opacity 180ms ease, scale 180ms ease;
+  pointer-events: none;
+}
+
+.bubble.shown {
+  opacity: 1;
+  scale: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb, .grip, .bubble { transition: none; }
+}
