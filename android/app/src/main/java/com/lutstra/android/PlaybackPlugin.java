@@ -215,21 +215,66 @@ public final class PlaybackPlugin extends Plugin {
         });
     }
 
-    /** Engine entry: the track Media3 continues into, gaplessly, when the current one ends. */
+    /**
+     * Engine entry: { afterId, items }, the run of tracks Media3 plays after the current one, gaplessly and on its
+     * own, so the queue keeps going while the web sleeps (screen off). afterId is the track the web takes as
+     * current; when Media3 has already moved on, the call is stale and changes nothing ({ applied: false }).
+     */
     @PluginMethod
     public void prepareNext(PluginCall call) {
-        MediaItem item;
-        try { item = itemOf(call.getData()); } catch (JSONException error) { call.reject("Invalid track", error); return; }
+        JSArray input = call.getArray("items");
+        if (input == null || input.length() == 0) { call.reject("Items required"); return; }
+        List<MediaItem> items = new ArrayList<>();
+        try {
+            for (int i = 0; i < input.length(); i++) items.add(itemOf(input.getJSONObject(i)));
+        } catch (JSONException error) { call.reject("Invalid track", error); return; }
+        String afterId = call.getString("afterId");
         withController(call, mediaController -> {
-            dropAfterCurrent(mediaController);
-            mediaController.addMediaItem(item);
+            boolean applied = isCurrent(mediaController, afterId);
+            if (applied) replaceUpcoming(mediaController, items);
+            JSObject result = new JSObject();
+            result.put("applied", applied);
+            call.resolve(result);
+        });
+    }
+
+    /** { afterId }: drops what follows the current track, unless Media3 has already moved past afterId. */
+    @PluginMethod
+    public void cancelPreparedNext(PluginCall call) {
+        String afterId = call.getString("afterId");
+        withController(call, mediaController -> {
+            if (isCurrent(mediaController, afterId)) dropAfterCurrent(mediaController);
             call.resolve();
         });
     }
 
+    /** { on }: Media3 loops the current track itself (Repeat one), so the loop holds while the web sleeps. */
     @PluginMethod
-    public void cancelPreparedNext(PluginCall call) {
-        withController(call, mediaController -> { dropAfterCurrent(mediaController); call.resolve(); });
+    public void setRepeatOne(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        withController(call, mediaController -> {
+            mediaController.setRepeatMode(on ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+            call.resolve();
+        });
+    }
+
+    private static boolean isCurrent(Player player, String mediaId) {
+        MediaItem current = player.getCurrentMediaItem();
+        return current != null && current.mediaId.equals(mediaId);
+    }
+
+    /**
+     * Makes the items after the current one these, keeping those already in place: a resend leaves Media3's buffer
+     * alone, and a longer run only adds its tail. Media3 takes changes on this (the UI) thread, where hundreds of
+     * items cost the WebView its frames.
+     */
+    private static void replaceUpcoming(Player player, List<MediaItem> items) {
+        int from = player.getCurrentMediaItemIndex() + 1;
+        int count = player.getMediaItemCount();
+        int kept = 0;
+        while (kept < items.size() && from + kept < count && player.getMediaItemAt(from + kept).mediaId.equals(items.get(kept).mediaId)) kept++;
+        if (from + kept < count) player.removeMediaItems(from + kept, count);
+        if (kept < items.size()) player.addMediaItems(items.subList(kept, items.size()));
     }
 
     @PluginMethod

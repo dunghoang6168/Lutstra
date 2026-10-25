@@ -11,6 +11,11 @@ import { newSession, PlanEntry, planUpcoming, Random, ScoreContext, suggestionSp
 const RECENT_CONTEXT = 4;
 /** How many suggestions Autoplay queues at a time. */
 const AUTOPLAY_BATCH = 5;
+/**
+ * How many picks Autoplay keeps in reserve for an engine that plays on with the web asleep (Android, screen off).
+ * ponytail: about 6 hours past the queue; Media3 stops after them until the web wakes and tops them up.
+ */
+const AUTOPLAY_RESERVE = 100;
 
 /**
  * Arranges the queue while Smart Shuffle is on: the user's tracks in taste order with suggestions mixed in
@@ -41,6 +46,13 @@ export class SmartShuffleService {
   private autoplaySignature = '';
   /** The suggestion whose start already refreshed the preview behind it. */
   private autoplayRefreshedId = '';
+  /** What the player holds as Autoplay's reserve (`PlayerService.setAutoplayReserve`). */
+  private reserve: Track[] = [];
+  /** The queue's first entry when the reserve was picked: a new queue gets a new reserve. */
+  private reserveFor = '';
+  /** The library had fewer picks than asked: no top-up until some are used or the queue is new. */
+  private reserveExhausted = false;
+  private reserving = false;
   private scheduled = false;
   private wasEnabled = false;
   private arranging = false;
@@ -68,6 +80,7 @@ export class SmartShuffleService {
         this.wasEnabled = enabled;
         if (enabled) this.schedule();
         else void this.autoplay();
+        void this.keepReserve();
       });
     });
   }
@@ -211,6 +224,51 @@ export class SmartShuffleService {
     } catch (error) {
       console.warn('Autoplay could not queue suggestions', error);
     }
+  }
+
+  /**
+   * Keeps `AUTOPLAY_RESERVE` picks past the queue for an engine that plays on by itself, so Autoplay goes on
+   * while the web sleeps. They are picked once and topped up when half have been used (played, or queued).
+   */
+  private async keepReserve(): Promise<void> {
+    if (!this.player.enginePlaysFollowing) return;
+    if (!this.autoplayAllowed()) {
+      if (this.reserve.length) this.setReserve([]);
+      return;
+    }
+    const queue = this.player.queue();
+    if (this.player.currentIndex() < 0 || !queue.length) return;
+    const queued = new Set(queue.map((entry) => entry.track.id));
+    const same = queue[0].id === this.reserveFor;
+    const kept = same ? this.reserve.filter((track) => !queued.has(track.id)) : [];
+    if (same && (kept.length >= AUTOPLAY_RESERVE / 2 || (this.reserveExhausted && kept.length === this.reserve.length))) {
+      if (kept.length !== this.reserve.length) this.setReserve(kept);
+      return;
+    }
+    if (this.reserving) return;
+    this.reserving = true;
+    try {
+      await this.ensureLoaded();
+      if (!this.autoplayAllowed()) return;
+      this.reserveFor = queue[0].id;
+      const after = [...queue.map((entry) => entry.track.id), ...kept.map((track) => track.id)];
+      const picks = planUpcoming({
+        upcoming: [], recent: after.slice(-(RECENT_CONTEXT + 1)), userRun: 0, every: suggestionSpacing(this.events),
+        window: AUTOPLAY_RESERVE - kept.length, refresh: false, reorder: false,
+        exclude: new Set([...this.sessionExclude, ...after]),
+      }, this.context());
+      this.reserveExhausted = picks.length < AUTOPLAY_RESERVE - kept.length;
+      this.setReserve([...kept, ...picks.map((item) => this.tracks.get(item.trackId)!)]);
+    } catch (error) {
+      console.warn('Autoplay could not pick its reserve', error);
+    } finally {
+      this.reserving = false;
+    }
+  }
+
+  private setReserve(tracks: Track[]): void {
+    this.reserve = tracks;
+    this.player.setAutoplayReserve(tracks);
   }
 
   /** The queue's Refresh: picks all the waiting Autoplay suggestions again, none of them the same as before. */

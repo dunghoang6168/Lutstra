@@ -1,0 +1,332 @@
+/*
+ * After PixelPlayer's LyricsSheet (lyricsSheetColors): one solid colour from the cover (--np-base), darker wells for
+ * the controls (--np-track), the sung line in the cover's light tone (--np-on). Without a cover it falls back to the
+ * phone's surfaces and accent. Opens rising a fifth of its height, closes falling a sixth, both fading.
+ */
+.lyrics-sheet {
+  --ly-bg: var(--np-base, var(--bg-elevated));
+  --ly-well: var(--np-track, var(--bg-surface));
+  --ly-text: var(--np-on-skip, var(--text-primary));
+  --ly-lit: var(--np-on, var(--accent-primary));
+  --ly-on-lit: var(--np-on-on, var(--text-inverse));
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 32px;
+  color: var(--ly-text);
+  background: var(--ly-bg);
+  animation: lyrics-in 220ms var(--motion-ease);
+}
+
+@keyframes lyrics-in {
+  from { opacity: 0; translate: 0 20%; }
+}
+
+@keyframes lyrics-out {
+  to { opacity: 0; translate: 0 16%; }
+}
+
+:host(.sheet-leaving) .lyrics-sheet { animation: lyrics-out 180ms var(--motion-ease) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrics-sheet,
+  :host(.sheet-leaving) .lyrics-sheet { animation-duration: 1ms; }
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+
+  /* The list fades into the sheet at both ends (130px at the top under the pill, 80px at the foot). */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 1; /* over the lines, which come after in the page */
+    left: 0;
+    right: 0;
+    pointer-events: none;
+  }
+
+  &::before { top: 0; height: 130px; background: linear-gradient(var(--ly-bg), transparent); }
+  &::after { bottom: 0; height: 80px; background: linear-gradient(transparent, var(--ly-bg)); }
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(150px + env(safe-area-inset-top, 0px)) calc(var(--page-pad-x) - 4px) 100px;
+  touch-action: pan-y; /* sideways is the swipe to change track */
+  scrollbar-width: none;
+}
+
+.lines.plain { padding-top: calc(104px + env(safe-area-inset-top, 0px)); }
+
+/* 22px bold, left aligned; the sung line in the cover's light tone, its neighbours at 60%, the rest at 30%. */
+.line {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.32;
+  color: var(--ly-text);
+  overflow-wrap: anywhere;
+}
+
+button.line {
+  opacity: 0.3;
+  transition: opacity 250ms var(--motion-ease), color 250ms var(--motion-ease), background-color var(--phone-press-dur) var(--motion-ease);
+
+  &[data-d='1'] { opacity: 0.6; }
+  &[data-d='0'] { opacity: 1; color: var(--ly-lit); }
+  &:active { background: color-mix(in srgb, var(--ly-text) 10%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.line { transition: none; }
+}
+
+.track-pill {
+  position: absolute;
+  z-index: 2;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 18px;
+  max-width: calc(100% - 36px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px 6px 6px;
+  border-radius: var(--radius-full);
+  background: var(--ly-well);
+}
+
+/* The record turns once in 8 s while playing and stops where it is when paused. */
+.disc {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border-radius: 50%;
+  animation: disc-turn 8s linear infinite paused;
+
+  &.spinning { animation-play-state: running; }
+}
+
+@keyframes disc-turn {
+  to { rotate: 1turn; }
+}
+
+.pill-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: var(--space-2);
+}
+
+.pill-title,
+.pill-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill-title { font-size: var(--font-size-md); font-weight: 600; }
+.pill-artist { font-size: var(--font-size-sm); opacity: 0.7; }
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  flex: none;
+  height: 16px;
+
+  /* Still, they stand at three heights like an equaliser icon, never a row of dots. */
+  i {
+    width: 4px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--ly-lit);
+  }
+
+  i:nth-child(2) { height: 16px; }
+  i:nth-child(3) { height: 6px; }
+
+  &.playing i { animation: bar 0.9s ease-in-out infinite alternate; }
+  &.playing i:nth-child(2) { animation-delay: -0.3s; }
+  &.playing i:nth-child(3) { animation-delay: -0.6s; }
+}
+
+@keyframes bar {
+  from { height: 4px; }
+  to { height: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disc { animation: none; }
+  .bars.playing i { animation: none; height: 12px; }
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 6px var(--space-4) calc(22px + env(safe-area-inset-bottom, 0px));
+}
+
+.foot-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Play: 78px, a soft square while playing and round when paused, after PixelPlayer's. */
+.play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 78px;
+  height: 78px;
+  border-radius: var(--radius-full);
+  color: var(--np-on-play, var(--text-inverse));
+  background: var(--np-play, var(--text-primary));
+  transition: border-radius var(--phone-press-dur) var(--motion-ease);
+
+  &.playing { border-radius: 18px; }
+}
+
+.seek-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  height: 50px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--ly-well);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.3);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.time { flex: none; }
+.time.end { opacity: 0.7; }
+
+/* Now Playing's split bar, thinner: both parts clipped at the playhead, a thumb line between them. */
+.seek {
+  --p: 0;
+  position: relative;
+  flex: 1;
+  height: var(--touch-target);
+  touch-action: none;
+}
+
+.seek-played,
+.seek-rest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: var(--radius-full);
+}
+
+.seek-played {
+  clip-path: inset(0 calc((1 - var(--p)) * 100% + 4px) 0 0 round var(--radius-full));
+  background: var(--ly-lit);
+}
+
+.seek-rest {
+  clip-path: inset(0 0 0 calc(var(--p) * 100% + 4px) round var(--radius-full));
+  background: color-mix(in srgb, var(--ly-text) 16%, transparent);
+}
+
+.seek-head {
+  position: absolute;
+  inset: 0;
+  translate: calc(var(--p) * 100%) 0;
+  pointer-events: none;
+}
+
+.seek-thumb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 4px;
+  height: 20px;
+  translate: -50% -50%;
+  border-radius: var(--radius-full);
+  background: var(--ly-lit);
+}
+
+.seek input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+}
+
+.seek:has(input:focus-visible) .seek-thumb {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-full);
+  color: var(--ly-text);
+  background: var(--ly-well);
+}
+
+/* Synced | Plain, PixelPlayer's toggle segments: the one shown fills as a pill. */
+.modes {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.mode {
+  flex: 1;
+  height: 50px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--ly-text);
+  background: var(--ly-well);
+  transition: border-radius var(--motion-dur) var(--motion-ease), background-color var(--motion-dur) var(--motion-ease);
+
+  &.on {
+    border-radius: var(--radius-full);
+    color: var(--ly-on-lit);
+    background: var(--ly-lit);
+  }
+
+  &:disabled { opacity: 0.45; }
+}
+
+.play:active,
+.back:active,
+.mode:active { filter: brightness(1.15); }

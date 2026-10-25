@@ -111,10 +111,13 @@ button:focus-visible {
   border-radius: var(--radius-xl);
   background: var(--bg-surface);
   touch-action: pan-y; /* sideways moves are the swipe to remove */
-  /* A long queue renders only the rows near the screen; the rest keep their height. */
-  content-visibility: auto;
-  contain-intrinsic-size: auto var(--row-height);
+  /*
+   * No content-visibility: auto. Focus forces a full update, and each such row then took a pass of its own: opening
+   * or closing a 710-track queue froze for about 5 s on the Motorola (2026-10-25).
+   */
 }
+
+.list-end { flex: none; height: 1px; }
 
 .drag-handle {
   display: grid;

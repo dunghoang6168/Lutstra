@@ -14,7 +14,11 @@
 
   @if (player.queue().length) {
     <ol #list class="queue-list" [class.reordering]="!!drag()">
-      @for (entry of player.queue(); track entry.id; let i = $index) {
+      @if (rows().from > 0) {
+        <li class="list-end" aria-hidden="true" (appNearScreen)="before.update((n) => n + page)"></li>
+      }
+      @for (entry of rows().entries; track entry.id; let k = $index) {
+        @let i = rows().from + k;
         @if (i === suggestedFrom()) {
           <li class="queue-divider" aria-hidden="true">
             @if (player.smartShuffle()) { <app-icon name="smart-shuffle" [size]="16" /> }{{ player.suggestionLabel() }}
@@ -55,7 +59,9 @@
           </button>
         </li>
       }
-      @if (suggestedFrom() >= 0 && !player.smartShuffle()) {
+      @if (!rows().toEnd) {
+        <li class="list-end" aria-hidden="true" (appNearScreen)="after.update((n) => n + page)"></li>
+      } @else if (suggestedFrom() >= 0 && !player.smartShuffle()) {
         <li class="queue-refresh">
           <button type="button" [disabled]="refreshing()" (click)="refreshAutoplay()" aria-label="Refresh Autoplay suggestions">
             <app-icon name="refresh-cw" [size]="18" /> Refresh

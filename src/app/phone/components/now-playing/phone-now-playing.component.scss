@@ -1,8 +1,24 @@
-/* After PixelPlayer's full player (FullPlayerContent, AnimatedPlaybackControls, BottomToggleRow), in Lutstra's palette. */
-.now-playing {
+/*
+ * After PixelPlayer's full player (FullPlayerContent, AnimatedPlaybackControls, BottomToggleRow), in Lutstra's palette.
+ * The host is the sheet the mini player grows into; player-sheet.service.ts moves and clips it each frame. The host,
+ * not the scroller, moves, so the ground stays put.
+ */
+:host {
   position: fixed;
   inset: 0;
   z-index: 1000;
+}
+
+/*
+ * Down: kept built, styled and laid out but not drawn, as PixelPlayer keeps its full player composed out of sight.
+ * A track change restyles it then, not as a drag starts. Hidden content takes no taps or focus and is left out of
+ * the accessibility tree, and visibility changes without restyling everything inside.
+ */
+:host(.parked) { visibility: hidden; }
+
+.now-playing {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -11,14 +27,8 @@
   overflow-y: auto;
   color: var(--text-primary);
   background: var(--bg-app);
-  animation: sheet-up var(--motion-dur) var(--motion-ease);
+  overscroll-behavior-y: contain;
 }
-
-@keyframes sheet-up {
-  from { transform: translateY(100%); }
-}
-
-:host(.sheet-leaving) .now-playing { animation: sheet-down var(--motion-dur) var(--motion-ease) forwards; }
 
 /* The Ambient Ground Rule, borrowed: the cover, blurred, tints the whole sheet and crossfades with the track. */
 .np-ground {
@@ -58,8 +68,7 @@
   background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
 }
 
-.tonal-btn.round { width: var(--touch-target); }
-.tonal-btn.pill { width: calc(var(--touch-target) * 1.5); }
+.tonal-btn.round { width: var(--touch-target); padding: 0; }
 .tonal-btn:active { background: var(--bg-surface-hover); }
 .collapse { transform: rotate(-90deg); }
 
@@ -72,32 +81,49 @@
 
 .np-bar-title {
   flex: 1;
-  font-size: var(--font-size-xl);
+  min-width: 0;
+  font-size: var(--font-size-md);
   font-weight: 700;
 }
 
-.np-cover-frame {
-  display: grid;
-  place-items: center;
-  flex: 1 1 auto;
-  min-height: 0;
+/* The joined cluster: the output device (icon and a short name), the queue and ⋯; the inner edges meet at 8px. */
+.np-device {
+  display: inline-flex; /* the local .tonal-btn is a grid, which would stack the icon over the name */
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.np-cover {
-  width: 100%;
-  max-width: var(--phone-np-cover-max);
-  max-height: 100%;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: var(--sheet-radius);
-  box-shadow: var(--cover-shadow);
-  touch-action: pan-y; /* sideways is the swipe to change track */
+.np-join-icon { width: 52px; padding: 0; }
+
+/* PixelPlayer's portrait column: the three groups share the height that is left, spread evenly. */
+.np-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1 0 auto;
+  gap: var(--space-5);
+  padding: 0 var(--space-2);
+}
+
+.np-middle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.np-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .np-heading {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-height: 70px;
 }
 
 .np-heading-text {
@@ -107,23 +133,87 @@
 
 .np-title,
 .np-artist {
+  display: block;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .np-title {
   margin: 0;
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-2xl);
   font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .np-artist {
-  margin: var(--space-1) 0 0;
+  width: fit-content;
+  max-width: 100%;
+  margin: 2px 0 0;
   font-size: var(--font-size-lg);
   color: var(--text-secondary);
+  text-decoration: none;
+}
+
+/*
+ * A line too long to fit, after PixelPlayer's AutoScrollingTextOnDemand (marquee.directive.ts): still, its end
+ * fades; playing, it waits 2 s, then loops at 25px/s with a copy behind it and both edges fade.
+ */
+.marquee-run {
+  position: relative;
+  display: inline-block;
+}
+
+[data-marquee] { mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+
+[data-marquee='moving'] {
+  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+
+  .marquee-run { animation: np-marquee var(--marquee-dur) linear 2s infinite; }
+
+  .marquee-run::after {
+    content: attr(data-text);
+    position: absolute;
+    left: calc(100% + var(--marquee-gap));
+  }
+}
+
+@keyframes np-marquee {
+  to { translate: var(--marquee-shift) 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-marquee='moving'] .marquee-run { animation: none; }
+  [data-marquee='moving'] .marquee-run::after { content: none; }
+}
+
+/* Buffering, after PixelPlayer's: a round chip with a spinner, shown only when loading lasts past a moment. */
+.np-loading {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  animation: np-loading-in 300ms var(--motion-ease) 400ms both;
+}
+
+.np-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: np-spin 0.9s linear infinite;
+}
+
+@keyframes np-loading-in {
+  from { opacity: 0; scale: 0.85; }
+}
+
+@keyframes np-spin {
+  to { rotate: 1turn; }
 }
 
 /*
@@ -216,6 +306,7 @@
 }
 
 .np-times {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -248,39 +339,23 @@
   }
 }
 
-/* The output path between the times: secondary, never accent, since the phone is never bit-perfect. Only the number is mono. */
-/* A button: it opens the Audio path sheet. The hit area reaches past the chip to a full touch target. */
-.np-output {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 0;
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+/* The file's format between the times, after PixelPlayer's audio meta chip, centred over the row. */
+.np-format {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  max-width: calc(100% - 120px);
+  overflow: hidden;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
   font-family: var(--font-family-base);
   font-size: var(--font-size-xs);
   font-weight: 500;
-  color: var(--text-secondary);
-  .measure { font-family: var(--font-family-mono); }
-  app-icon { flex: none; }
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: calc(var(--space-2) * -1) 0;
-  }
-}
-
-.np-output-text {
-  min-width: 0;
-  overflow: hidden;
+  color: var(--text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.np-output:active { filter: brightness(1.15); }
 
 /* Three pills that share the row; the one pressed widens and the others give way for a moment. */
 .np-transport {
@@ -339,8 +414,6 @@
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
   height: var(--phone-toggle-height);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
@@ -361,7 +434,6 @@
   background: var(--accent-muted);
 }
 
-.toggle.on { font-weight: 700; }
 .toggle:disabled { opacity: 0.5; background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
 
 .np-toggle-note {
@@ -380,8 +452,7 @@
   .tonal-btn,
   .transport-btn,
   .toggle,
-  .np-toggles,
-  .np-output {
+  .np-toggles {
     transition-property: background-color, color, flex-grow, border-radius;
     transition-duration: var(--np-tint-dur), var(--np-tint-dur), var(--phone-press-dur), var(--phone-press-dur);
     transition-timing-function: var(--motion-ease);
@@ -392,7 +463,8 @@
   .transport-btn.play { color: var(--np-on-play); background: var(--np-play); }
   .np-artist,
   .np-times { color: var(--np-text-2); }
-  .np-output { color: var(--np-text-2); background: var(--np-track); }
+  .np-format { color: var(--np-on-skip); background: var(--np-track); }
+  .np-loading { color: var(--np-on); background: var(--np-skip); }
   .np-toggles { background: var(--np-track); }
   .toggle { color: var(--np-text-2); background: color-mix(in srgb, var(--np-on-skip) 8%, transparent); }
   .toggle.on { color: var(--np-on-on); background: var(--np-on); }

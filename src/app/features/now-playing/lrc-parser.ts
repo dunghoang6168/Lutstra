@@ -20,6 +20,14 @@ export function parseLrc(contents: string): LyricLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
+/** The words alone, one entry per line: timestamps and tag rows ("[ar:…]") dropped, as the phone's Plain view shows them. */
+export function plainLyrics(contents: string): string[] {
+  return contents.split(/\r\n|\n|\r/)
+    .filter((row) => !/^\s*\[[a-z]+:[^\]]*\]\s*$/i.test(row))
+    .map((row) => row.replace(TIMESTAMP, '').trim())
+    .filter((row) => row.length > 0);
+}
+
 export function activeLyricIndex(lines: LyricLine[], currentTime: number): number {
   if (!Number.isFinite(currentTime)) return -1;
   let low = 0;

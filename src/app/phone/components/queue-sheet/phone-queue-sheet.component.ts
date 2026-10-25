@@ -12,6 +12,7 @@ import { SwipeDirective } from '../../swipe.directive';
 import { dropSlot } from '../../queue-drag';
 import { focusQuietly } from '../../focus';
 import { SheetDragDirective } from '../../sheet-drag.directive';
+import { NearScreenDirective } from '../../near-screen.directive';
 
 interface QueueDrag {
   id: string;
@@ -25,6 +26,9 @@ interface QueueDrag {
 /** How close to the list's top or bottom edge a dragged row starts scrolling it, and how fast. */
 const EDGE_PX = 64;
 const EDGE_STEP_PX = 12;
+
+/** Rows a long queue adds when its rendered part is scrolled near an end, as the Library does (LIBRARY_PAGE). */
+const QUEUE_PAGE = 40;
 
 /** The rows other than the dragged one, measured once when a drag starts (positions inside the list's content). */
 interface DragLayout {
@@ -40,7 +44,7 @@ interface DragLayout {
 @Component({
   selector: 'app-phone-queue-sheet',
   standalone: true,
-  imports: [CoverArtComponent, DurationPipe, IconComponent, SwipeDirective, SheetDragDirective],
+  imports: [CoverArtComponent, DurationPipe, IconComponent, SwipeDirective, SheetDragDirective, NearScreenDirective],
   templateUrl: './phone-queue-sheet.component.html',
   styleUrl: './phone-queue-sheet.component.scss',
 })
@@ -56,6 +60,20 @@ export class PhoneQueueSheetComponent {
   readonly drag = signal<QueueDrag | null>(null);
   readonly announcement = signal('');
   private layout: DragLayout | null = null;
+  /**
+   * Only the rows around the current one are built (20 before, 40 after), and more as the list nears an end: a
+   * 710-track queue took about 0.9 s to open with every row (2026-10-25).
+   */
+  readonly before = signal(QUEUE_PAGE / 2);
+  readonly after = signal(QUEUE_PAGE);
+  readonly rows = computed(() => {
+    const queue = this.player.queue();
+    const current = Math.max(0, this.player.currentIndex());
+    const from = Math.max(0, current - this.before());
+    const entries = queue.slice(from, current + this.after() + 1);
+    return { from, entries, toEnd: from + entries.length === queue.length };
+  });
+  readonly page = QUEUE_PAGE;
   /** Listening time left: the rest of the current track and everything after it. */
   readonly remaining = computed(() => {
     const queue = this.player.queue();
@@ -106,6 +124,7 @@ export class PhoneQueueSheetComponent {
     const rows = [...(list?.querySelectorAll<HTMLElement>('.queue-row') ?? [])];
     const source = rows.findIndex((r) => r.dataset['entryId'] === id);
     if (source < 0) return;
+    // ponytail: rows built mid-drag (the list scrolled near an end) are not drop slots; re-measure if that bites.
     this.layout = {
       // A row makes room for the dragged one's height plus the gap between cards.
       row: rows[source], source, height: rows[source].offsetHeight + parseFloat(getComputedStyle(list!).rowGap || '0'), shifted: [],

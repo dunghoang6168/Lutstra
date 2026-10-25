@@ -1,30 +1,48 @@
-<div class="phone-shell" [class.own-header]="ownHeader()" [attr.inert]="nowPlayingOpen() ? '' : null">
-  @if (!ownHeader()) {
-    <header class="app-bar">
-      @if (!onTab()) {
+<div class="phone-shell" [class.own-header]="ownHeader()" [attr.inert]="sheet.covering() ? '' : null">
+  <div class="stage">
+    <!-- Home, EQ and Library side by side, kept alive: a native scroller with snap points follows the finger, flings
+         and settles. A scroller inside a page (the Library's tabs, a strip of covers) takes a swipe first, and hands
+         it on once it is at its end. Pages are built when shown or next to the shown one. -->
+    <div #pager class="tab-pager" [class.off]="!onTab()" [attr.inert]="onTab() ? null : ''">
+      @for (tab of tabs; track tab.path; let i = $index) {
+        <section class="tab-pane" [attr.aria-label]="tab.label" [attr.inert]="tabAt() === i ? null : ''">
+          @if (tab.path === '/library') {
+            @defer (when built().has(i)) { <app-phone-library /> }
+          } @else {
+            <header class="app-bar">
+              <h1 class="app-bar-title">{{ tab.label }}</h1>
+              <a class="icon-btn" routerLink="/search" aria-label="Search"><app-icon name="search" [size]="22" /></a>
+              <a class="icon-btn" routerLink="/settings" aria-label="Settings"><app-icon name="settings" [size]="22" /></a>
+            </header>
+            <div class="pane-scroll">
+              @defer (when built().has(i)) {
+                @if (tab.path === '/home') { <app-phone-home /> } @else { <app-phone-eq /> }
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+
+    <!-- Every other page: the router's, under an app bar with Back. -->
+    <div class="detail" [class.off]="onTab()">
+      <header class="app-bar">
         <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
           <app-icon name="chevron-left" [size]="24" />
         </button>
-      }
-      <h1 class="app-bar-title">{{ title() }}</h1>
-      @if (onTab()) {
-        <a class="icon-btn" routerLink="/search" aria-label="Search">
-          <app-icon name="search" [size]="22" />
-        </a>
-        <a class="icon-btn" routerLink="/settings" aria-label="Settings">
-          <app-icon name="settings" [size]="22" />
-        </a>
-      }
-    </header>
-  }
-
-  <main #content class="phone-content">
-    <router-outlet />
-  </main>
+        <h1 class="app-bar-title">{{ title() }}</h1>
+      </header>
+      <main #content class="phone-content">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
 
   @if (player.currentTrack(); as track) {
     <!-- After PixelPlayer's mini player: the cover blurred as its ground, and controls tinted from it as on Now Playing. -->
-    <div class="mini-player cover-tinted" [style.--np-hue]="tone()?.hue ?? 0" [style.--np-chroma]="tone()?.chroma ?? 0">
+    <!-- While Now Playing is on screen the card rides its top edge and fades out by halfway (player-sheet.service.ts). -->
+    <div #mini class="mini-player cover-tinted" [style.--np-hue]="tone()?.hue ?? 0" [style.--np-chroma]="tone()?.chroma ?? 0"
+      [class.lifted]="sheet.shown()" [class.passive]="sheet.open()">
       <app-cover-art class="mini-ground" [src]="track.artwork" [icon]="null" aria-hidden="true" />
       <span class="mini-progress" aria-hidden="true" [style.--progress.%]="player.progressPercent()"></span>
       <button #miniOpen type="button" class="mini-open" appSwipe (swiped)="miniSwiped($event)" (click)="openNowPlaying()"
@@ -49,19 +67,25 @@
     </div>
   }
 
-  <nav class="bottom-nav" aria-label="Main">
-    @for (tab of tabs; track tab.path) {
-      <a class="nav-item" [routerLink]="tab.path" [class.active]="activeTab() === tab.path"
-        [attr.aria-current]="activeTab() === tab.path && onOwnTab() ? 'page' : null">
-        <span class="nav-indicator"><app-icon [name]="tab.icon" [size]="22" /></span>
-        <span class="nav-label">{{ tab.label }}</span>
+  <!-- Icons only; one pill slides under them with the pager, and a drag along the bar moves the pager too. -->
+  <nav #nav class="bottom-nav" aria-label="Main" [style.--nav-count]="tabs.length">
+    <span class="nav-pill" aria-hidden="true"></span>
+    @for (tab of tabs; track tab.path; let i = $index) {
+      <a class="nav-item" [href]="tab.path" (click)="goTab(i, $event)" [class.active]="litTab() === i"
+        [attr.aria-label]="tab.label" [attr.aria-current]="litTab() === i && onOwnTab() ? 'page' : null">
+        <app-icon [name]="tab.icon" [size]="24" />
       </a>
     }
   </nav>
 </div>
 
-@if (nowPlayingOpen()) {
-  <app-phone-now-playing animate.leave="sheet-leaving" [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
+@if (sheet.shown()) {
+  <div #scrim class="np-scrim" aria-hidden="true"></div>
+}
+<!-- Built ahead and kept, as PixelPlayer's full player is; hidden while the sheet is down. -->
+@if (nowPlayingBuilt() || sheet.shown()) {
+  <app-phone-now-playing [class.parked]="!sheet.shown()"
+    [queueOpen]="queueOpen()" (close)="closeNowPlaying()" (openQueue)="queueOpen.set(true)" />
 }
 @if (queueOpen()) {
   <app-phone-queue-sheet animate.leave="sheet-leaving" [attr.inert]="library.actionTracks() ? '' : null" (close)="queueOpen.set(false)" />
@@ -81,6 +105,7 @@
   </div>
 }
 @if (library.actionTracks()) { <app-phone-track-actions-sheet animate.leave="sheet-leaving" /> }
+@if (lyricsOpen()) { <app-phone-lyrics-sheet animate.leave="sheet-leaving" /> }
 @if (audioPathOpen()) { <app-phone-audio-path-sheet animate.leave="sheet-leaving" /> }
 @if (library.playlistTracks(); as tracks) {
   <app-add-to-playlist-dialog [tracks]="tracks" (added)="library.loadPlaylists()" (closed)="library.playlistTracks.set(null)" />

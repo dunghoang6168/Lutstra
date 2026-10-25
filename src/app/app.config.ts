@@ -22,6 +22,7 @@ import { ListeningHistoryService } from './core/history/listening-history.servic
 import { SmartShuffleService } from './core/smart-shuffle/smart-shuffle.service';
 import { Capacitor } from '@capacitor/core';
 import { AndroidLibraryGateway } from './core/android/android-library.gateway';
+import { AndroidLyricsGateway } from './core/android/android-lyrics.gateway';
 import { AndroidPlaylistGateway } from './core/android/android-playlist.gateway';
 import { AndroidPlaybackEngine } from './core/android/android-playback.engine';
 import { AndroidSettingsGateway } from './core/android/android-settings.gateway';
@@ -42,7 +43,7 @@ export const appConfig: ApplicationConfig = {
     { provide: PLAYLIST_GATEWAY, useFactory: () => isDesktop() ? new ElectronPlaylistGateway() : isAndroid() ? new AndroidPlaylistGateway() : new MockPlaylistGateway() },
     { provide: SETTINGS_GATEWAY, useFactory: () => isDesktop() ? new ElectronSettingsGateway() : isAndroid() ? new AndroidSettingsGateway() : new MockSettingsGateway() },
     { provide: ARTIST_METADATA_GATEWAY, useFactory: () => isDesktop() ? new ElectronArtistMetadataGateway() : new MockArtistMetadataGateway() },
-    { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : new MockLyricsGateway() },
+    { provide: LYRICS_GATEWAY, useFactory: () => isDesktop() ? new ElectronLyricsGateway() : isAndroid() ? new AndroidLyricsGateway(inject(LIBRARY_GATEWAY) as AndroidLibraryGateway) : new MockLyricsGateway() },
     { provide: LISTENING_HISTORY_GATEWAY, useFactory: () => isDesktop() ? new ElectronListeningHistoryGateway() : isAndroid() ? new AndroidListeningHistoryGateway() : new MockListeningHistoryGateway() },
     { provide: ACTIVE_AUDIO_ENGINE, useFactory: () => isDesktop()
       ? new SwitchingPlaybackEngine(new HtmlAudioPlaybackEngine(), new NativeAudioPlaybackEngine(inject(NgZone)))

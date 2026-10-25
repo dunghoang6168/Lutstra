@@ -10,11 +10,63 @@
   flex-direction: column;
   height: 100%;
   padding-top: env(safe-area-inset-top, 0px);
+  transition: background-color var(--motion-dur) var(--motion-ease);
 }
 
-/* A page with its own header (the Library) paints the status bar strip in that header's tint and scrolls itself. */
+/* Resting on the Library, the status bar strip takes its header's tint; a swipe away fades it with the sheet. */
 .phone-shell.own-header { background: var(--phone-head-tint); }
-.own-header .phone-content { overflow: hidden; }
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Home, EQ and Library side by side; native scrolling with snap points follows the finger, flings and settles. */
+.tab-pager {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Under another page the tabs stay laid out, so each keeps its scroll, but are not drawn. */
+.tab-pager.off { visibility: hidden; }
+
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+
+  > app-phone-library { flex: 1; min-height: 0; }
+}
+
+.pane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  container: main-content / inline-size;
+}
+
+.detail {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+}
+
+.detail.off { display: none; }
 
 .icon-btn {
   display: inline-grid;
@@ -76,6 +128,23 @@
   transition: background-color var(--np-tint-dur) var(--motion-ease);
 }
 
+/* The card takes its own drags: up opens Now Playing, sideways changes track (the shell and appSwipe read them). */
+.mini-player { touch-action: none; }
+
+/* While Now Playing is on screen the card rides the sheet's top edge above it (player-sheet.service.ts moves it). */
+.mini-player.lifted { z-index: 1001; }
+
+.mini-player.passive { pointer-events: none; }
+
+.np-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* The cover, blurred, as the ground; a scrim from the left keeps the title readable on any cover. */
 .mini-ground {
   --cover-fade-dur: var(--np-tint-dur);
@@ -131,7 +200,6 @@
   padding-left: var(--space-3);
   text-align: left;
   color: inherit;
-  touch-action: pan-y; /* sideways is the swipe to change track */
 }
 
 .mini-cover {
@@ -187,45 +255,56 @@
 .mini-play:active { filter: brightness(1.15); }
 
 @media (prefers-reduced-motion: reduce) {
+  .phone-shell,
   .mini-player,
   .mini-skip,
   .mini-play { transition: none; }
 }
 
+/* Icons only. The bar takes horizontal drags itself (they move the pager), so it never pans. */
 .bottom-nav {
+  position: relative;
   display: flex;
   flex: none;
   height: calc(var(--phone-nav-height) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-sidebar);
+  touch-action: none;
+}
+
+/* One pill for the bar, in a slot a tab wide that `--nav-at` (the pager's position, in tabs) slides along. */
+.nav-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: calc(100% / var(--nav-count));
+  height: var(--phone-nav-height);
+  translate: calc(var(--nav-at, 0) * 100%) 0;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    width: 64px;
+    height: 40px;
+    border-radius: 20px;
+    background: var(--accent-muted);
+  }
 }
 
 .nav-item {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.nav-indicator {
+  position: relative;
   display: grid;
   place-items: center;
-  width: var(--phone-transport-size);
-  height: var(--space-8);
-  border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
+  flex: 1;
+  height: var(--phone-nav-height);
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
 }
 
-.nav-item:active .nav-indicator { background: var(--bg-surface-hover); }
-.nav-item.active { color: var(--text-primary); }
-.nav-item.active .nav-indicator { color: var(--text-accent); background: var(--accent-muted); }
+.nav-item.active { color: var(--text-accent); }
 
 .toast {
   position: fixed;

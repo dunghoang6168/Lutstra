@@ -1,7 +1,8 @@
 import {
-  Component, DestroyRef, ElementRef, Injector, NgZone, afterNextRender, computed, effect, inject, signal, untracked, viewChild,
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, NgZone, afterNextRender, computed, effect, inject, linkedSignal, signal, untracked, viewChild,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NavigationEnd, ParamMap, Router, RouterLink } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { FolderNode, Track } from '../../../core/models';
@@ -17,7 +18,7 @@ import { NearScreenDirective } from '../../near-screen.directive';
 import { CoverToneDirective } from '../../cover-tone.directive';
 import { SheetDragDirective } from '../../sheet-drag.directive';
 import { haptic } from '../../haptics';
-import { pageBack } from '../../app-shell';
+import { pageBack, settledTab } from '../../app-shell';
 import { findNode, folderTrail, rootOf, trackIdsBelow } from '../../folder-tree';
 import {
   ALBUM_SORTS, ARTIST_SORTS, LIBRARY_PAGE, LibraryTab, PLAYLIST_SORTS, SONG_SORTS,
@@ -42,6 +43,8 @@ const text = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }
  * tabs. The pager is a native horizontal scroller with snap points, so it follows the finger, flings and settles
  * by itself; the chip follows the page nearest the middle. Scrolling a tab down slides the sheet up over the title
  * and chips, any scroll up brings them back. Folders open inside their tab (`?folder=`), and Back goes up one.
+ * The shell keeps it alive beside Home and EQ, so it reads the URL only while it is the page, and its sheet covers
+ * the title and chips whenever the shell's pager is not resting on it.
  */
 @Component({
   selector: 'app-phone-library',
@@ -52,6 +55,7 @@ const text = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }
   ],
   templateUrl: './phone-library.component.html',
   styleUrls: ['../../phone-lists.scss', './phone-library.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneLibraryComponent {
   readonly library = inject(PhoneLibraryService);
@@ -61,7 +65,20 @@ export class PhoneLibraryComponent {
   readonly tabs = TABS;
   readonly formatCount = formatCount;
 
-  private readonly params = toSignal(inject(ActivatedRoute).queryParamMap);
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+  /** The Library is the page: not a detail page, not another tab. */
+  private readonly here = computed(() => isLibrary(this.url()));
+  /** The Library's query (?tab, ?folder), kept while another page shows. */
+  private readonly params = linkedSignal<string, ParamMap | null>({
+    source: this.url,
+    computation: (url, previous) => isLibrary(url) ? this.router.parseUrl(url).queryParamMap : previous?.value ?? null,
+  });
   private readonly urlTab = computed<LibraryTab>(() => {
     const tab = this.params()?.get('tab');
     return isLibraryTab(tab) ? tab : 'songs';
@@ -76,6 +93,8 @@ export class PhoneLibraryComponent {
   readonly built = signal(new Set<LibraryTab>());
   /** Scrolled down: the sheet has slid up over the title and chips. */
   readonly collapsed = signal(false);
+  /** The sheet is up over the title and chips: scrolled down, or the shell's pager is moving or resting elsewhere. */
+  readonly covered = computed(() => this.collapsed() || settledTab() !== '/library');
 
   private readonly pager = viewChild.required<ElementRef<HTMLElement>>('pager');
   private readonly chips = viewChild.required<ElementRef<HTMLElement>>('chips');
@@ -173,17 +192,11 @@ export class PhoneLibraryComponent {
 
   constructor() {
     const destroyRef = inject(DestroyRef);
-    // A fresh visit starts each tab at its top and first page; Back keeps them so each tab comes back where it was.
-    const returning = this.router.currentNavigation()?.trigger === 'popstate';
-    if (!returning) {
-      this.library.tabShown.set({});
-      this.library.tabScroll.clear();
-    }
     this.build(this.active());
     void this.library.ensureLoaded();
     void this.library.loadPlaylists();
 
-    // A link to another tab (the bottom nav's Library) moves the pager; the pager's own moves only rewrite the URL.
+    // A link to another tab moves the pager; the pager's own moves only rewrite the URL.
     effect(() => {
       const index = TABS.findIndex((tab) => tab.id === this.urlTab());
       untracked(() => { if (index !== this.active()) this.goTo(index, false); });
@@ -211,7 +224,6 @@ export class PhoneLibraryComponent {
     afterNextRender(() => {
       const pager = this.pager().nativeElement;
       pager.scrollLeft = this.active() * pager.clientWidth;
-      if (returning) this.restoreScroll();
       this.zone.runOutsideAngular(() => this.followScroll(pager, destroyRef));
     });
   }
@@ -242,7 +254,7 @@ export class PhoneLibraryComponent {
     };
     // Once the pager settles, the URL names the tab, so Back from a detail page lands on it.
     const onSettle = (event: Event): void => {
-      if (event.target !== pager) return;
+      if (event.target !== pager || !this.here()) return;
       const tab = this.activeTab();
       if (tab !== this.urlTab()) {
         this.zone.run(() => void this.router.navigate([], { queryParams: { tab }, queryParamsHandling: 'merge', replaceUrl: true }));
@@ -254,13 +266,6 @@ export class PhoneLibraryComponent {
       pager.removeEventListener('scroll', onScroll, { capture: true });
       pager.removeEventListener('scrollend', onSettle, { capture: true });
     });
-  }
-
-  private restoreScroll(): void {
-    for (const scroller of this.pager().nativeElement.querySelectorAll<HTMLElement>('.pane-scroll')) {
-      const top = this.library.tabScroll.get(scroller.dataset['tab'] as LibraryTab);
-      if (top) scroller.scrollTop = top;
-    }
   }
 
   private build(index: number): void {
@@ -372,11 +377,15 @@ export class PhoneLibraryComponent {
 
   /** Back inside a folder goes up one; at the list of music folders it is the shell's Back. */
   folderUp(): boolean {
-    if (this.activeTab() !== 'folders' || !this.folderId()) return false;
+    if (!this.here() || this.activeTab() !== 'folders' || !this.folderId()) return false;
     const trail = this.trail();
     this.openFolder(trail.at(-2)?.id ?? null);
     return true;
   }
+}
+
+function isLibrary(url: string): boolean {
+  return url.split(/[?#]/, 1)[0] === '/library';
 }
 
 function plural(count: number, noun: string): string {

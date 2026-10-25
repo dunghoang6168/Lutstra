@@ -28,6 +28,8 @@ export interface MediaStoreTrack {
   artwork?: string | null;
   relativePath: string | null;
   folderKey?: string;
+  /** The "<same name>.lrc" found next to the file, if any. */
+  lyricsUri?: string | null;
 }
 
 function known(value: string | null): string | null {
@@ -131,6 +133,11 @@ export class AndroidLibraryGateway implements LibraryGateway {
       await this.pass;
     }
     return this.snapshot;
+  }
+
+  /** Where the track's lyrics file is, from the last scan. */
+  lyricsUriOf(trackId: string): string | null {
+    return this.rows.find((row) => row.id === trackId)?.lyricsUri ?? null;
   }
 
   async getTrackById(trackId: string): Promise<Track | null> {

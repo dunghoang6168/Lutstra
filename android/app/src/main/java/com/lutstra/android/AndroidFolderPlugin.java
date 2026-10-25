@@ -65,6 +65,10 @@ public final class AndroidFolderPlugin extends Plugin {
         "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.png"));
     /** Folder key → its cover image, found while a scan walks the folders. */
     private final Map<String, FileRow> folderCovers = new HashMap<>();
+    /** Folder key + "/" + lower-case name without ".lrc" → that lyrics file, found while a scan walks the folders. */
+    private final Map<String, FileRow> folderLyrics = new HashMap<>();
+    // The desktop reads up to 1 MB of lyrics too.
+    private static final int MAX_LYRICS_BYTES = 1024 * 1024;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // Listing must not queue behind a long first scan, or the folder picker waits for it.
     private final ExecutorService treeExecutor = Executors.newSingleThreadExecutor();
@@ -176,6 +180,7 @@ public final class AndroidFolderPlugin extends Plugin {
                 Map<String, Node> nodes = new LinkedHashMap<>();
                 List<FileRow> files = new ArrayList<>();
                 folderCovers.clear();
+                folderLyrics.clear();
                 collect(nodes, files, rules);
                 Map<String, Boolean> folderSelected = new HashMap<>();
                 Set<String> seen = new HashSet<>();
@@ -196,6 +201,9 @@ public final class AndroidFolderPlugin extends Plugin {
                     row.put("folderKey", file.folderKey); row.put("fileName", file.name);
                     row.put("mimeType", file.mime); row.put("fileSize", file.size);
                     row.put("lastModified", file.modified); row.put("relativePath", file.documentId);
+                    // A "<same name>.lrc" next to the file holds its lyrics, as on the desktop.
+                    FileRow lyrics = folderLyrics.get(file.folderKey + "/" + baseName(file.name));
+                    if (lyrics != null) row.put("lyricsUri", DocumentsContract.buildDocumentUriUsingTree(lyrics.tree, lyrics.documentId).toString());
                     JSONObject meta = cache.optJSONObject(key);
                     if (meta == null || meta.optInt("v") != METADATA_VERSION || meta.optLong("size", -1) != orMinus(file.size) || meta.optLong("modified", -1) != orMinus(file.modified)) {
                         meta = new JSONObject();
@@ -276,6 +284,12 @@ public final class AndroidFolderPlugin extends Plugin {
                     cover.tree = tree; cover.documentId = documentId; cover.name = name; cover.folderKey = parentKey;
                     cover.modified = cursor.isNull(4) ? null : cursor.getLong(4);
                     folderCovers.putIfAbsent(parentKey, cover);
+                    continue;
+                }
+                if (files != null && name != null && name.toLowerCase(java.util.Locale.ROOT).endsWith(".lrc")) {
+                    FileRow lyrics = new FileRow();
+                    lyrics.tree = tree; lyrics.documentId = documentId; lyrics.name = name; lyrics.folderKey = parentKey;
+                    folderLyrics.putIfAbsent(parentKey + "/" + baseName(name), lyrics);
                     continue;
                 }
                 if (files == null || !isAudio(name, mime)) continue;
@@ -507,6 +521,68 @@ public final class AndroidFolderPlugin extends Plugin {
         return (mime != null && mime.startsWith("audio/")) || lower.endsWith(".mp3")
             || lower.endsWith(".flac") || lower.endsWith(".wav") || lower.endsWith(".m4a")
             || lower.endsWith(".ogg") || lower.endsWith(".opus");
+    }
+
+    /** "Song.FLAC" → "song": the name lyrics files are matched on. */
+    private static String baseName(String name) {
+        int dot = name.lastIndexOf('.');
+        return (dot > 0 ? name.substring(0, dot) : name).toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * The text of a lyrics file the last scan found (a `lyricsUri`). Only documents inside a granted tree are read, at
+     * most 1 MB, decoded as UTF-8 or, with a byte-order mark, UTF-16 (as the desktop's LyricsService does).
+     */
+    @PluginMethod
+    public void readLyrics(PluginCall call) {
+        String value = call.getString("uri");
+        // Not behind a scan, which can take a minute the first time.
+        treeExecutor.execute(() -> {
+            try {
+                Uri uri = Uri.parse(value == null ? "" : value);
+                if (!DocumentsContract.isDocumentUri(getContext(), uri) || !insideGrantedTree(uri)) { call.reject("Not a lyrics file in a music folder"); return; }
+                byte[] bytes;
+                try (InputStream input = getContext().getContentResolver().openInputStream(uri)) {
+                    if (input == null) { call.reject("Lyrics file is not readable"); return; }
+                    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                    byte[] chunk = new byte[16384];
+                    for (int read; (read = input.read(chunk)) > 0; ) {
+                        buffer.write(chunk, 0, read);
+                        if (buffer.size() > MAX_LYRICS_BYTES) { call.reject("Lyrics file is too large"); return; }
+                    }
+                    bytes = buffer.toByteArray();
+                }
+                JSObject response = new JSObject();
+                response.put("text", decodeLyrics(bytes));
+                call.resolve(response);
+            } catch (java.io.FileNotFoundException error) {
+                call.resolve(new JSObject());
+            } catch (Exception error) { call.reject("Lyrics read failed", error); }
+        });
+    }
+
+    private boolean insideGrantedTree(Uri document) throws JSONException {
+        if (!DocumentsContract.isTreeUri(document)) return false;
+        String treeId = DocumentsContract.getTreeDocumentId(document);
+        JSONArray saved = savedUris();
+        for (int i = 0; i < saved.length(); i++) {
+            Uri tree = Uri.parse(saved.getString(i));
+            if (tree.getAuthority() != null && tree.getAuthority().equals(document.getAuthority())
+                && DocumentsContract.getTreeDocumentId(tree).equals(treeId) && hasReadGrant(tree)) return true;
+        }
+        return false;
+    }
+
+    private static String decodeLyrics(byte[] bytes) throws java.nio.charset.CharacterCodingException {
+        java.nio.charset.Charset charset = StandardCharsets.UTF_8;
+        int skip = 0;
+        if (bytes.length >= 2 && (bytes[0] & 0xff) == 0xff && (bytes[1] & 0xff) == 0xfe) { charset = StandardCharsets.UTF_16LE; skip = 2; }
+        else if (bytes.length >= 2 && (bytes[0] & 0xff) == 0xfe && (bytes[1] & 0xff) == 0xff) { charset = StandardCharsets.UTF_16BE; skip = 2; }
+        else if (bytes.length >= 3 && (bytes[0] & 0xff) == 0xef && (bytes[1] & 0xff) == 0xbb && (bytes[2] & 0xff) == 0xbf) skip = 3;
+        return charset.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+            .decode(java.nio.ByteBuffer.wrap(bytes, skip, bytes.length - skip)).toString();
     }
 
     private boolean hasReadGrant(Uri tree) {

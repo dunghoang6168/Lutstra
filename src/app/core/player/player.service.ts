@@ -6,6 +6,16 @@ import { getDesktopApi } from '../desktop/desktop-api';
 import { logPlaybackDiagnostic } from './playback-diagnostics';
 import { nextPlayableQueueIndex } from './playback-policy';
 
+/** How many tracks after the next one a `playsFollowing` engine (Android) is handed. */
+const FOLLOWING_LIMIT = 300;
+/**
+ * Tracks handed over at once when the next track changes; the rest of FOLLOWING_LIMIT follow once nothing has
+ * changed for FOLLOWING_SETTLE_MS. Android's Media3 takes a run on its UI thread, about 100 ms for 300 tracks,
+ * and the WebView draws no frame meanwhile.
+ */
+const FOLLOWING_FIRST = 20;
+const FOLLOWING_SETTLE_MS = 3000;
+
 export interface QueueAddResult {
   addedCount: number;
   skippedCount: number;
@@ -84,6 +94,8 @@ function normalizePlaybackFailure(error: unknown, trackId?: string): PlaybackErr
 @Injectable({ providedIn: 'root' })
 export class PlayerService implements OnDestroy {
   private readonly engine = inject(PLAYBACK_ENGINE);
+  /** The engine plays on through a prepared run by itself (Android), so Autoplay keeps a reserve for it. */
+  readonly enginePlaysFollowing = Boolean(this.engine.playsFollowing);
   private readonly settingsGateway = inject(SETTINGS_GATEWAY, { optional: true });
   private readonly libraryGateway = inject(LIBRARY_GATEWAY, { optional: true });
   private readonly subscriptions = new Subscription();
@@ -95,6 +107,15 @@ export class PlayerService implements OnDestroy {
   private loadSequence = 0;
   private libraryRefreshVersion = 0;
   private preparedCandidateId: string | null = null;
+  /** Track IDs handed to a `playsFollowing` engine after the prepared candidate. */
+  private preparedFollowing: string[] = [];
+  /** The next track has stayed the same long enough for the engine to take the whole run (FOLLOWING_LIMIT). */
+  private followingSettled = false;
+  private followingTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Autoplay's picks past the waiting suggestions (`setAutoplayReserve`), handed only to a `playsFollowing` engine. */
+  private autoplayReserve: Track[] = [];
+  /** Whether the engine was last told to loop the current track (`setRepeatOne`). */
+  private engineRepeatsOne = false;
   private preparationReady = false;
   private transitioning = false;
   private recoveringFromFailure = false;
@@ -319,6 +340,7 @@ export class PlayerService implements OnDestroy {
     this.loadSequence++;
     if (this.volumeSaveTimer) clearTimeout(this.volumeSaveTimer);
     if (this.sessionTimer) clearInterval(this.sessionTimer);
+    clearTimeout(this.followingTimer);
     this.subscriptions.unsubscribe();
     this.engine.dispose();
   }
@@ -753,6 +775,15 @@ export class PlayerService implements OnDestroy {
   }
 
   /** Autoplay's next suggestions, after everything queued. */
+  /**
+   * Autoplay's reserve: picks a `playsFollowing` engine plays after the queue and its waiting suggestions, so
+   * Autoplay goes on while the web sleeps. One the engine moves into joins the queue as a suggestion.
+   */
+  setAutoplayReserve(tracks: Track[]): void {
+    this.autoplayReserve = tracks;
+    this.refreshPreparedCandidate();
+  }
+
   appendSuggestions(entries: QueueEntry[]): void {
     if (!entries.length) return;
     this.queue.set([...this.queue(), ...entries]);
@@ -1076,13 +1107,15 @@ export class PlayerService implements OnDestroy {
   /**
    * User clicks Previous:
    * "Previous về đầu bài nếu current time trên 3 giây; nếu không, về bài trước. Ở đầu queue chỉ quay vòng khi repeat all."
+   * `restart: false` always goes to the track before (the phone's cover swipe, which shows that cover sliding in).
    */
-  async previous(): Promise<void> {
+  async previous(restart = true): Promise<void> {
     if (this.blockedByBusyOutput()) return;
     this.markTransition('previous');
+    const restarts = restart && this.currentTime() > 3;
     const external = this.external();
     if (external) {
-      const track = this.currentTime() > 3 ? null : external.source.previous();
+      const track = restarts ? null : external.source.previous();
       if (track) await this.startExternal(external.source, track);
       else this.seek(0);
       return;
@@ -1090,7 +1123,7 @@ export class PlayerService implements OnDestroy {
     const q = this.queue();
     if (q.length === 0) return;
 
-    if (this.currentTime() > 3) {
+    if (restarts) {
       this.seek(0);
       return;
     }
@@ -1486,6 +1519,7 @@ export class PlayerService implements OnDestroy {
     if (nextIndex < 0 || q[nextIndex].track.id !== track.id) {
       const current = this.currentIndex();
       nextIndex = q.findIndex((entry, index) => index > current && entry.track.id === track.id);
+      if (nextIndex < 0) nextIndex = this.takeFromReserve(track);
       if (nextIndex < 0) nextIndex = q.findIndex((entry) => entry.track.id === track.id);
     }
     this.preparedCandidateId = null;
@@ -1494,6 +1528,16 @@ export class PlayerService implements OnDestroy {
     this.currentTrack.set(track);
     this.playRequested.set(true);
     this.error.set(null);
+  }
+
+  /** The engine went on into Autoplay's reserve while the web slept: the track joins the queue after the current one. */
+  private takeFromReserve(track: Track): number {
+    if (!this.autoplayReserve.some((item) => item.id === track.id)) return -1;
+    this.autoplayReserve = this.autoplayReserve.filter((item) => item.id !== track.id);
+    const at = this.currentIndex() + 1;
+    const q = this.queue();
+    this.queue.set([...q.slice(0, at), this.createSuggestedEntry(track), ...q.slice(at)]);
+    return at;
   }
 
   private async advanceAfterEnded(): Promise<void> {
@@ -1523,15 +1567,53 @@ export class PlayerService implements OnDestroy {
   }
 
   private automaticNextIndex(): number {
+    return this.automaticRun(1)[0] ?? -1;
+  }
+
+  /** Up to `limit` queue indexes that play in turn after the current one; Repeat all wraps once. */
+  private automaticRun(limit: number): number[] {
     const q = this.queue();
-    if (!q.length || this.currentIndex() < 0 || this.activeRepeat() === 'one') return -1;
-    for (let offset = 1; offset < q.length; offset++) {
+    const run: number[] = [];
+    if (!q.length || this.currentIndex() < 0 || this.activeRepeat() === 'one') return run;
+    for (let offset = 1; offset < q.length && run.length < limit; offset++) {
       const index = this.currentIndex() + offset;
       if (index >= q.length && this.activeRepeat() !== 'all') break;
       const candidate = index % q.length;
-      if (this.isEntryPlayable(q[candidate])) return candidate;
+      if (this.isEntryPlayable(q[candidate])) run.push(candidate);
     }
-    return -1;
+    return run;
+  }
+
+  /**
+   * The tracks after the automatic candidate, for an engine that plays on through them by itself: the queue,
+   * looped over and over with Repeat all, then Autoplay's reserve.
+   */
+  private followingTracks(): Track[] {
+    if (!this.engine.playsFollowing || this.external()) return [];
+    const q = this.queue();
+    // ponytail: with the web asleep the longest, Media3 stops after this many tracks (about 20 hours of music).
+    const limit = this.followingSettled ? FOLLOWING_LIMIT : FOLLOWING_FIRST;
+    let run = this.automaticRun(limit + 1);
+    if (this.activeRepeat() === 'all' && run.length) {
+      const loop = this.isEntryPlayable(q[this.currentIndex()]) ? [...run, this.currentIndex()] : run;
+      run = Array.from({ length: limit + 1 }, (_, i) => loop[i % loop.length]);
+    }
+    const following = run.slice(1).map((index) => q[index].track);
+    if (this.activeRepeat() === 'off' && following.length < limit && this.autoplayReserve.length) {
+      const queued = new Set(q.map((entry) => entry.track.id));
+      following.push(...this.autoplayReserve.filter((track) => !queued.has(track.id)).slice(0, limit - following.length));
+    }
+    return following;
+  }
+
+  /** Repeat one, or Repeat all over a single playable track, loops in an engine that can (Android's Media3). */
+  private syncEngineRepeat(): void {
+    if (!this.engine.setRepeatOne) return;
+    const repeat = this.activeRepeat();
+    const one = !this.external() && (repeat === 'one' || (repeat === 'all' && this.currentIndex() >= 0 && this.automaticNextIndex() < 0));
+    if (one === this.engineRepeatsOne) return;
+    this.engineRepeatsOne = one;
+    this.engine.setRepeatOne(one);
   }
 
   /** What plays when the current item ends: the source's peek, or the next playable queue entry. */
@@ -1568,21 +1650,46 @@ export class PlayerService implements OnDestroy {
 
   private clearPreparedCandidate(): void {
     this.preparedCandidateId = null;
+    this.preparedFollowing = [];
     this.preparationReady = false;
     this.engine.cancelPreparedNext();
   }
 
+  /** A new next track gets a short run now and the whole one once it has stayed for a moment. */
+  private settleFollowingLater(): void {
+    this.followingSettled = false;
+    clearTimeout(this.followingTimer);
+    if (!this.engine.playsFollowing) return;
+    this.followingTimer = setTimeout(() => {
+      this.followingSettled = true;
+      this.refreshPreparedCandidate();
+    }, FOLLOWING_SETTLE_MS);
+  }
+
   private refreshPreparedCandidate(): void {
+    this.syncEngineRepeat();
     if (this.transitioning) return;
     const candidate = this.automaticCandidate();
     if (!candidate) {
       if (this.preparedCandidateId) this.clearPreparedCandidate();
       return;
     }
-    if (candidate.id === this.preparedCandidateId) return;
+    if (candidate.id !== this.preparedCandidateId) this.settleFollowingLater();
+    const following = this.followingTracks();
+    const followingIds = following.map((track) => track.id);
+    const sameFollowing = followingIds.length === this.preparedFollowing.length && followingIds.every((id, i) => id === this.preparedFollowing[i]);
+    if (candidate.id === this.preparedCandidateId) {
+      // The queue after the next track changed (an edit, Autoplay): hand the engine the new run.
+      if (!sameFollowing) {
+        this.preparedFollowing = followingIds;
+        void this.engine.prepareNext(candidate.track, following).catch(() => undefined);
+      }
+      return;
+    }
     this.clearPreparedCandidate();
     this.preparedCandidateId = candidate.id;
-    void this.engine.prepareNext(candidate.track).then((ready) => {
+    this.preparedFollowing = followingIds;
+    void this.engine.prepareNext(candidate.track, following).then((ready) => {
       if (this.preparedCandidateId !== candidate.id) return;
       this.preparationReady = ready;
       if (ready) this.maybeStartCrossfade(this.currentTime(), this.duration());

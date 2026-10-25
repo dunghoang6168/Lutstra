@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Album } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
@@ -23,6 +23,7 @@ const COLLAGE_SHAPES = ['circle', 'pill', 'circle', 'tile', 'blob'] as const;
   imports: [RouterLink, IconComponent, CoverArtComponent],
   templateUrl: './phone-home.component.html',
   styleUrls: ['../../phone-lists.scss', './phone-home.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneHomeComponent {
   readonly player = inject(PlayerService);

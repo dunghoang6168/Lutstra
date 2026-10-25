@@ -21,8 +21,10 @@ export interface NativePlaybackState {
 
 export interface NativePlayback {
   load(item: NativeQueueItem): Promise<NativePlaybackState>;
-  prepareNext(item: NativeQueueItem): Promise<void>;
-  cancelPreparedNext(): Promise<void>;
+  /** The run Media3 plays after `afterId` (the track the web takes as current); not applied once Media3 has moved on. */
+  prepareNext(options: { afterId: string | null; items: NativeQueueItem[] }): Promise<{ applied: boolean }>;
+  cancelPreparedNext(options: { afterId: string | null }): Promise<void>;
+  setRepeatOne(options: { on: boolean }): Promise<void>;
   play(): Promise<NativePlaybackState>;
   pause(): Promise<NativePlaybackState>;
   next(): Promise<NativePlaybackState>;
@@ -90,12 +92,14 @@ export function errorCodeFor(code: string): PlaybackErrorCode {
 
 /**
  * Playback through the Android Media3 service, which keeps playing and advancing with the app in the
- * background. The PlayerService still owns the queue: it loads one track and prepares the next, and
- * Media3 continues into the prepared track gaplessly. A crossfade request waits for that gapless
+ * background. The PlayerService still owns the queue: it loads one track and prepares the next with the
+ * tracks after it (`playsFollowing`), and Media3 continues through them gaplessly, so the queue keeps going
+ * while the web sleeps with the screen off; the player catches up from the `advanced` events when it wakes. A crossfade request waits for that gapless
  * continuation at the natural end instead of fading.
  */
 export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngine {
   readonly isAnalysisSupported = false;
+  readonly playsFollowing = true;
 
   private current: Track | null = null;
   private prepared: Track | null = null;
@@ -175,21 +179,27 @@ export class AndroidPlaybackEngine implements PlaybackEngine, AudioAnalysisEngin
     this.applyVolume();
   }
 
-  async prepareNext(track: Track): Promise<boolean> {
+  async prepareNext(track: Track, following: Track[] = []): Promise<boolean> {
     if (!track.isAvailable) return false;
     const sequence = this.sequence;
-    await this.native.prepareNext(queueItemFor(track));
-    if (sequence !== this.sequence) return false;
+    const run = [track, ...following.filter((item) => item.isAvailable)];
+    // Known before Media3 can move into them, so every `advanced` event finds its track.
+    for (const item of run) this.known.set(item.id, item);
+    const { applied } = await this.native.prepareNext({ afterId: this.current?.id ?? null, items: run.map(queueItemFor) });
+    if (!applied || sequence !== this.sequence) return false;
     this.prepared = track;
-    this.known.set(track.id, track);
     return true;
+  }
+
+  setRepeatOne(on: boolean): void {
+    void this.native.setRepeatOne({ on });
   }
 
   cancelPreparedNext(): void {
     this.settlePending(false);
     this.sequence++;
     this.prepared = null;
-    void this.native.cancelPreparedNext();
+    void this.native.cancelPreparedNext({ afterId: this.current?.id ?? null });
   }
 
   async transitionTo(track: Track, crossfadeSeconds: number): Promise<boolean> {

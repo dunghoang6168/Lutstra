@@ -50,6 +50,7 @@ export type IconName =
   | 'check'
   | 'sparkles'
   | 'file-audio'
+  | 'mic-vocal'
   | 'play-fill';
 
 @Component({

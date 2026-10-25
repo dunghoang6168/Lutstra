@@ -154,16 +154,21 @@ export function orderByTaste<T extends { trackId: string }>(items: readonly T[],
   return ordered;
 }
 
-/** The best suggestion between `previous` and `next` (a bridge between both), or after `previous` alone. */
+/**
+ * The best suggestion between `previous` and `next` (a bridge between both), or after `previous` alone.
+ * `sampled` keeps each track's score for one plan, so its picks share one draw rather than a fresh one per pick.
+ */
 export function pickSuggestion(
   previous: TrackFacts | undefined, next: TrackFacts | undefined, recent: readonly (TrackFacts | undefined)[],
-  exclude: ReadonlySet<string>, excludeDups: ReadonlySet<string>, context: ScoreContext,
+  exclude: ReadonlySet<string>, excludeDups: ReadonlySet<string>, context: ScoreContext, sampled = new Map<string, number>(),
 ): string | null {
   let best: string | null = null;
   let bestValue = 0;
   for (const track of context.facts.values()) {
     if (exclude.has(track.id) || excludeDups.has(track.dupKey) || breaksArtistRun(recent, track)) continue;
-    let value = linked(score(track, context, true), relatedness(previous, track));
+    let own = sampled.get(track.id);
+    if (own === undefined) sampled.set(track.id, own = score(track, context, true));
+    let value = linked(own, relatedness(previous, track));
     if (next) value *= 0.4 + 0.6 * relatedness(track, next);
     if (value > bestValue) { bestValue = value; best = track.id; }
   }
@@ -212,6 +217,7 @@ export function planUpcoming(input: PlanInput, context: ScoreContext): PlanEntry
     if (facts) dups.add(facts.dupKey);
   }
   const plan: PlanEntry[] = [];
+  const sampled = new Map<string, number>();
   let run = input.userRun;
   const place = (entry: PlanEntry) => {
     plan.push(entry);
@@ -219,7 +225,7 @@ export function planUpcoming(input: PlanInput, context: ScoreContext): PlanEntry
     run = entry.suggested ? 0 : run + 1;
   };
   const suggest = (next: TrackFacts | undefined) => {
-    const id = pickSuggestion(trail.at(-1), next, trail, exclude, dups, context);
+    const id = pickSuggestion(trail.at(-1), next, trail, exclude, dups, context, sampled);
     if (!id) return false;
     exclude.add(id);
     dups.add(factsOf(id)!.dupKey);

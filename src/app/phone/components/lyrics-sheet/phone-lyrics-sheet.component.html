@@ -1,0 +1,62 @@
+<section class="lyrics-sheet" role="dialog" aria-modal="true" aria-label="Lyrics"
+  [class.cover-tinted]="!!tone()" [style.--np-hue]="tone()?.hue" [style.--np-chroma]="tone()?.chroma" (keydown.escape)="close()">
+  <div class="body">
+    <div #viewport class="lines" [class.plain]="mode() === 'plain'" appSwipe (swiped)="swiped($event)">
+      @if (mode() === 'synced') {
+        @for (line of lyrics.lines(); track $index) {
+          <button type="button" class="line" [attr.data-lyric-index]="$index" [attr.data-d]="distance($index)"
+            [attr.aria-current]="$index === active() ? 'true' : null" (click)="lyrics.seek(line)">{{ line.text }}</button>
+        }
+      } @else {
+        @for (line of lyrics.plain(); track $index) {
+          <p class="line">{{ line }}</p>
+        }
+      }
+    </div>
+
+    @if (player.currentTrack(); as track) {
+      <!-- PixelPlayer's LyricsTrackInfo: the cover as a spinning record, the names, and bars that move while playing. -->
+      <div class="track-pill">
+        <app-cover-art class="disc" [class.spinning]="player.isPlaying()" [src]="track.artwork" [iconSize]="24" />
+        <div class="pill-text">
+          <span class="pill-title">{{ track.title }}</span>
+          <span class="pill-artist">{{ track.artist ?? 'Unknown artist' }}</span>
+        </div>
+        <span class="bars" [class.playing]="player.isPlaying()" aria-hidden="true"><i></i><i></i><i></i></span>
+      </div>
+    }
+  </div>
+
+  <div class="foot">
+    <div class="foot-row">
+      <button type="button" class="play" [class.playing]="player.isPlaybackActive()" (click)="player.togglePlayPause()"
+        [attr.aria-label]="player.isPlaybackActive() ? 'Pause' : 'Play'">
+        <app-icon [name]="player.isPlaybackActive() ? 'pause' : 'play'" [size]="32" />
+      </button>
+      <div class="seek-pill">
+        <span class="time">{{ position() | duration }}</span>
+        <div #seekBar class="seek">
+          <span class="seek-played" aria-hidden="true"></span>
+          <span class="seek-rest" aria-hidden="true"></span>
+          <span class="seek-head" aria-hidden="true"><span class="seek-thumb"></span></span>
+          <input type="range" min="0" [max]="player.duration() || 0" step="1" [value]="position()"
+            [disabled]="!player.duration()" aria-label="Seek"
+            [attr.aria-valuetext]="(position() | duration) + ' of ' + (player.duration() | duration)"
+            (input)="onSeekInput($event)" (change)="onSeekCommit()" />
+        </div>
+        <span class="time end">{{ player.duration() | duration }}</span>
+      </div>
+    </div>
+    <div class="foot-row">
+      <button type="button" class="back" (click)="close()" aria-label="Back to Now Playing">
+        <app-icon name="chevron-left" [size]="22" />
+      </button>
+      <div class="modes" role="group" aria-label="Lyrics view">
+        <button type="button" class="mode" [class.on]="mode() === 'synced'" [attr.aria-pressed]="mode() === 'synced'"
+          [disabled]="!synced()" (click)="setMode('synced')">Synced</button>
+        <button type="button" class="mode" [class.on]="mode() === 'plain'" [attr.aria-pressed]="mode() === 'plain'"
+          (click)="setMode('plain')">Plain</button>
+      </div>
+    </div>
+  </div>
+</section>

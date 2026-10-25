@@ -18,11 +18,15 @@ export const appShell = registerPlugin<{
 export const output = signal<NativeOutput | null>(null);
 /** The Audio path sheet, opened from Now Playing's output chip or the ⋯ sheet's File info. */
 export const audioPathOpen = signal(false);
+/** The Lyrics sheet over Now Playing, opened from the Lyrics button beside the title. */
+export const lyricsOpen = signal(false);
 /**
  * A page's own step back, asked before the shell goes back a page; it returns true when it handled Back
  * (the Library's Folders tab goes up one folder).
  */
 export const pageBack = signal<(() => boolean) | null>(null);
+/** The main tab ('/home', '/eq', '/library') the shell's swipe pager rests on, or null while it moves. */
+export const settledTab = signal<string | null>(null);
 let watching = false;
 
 export async function loadOutput(): Promise<void> {

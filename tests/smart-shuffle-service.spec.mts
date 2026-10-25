@@ -14,7 +14,7 @@ vi.mock('@angular/core', async (importOriginal) => ({
   effect: vi.fn(() => ({ destroy: vi.fn() })),
 }));
 
-async function setup() {
+async function setup({ playsFollowing = false } = {}) {
   const engine: any = {
     stateChange$: new BehaviorSubject<any>({ state: 'idle', track: null }), timeUpdate$: new Subject(), volumeChange$: new Subject(),
     outputInterrupted$: new Subject(), subscribeDeviceChanges: () => () => undefined,
@@ -22,7 +22,7 @@ async function setup() {
     setOutputFallbackEnabled: vi.fn(), setVolume: vi.fn(), setMute: vi.fn(), cancelPreparedNext: vi.fn(),
     prepareNext: vi.fn(async () => false), listOutputDevices: async () => [], getAudioPathStatus: async () => null,
     selectOutputDevice: vi.fn(async () => undefined), pause: vi.fn(), play: vi.fn(async () => undefined), dispose: vi.fn(),
-    load: vi.fn(async () => undefined), seek: vi.fn(), transitionTo: vi.fn(async () => true),
+    load: vi.fn(async () => undefined), seek: vi.fn(), transitionTo: vi.fn(async () => true), playsFollowing,
   };
   const settings = { getSettings: async () => ({}), saveSettings: vi.fn(async (value: any) => value) };
   const library = new MockLibraryGateway();
@@ -186,6 +186,32 @@ describe('Autoplay', () => {
     await turnOn();
     expect(player.smartShuffle()).toBe(true);
     expect(player.queue().some((entry) => entry.suggested)).toBe(false);
+  });
+
+  it('keeps a reserve past the queue for an engine that plays on by itself, and none while Repeat is on', async () => {
+    const { player, tracks, service, autoplay } = await setup({ playsFollowing: true });
+    const keepReserve = () => (service as any).keepReserve() as Promise<void>;
+    await player.playCollection(tracks.slice(0, 2), 0);
+    await autoplay();
+    await keepReserve();
+    const reserve: { id: string }[] = (player as any).autoplayReserve;
+    const queued = new Set(player.queue().map((entry) => entry.track.id));
+    expect(reserve.length).toBeGreaterThan(0);
+    expect(reserve.some((track) => queued.has(track.id))).toBe(false);
+    expect(new Set(reserve.map((track) => track.id)).size).toBe(reserve.length);
+    await keepReserve();
+    expect((player as any).autoplayReserve).toBe(reserve);
+    player.setRepeatMode('all');
+    await keepReserve();
+    expect((player as any).autoplayReserve).toEqual([]);
+  });
+
+  it('keeps no reserve for an engine the web drives track by track', async () => {
+    const { player, tracks, service, autoplay } = await setup();
+    await player.playCollection(tracks.slice(0, 2), 0);
+    await autoplay();
+    await (service as any).keepReserve();
+    expect((player as any).autoplayReserve).toEqual([]);
   });
 
   it('drops the suggestions not played yet when turned off', async () => {

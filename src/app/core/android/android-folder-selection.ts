@@ -33,6 +33,8 @@ interface NativeFolders {
   scan(): Promise<FolderScan>;
   /** The last finished scan, or an empty object before the first one. */
   getLastScan(): Promise<Partial<FolderScan>>;
+  /** The text of a `lyricsUri` from a scan; no `text` when the file is gone. */
+  readLyrics(options: { uri: string }): Promise<{ text?: string }>;
 }
 
 export const androidFolders = registerPlugin<NativeFolders>('AndroidFolders');

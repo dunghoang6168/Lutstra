@@ -1,12 +1,15 @@
 import { Routes } from '@angular/router';
 
-/** `data.title` is the phone app bar's heading. */
+/**
+ * `data.title` is the phone app bar's heading. Home, EQ and Library have no component here: the shell keeps
+ * all three alive side by side in its swipe pager, and these routes only name which one shows.
+ */
 export const phoneRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   {
     path: 'home',
     data: { title: 'Home' },
-    loadComponent: () => import('./pages/home/phone-home.component').then((m) => m.PhoneHomeComponent),
+    children: [],
   },
   {
     path: 'search',
@@ -16,12 +19,12 @@ export const phoneRoutes: Routes = [
   {
     path: 'eq',
     data: { title: 'EQ' },
-    loadComponent: () => import('./pages/eq/phone-eq.component').then((m) => m.PhoneEqComponent),
+    children: [],
   },
   {
     path: 'library',
-    data: { title: 'Library', ownHeader: true },
-    loadComponent: () => import('./pages/library/phone-library.component').then((m) => m.PhoneLibraryComponent),
+    data: { title: 'Library' },
+    children: [],
   },
   {
     path: 'library/albums/:id',

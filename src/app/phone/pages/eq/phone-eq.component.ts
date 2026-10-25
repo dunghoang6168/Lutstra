@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EQ_GAIN_LIMIT_DB, EQ_PREAMP_MAX_DB, EQ_PREAMP_MIN_DB } from '../../../core/models/eq.model';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -24,6 +24,7 @@ const ARC_R = 30;
   imports: [RouterLink, IconComponent],
   templateUrl: './phone-eq.component.html',
   styleUrl: './phone-eq.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneEqComponent {
   readonly eq = inject(PhoneEqService);

@@ -17,9 +17,10 @@
   color: var(--row-ink);
   background: var(--row-fill);
   transition: background-color var(--motion-dur) var(--motion-ease);
-  /* Long lists lay out and paint only the rows near the screen. */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 72px;
+  /*
+   * No content-visibility: auto. The Library already renders in pages, and each row near the screen then took a
+   * style and layout pass of its own whenever the page restyled (a tap, the sheet's inert), about 125 ms a time.
+   */
 }
 
 /* The playing track: a filled card in the accent's hue, at a lightness that keeps its text readable. */

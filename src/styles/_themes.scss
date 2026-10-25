@@ -349,7 +349,7 @@ html[data-layout='phone'] {
   --row-height: 64px;
   --touch-target: 48px;
   --phone-app-bar-height: 64px;
-  --phone-nav-height: 64px;
+  --phone-nav-height: 56px;
   --phone-mini-player-height: 72px;
   --phone-mini-skip-size: 44px;
   --phone-mini-play-width: 60px;
@@ -359,9 +359,8 @@ html[data-layout='phone'] {
   /* Home's "Flex / Mix" display title and the covers stacked in its card head (PixelPlayer's Your Mix). */
   --phone-hero-title-size: 4.25rem;
   --phone-mix-cover: 52px;
-  --phone-np-transport-height: 88px;
+  --phone-np-transport-height: 80px;
   --phone-np-play-radius: 26px;
-  --phone-np-cover-max: 440px;
   --phone-detail-cover-max: 260px;
   --phone-detail-placeholder-max: 160px;
   --phone-sheet-cover: 64px;

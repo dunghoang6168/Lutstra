@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { Track } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
 import { formatTrackFormat } from '../../../features/home/library-quality';
@@ -17,6 +17,7 @@ import { PhoneLibraryService } from '../../phone-library.service';
   imports: [DurationPipe, IconComponent, CoverArtComponent],
   templateUrl: './phone-track-row.component.html',
   styleUrl: './phone-track-row.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneTrackRowComponent {
   readonly track = input.required<Track>();

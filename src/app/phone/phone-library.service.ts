@@ -33,8 +33,8 @@ export class PhoneLibraryService {
   readonly artistSort = signal<ArtistSort>('name');
   readonly playlistSort = signal<PlaylistSort>('name');
   /**
-   * Per Library tab: how many rows it renders (grows as it scrolls) and where it was scrolled. Back from a detail
-   * page keeps both, so each tab comes back where it was.
+   * Per Library tab: how many rows it renders (grows as it scrolls) and where it is scrolled, which tells the
+   * sheet whether the tab is at its top.
    */
   readonly tabShown = signal<Partial<Record<LibraryTab, number>>>({});
   readonly tabScroll = new Map<LibraryTab, number>();
