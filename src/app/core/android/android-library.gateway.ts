@@ -26,6 +26,8 @@ export interface MediaStoreTrack {
   bitDepth?: number | null;
   /** Absolute path of the scaled cover in the app's files (embedded picture, else the folder's cover.jpg). */
   artwork?: string | null;
+  artworkSmall?: string | null;
+  artworkMedium?: string | null;
   relativePath: string | null;
   folderKey?: string;
   /** The "<same name>.lrc" found next to the file, if any. */
@@ -51,13 +53,16 @@ function toTrack(row: MediaStoreTrack): Track {
   const packedTrack = row.trackNumber ?? 0;
   const trackNumber = packedTrack > 0 ? packedTrack % 1000 || null : null;
   const discNumber = packedTrack >= 1000 ? Math.floor(packedTrack / 1000) : null;
+  const artwork = row.artwork ? Capacitor.convertFileSrc(row.artwork) : null;
+  const artworkSmall = row.artworkSmall ? Capacitor.convertFileSrc(row.artworkSmall) : artwork;
+  const artworkMedium = row.artworkMedium ? Capacitor.convertFileSrc(row.artworkMedium) : artwork;
   return {
     id: row.id, path: row.uri, fileName, title,
     artist: known(row.artist), albumArtist: known(row.albumArtist ?? null), album: known(row.album),
     genre: null, year: row.year && row.year > 0 ? row.year : null,
     trackNumber, discNumber, duration: Math.max(0, (row.durationMs || 0) / 1000),
     codec: codecFor(row.mimeType, fileName), bitrate: row.bitrate || null, sampleRate: row.sampleRate || null,
-    bitDepth: row.bitDepth || null, channels: null, artwork: row.artwork ? Capacitor.convertFileSrc(row.artwork) : null, fileSize: row.fileSize,
+    bitDepth: row.bitDepth || null, channels: null, artwork, artworkSmall, artworkMedium, fileSize: row.fileSize,
     lastModified: row.lastModified, isAvailable: true,
   };
 }
@@ -81,12 +86,14 @@ export function snapshotFrom(rows: MediaStoreTrack[], folders: MusicFolder[] = [
       const albumId = `android:album:${artistId}:${track.album.toLocaleLowerCase()}`;
       let album = albumMap.get(albumId);
       if (!album) {
-        album = { id: albumId, title: track.album, artist: artistName, year: track.year, artwork: null, trackIds: [] };
+        album = { id: albumId, title: track.album, artist: artistName, year: track.year, artwork: null, artworkSmall: null, artworkMedium: null, trackIds: [] };
         albumMap.set(albumId, album);
         artist.albumIds.push(albumId);
       }
       album.trackIds.push(track.id);
       album.artwork ??= track.artwork;
+      album.artworkSmall ??= track.artworkSmall;
+      album.artworkMedium ??= track.artworkMedium;
     }
   }
   return { tracks, albums: [...albumMap.values()], artists: [...artistMap.values()], folders };

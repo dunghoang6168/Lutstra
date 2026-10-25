@@ -28,6 +28,8 @@ export interface Track {
   bitDepth: number | null; // e.g. 16, 24
   channels: number | null; // e.g. 2 (stereo)
   artwork: string | null; // local URI or fixture identifier, no repeated giant base64
+  artworkSmall?: string | null;
+  artworkMedium?: string | null;
   fileSize: number | null; // in bytes
   lastModified: number | null; // in ms
   isAvailable: boolean; // false if missing / moved / corrupt

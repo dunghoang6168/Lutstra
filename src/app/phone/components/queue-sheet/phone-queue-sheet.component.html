@@ -42,7 +42,7 @@
           }
           <button type="button" class="row-main" (click)="player.jumpToQueueIndex(i)"
             [attr.aria-description]="entry.suggested && i > player.currentIndex() ? player.suggestionLabel() : null">
-            <app-cover-art class="row-cover" [src]="entry.track.artwork" [iconSize]="18" />
+            <app-cover-art class="row-cover" [src]="entry.track.artworkSmall ?? entry.track.artwork" [iconSize]="18" />
             <span class="row-text">
               <span class="row-title">{{ entry.track.title }}</span>
               @if (entry.track.isAvailable) {

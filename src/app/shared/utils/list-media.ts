@@ -8,7 +8,8 @@ export function selectPlaylistArtwork(
   const trackMap = 'get' in tracks ? tracks : new Map(tracks.map((track) => [track.id, track]));
   const artworks = new Set<string>();
   for (const entry of entries) {
-    const artwork = trackMap.get(entry.trackId)?.artwork?.trim();
+    const track = trackMap.get(entry.trackId);
+    const artwork = (track?.artworkSmall ?? track?.artwork)?.trim();
     if (artwork) artworks.add(artwork);
     if (artworks.size === 4) break;
   }

@@ -29,7 +29,7 @@
       @for (album of albums(); track album.id) {
         <li>
           <a class="nav-row" [routerLink]="['/library/albums', album.id]">
-            <app-cover-art class="row-icon" [src]="album.artwork" [iconSize]="22" />
+            <app-cover-art class="row-icon" [src]="album.artworkSmall ?? album.artwork" [iconSize]="22" />
             <span class="row-text">
               <span class="row-title">{{ album.title }}</span>
               <span class="row-path">{{ album.artist ?? 'Unknown artist' }}</span>

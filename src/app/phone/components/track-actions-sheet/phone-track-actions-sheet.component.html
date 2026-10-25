@@ -5,7 +5,7 @@
   <span class="grabber" aria-hidden="true"></span>
   <header class="sheet-head">
     @if (track(); as track) {
-      <app-cover-art class="sheet-cover" [src]="track.artwork" [iconSize]="24" />
+      <app-cover-art class="sheet-cover" [src]="track.artworkSmall ?? track.artwork" [iconSize]="24" />
     }
     <div class="sheet-head-text">
       <h2 id="trackActionsTitle" class="sheet-title">{{ title() }}</h2>

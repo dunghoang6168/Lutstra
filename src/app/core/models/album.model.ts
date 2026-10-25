@@ -4,5 +4,7 @@ export interface Album {
   artist: string | null;
   year: number | null;
   artwork: string | null;
+  artworkSmall?: string | null;
+  artworkMedium?: string | null;
   trackIds: string[];
 }

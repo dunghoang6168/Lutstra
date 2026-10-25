@@ -99,7 +99,7 @@
                         <li>
                           <a class="acard" [appCoverTone]="album.artwork" [routerLink]="['/library/albums', album.id]">
                             <span class="acard-art">
-                              <app-cover-art class="acard-cover" [src]="album.artwork" [iconSize]="40" lazy />
+                              <app-cover-art class="acard-cover" [src]="album.artworkMedium ?? album.artwork" [iconSize]="40" lazy />
                             </span>
                             <span class="acard-info">
                               <span class="acard-title">{{ album.title }}</span>

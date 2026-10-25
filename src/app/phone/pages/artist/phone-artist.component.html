@@ -7,7 +7,7 @@
       @for (album of albums(); track album.id) {
         <li>
           <a class="album-card" [routerLink]="['/library/albums', album.id]">
-            <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="36" />
+            <app-cover-art class="album-cover" [src]="album.artworkMedium ?? album.artwork" [iconSize]="36" />
             <span class="album-title">{{ album.title }}</span>
             @if (albumFormats().get(album.id); as format) {
               <span class="album-format" [class.hires]="format.hires">{{ album.year ? album.year + ' · ' : '' }}{{ format.label }}</span>

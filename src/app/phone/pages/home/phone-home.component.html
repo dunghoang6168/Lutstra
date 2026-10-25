@@ -33,7 +33,7 @@
       @for (item of collage(); track item.album.id) {
         <a class="collage-item" [class]="'slot-' + item.slot + ' shape-' + item.shape"
           [routerLink]="['/library/albums', item.album.id]" [attr.aria-label]="'Album: ' + item.album.title + (item.album.artist ? ', ' + item.album.artist : '')">
-          <app-cover-art [src]="item.album.artwork" [alt]="''" [iconSize]="28" />
+          <app-cover-art [src]="item.album.artworkMedium ?? item.album.artwork" [alt]="''" [iconSize]="28" />
         </a>
       }
     </div>
@@ -85,7 +85,7 @@
     @for (album of recentlyPlayed(); track album.id) {
       <li>
         <a class="album-card" [routerLink]="['/library/albums', album.id]">
-          <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="36" />
+          <app-cover-art class="album-cover" [src]="album.artworkMedium ?? album.artwork" [iconSize]="36" />
           <span class="album-title">{{ album.title }}</span>
           <span class="album-artist">{{ album.artist ?? 'Unknown artist' }}</span>
           @if (albumFormats().get(album.id); as format) {
@@ -103,7 +103,7 @@
     @for (album of recentlyAdded(); track album.id) {
       <li>
         <a class="album-card" [routerLink]="['/library/albums', album.id]">
-          <app-cover-art class="album-cover" [src]="album.artwork" [iconSize]="36" />
+          <app-cover-art class="album-cover" [src]="album.artworkMedium ?? album.artwork" [iconSize]="36" />
           <span class="album-title">{{ album.title }}</span>
           <span class="album-artist">{{ album.artist ?? 'Unknown artist' }}</span>
           @if (albumFormats().get(album.id); as format) {

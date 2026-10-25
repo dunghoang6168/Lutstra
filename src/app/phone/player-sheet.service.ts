@@ -64,6 +64,7 @@ export class PlayerSheetService {
 
   /** A tap on the mini player. */
   expand(velocity = 0): void {
+    this.setWillChange(true);
     this.measure();
     this.zone.run(() => { this.open.set(true); this.shown.set(true); });
     this.animate(1, velocity, OPEN_SPRING);
@@ -80,6 +81,7 @@ export class PlayerSheetService {
   closeNow(): void {
     cancelAnimationFrame(this.frame);
     this.write(0);
+    this.setWillChange(false);
     this.open.set(false);
     this.shown.set(false);
     this.covering.set(false);
@@ -88,6 +90,7 @@ export class PlayerSheetService {
   /** A finger took hold of the sheet (on the mini player, or anywhere on Now Playing). */
   beginDrag(): number {
     cancelAnimationFrame(this.frame);
+    this.setWillChange(true);
     this.measure();
     if (!this.shown()) this.zone.run(() => this.shown.set(true));
     return this.f;
@@ -125,12 +128,24 @@ export class PlayerSheetService {
   }
 
   /**
+   * Keeps each moving part on its own compositor layer while the sheet shows. Without it the WebView rebuilt the
+   * layers mid-motion (as an opacity reached 0 or 1) and showed one frame without Now Playing's controls.
+   */
+  private setWillChange(active: boolean): void {
+    const { sheet, fades, scrim, mini } = this.parts();
+    const value = active ? 'opacity, transform' : '';
+    for (const part of [sheet, ...fades, scrim, mini]) if (part && part.style.willChange !== value) part.style.willChange = value;
+  }
+
+  /**
    * At `f` Now Playing's top edge rides up from the mini player's top, its bottom is clipped back to the card's,
    * and its side margin and corners shrink to 0; the card rides its top edge and is gone by halfway.
    */
   private write(f: number): void {
     this.f = f;
     const { sheet, fades, scrim, mini } = this.parts();
+    // A part made while the sheet shows (the scrim) needs its layer from its first frame.
+    if (f > 0) this.setWillChange(true);
     const g = (1 - f).toFixed(4);
     if (sheet) {
       sheet.style.translate = `0 ${((1 - f) * this.miniTop).toFixed(1)}px`;
@@ -150,6 +165,7 @@ export class PlayerSheetService {
     const done = (): void => {
       this.write(target);
       if (target === 1) { this.zone.run(() => this.covering.set(true)); return; }
+      this.setWillChange(false);
       this.zone.run(() => { this.shown.set(false); this.covering.set(false); });
       this.squashMini();
     };

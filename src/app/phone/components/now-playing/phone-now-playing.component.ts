@@ -261,23 +261,59 @@ export class PhoneNowPlayingComponent {
   }
 
   /** Each frame, outside Angular: the bar's --p follows the playhead; the times change only on a new second. */
-  /** Per frame while the sheet is on screen; down, it stops, as PixelPlayer's realtime updates do. */
+  /** Per frame while the sheet is on screen and not covered; down, it stops, as PixelPlayer's realtime updates do. */
   private runPlayhead(): void {
     const zone = inject(NgZone);
     let frame = 0;
+    let lastP = -1;
+    let barWidth = 0;
+
+    const measureBar = () => {
+      barWidth = this.seekBar()?.nativeElement.clientWidth ?? 0;
+    };
+
+    let resizeObserver: ResizeObserver | null = null;
+
     effect(() => {
       cancelAnimationFrame(frame);
-      if (this.sheet.shown()) zone.runOutsideAngular(() => { frame = requestAnimationFrame(tick); });
+      resizeObserver?.disconnect();
+      resizeObserver = null;
+      if (this.sheet.shown() && !this.covered()) {
+        const bar = this.seekBar()?.nativeElement;
+        if (bar) {
+          measureBar();
+          if (typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(() => measureBar());
+            resizeObserver.observe(bar);
+          }
+        }
+        zone.runOutsideAngular(() => { frame = requestAnimationFrame(tick); });
+      }
     });
+
     const tick = () => {
       const duration = this.player.duration() || 0;
+      const isScrubbing = this.scrubTime() !== null || this.dragging();
       const seconds = this.scrubTime() ?? playheadAt(this.sample, performance.now(), this.player.isPlaying(), duration);
-      this.seekBar()?.nativeElement.style.setProperty('--p', String(duration > 0 ? Math.min(1, seconds / duration) : 0));
+      const p = duration > 0 ? Math.min(1, Math.max(0, seconds / duration)) : 0;
+
+      // When scrubbing, write every frame. When playing, only write when moved by >= 1 device px.
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      const pxThreshold = barWidth > 0 ? (1 / (barWidth * dpr)) : 0.0005;
+      if (isScrubbing || Math.abs(p - lastP) >= pxThreshold || lastP < 0) {
+        lastP = p;
+        this.seekBar()?.nativeElement.style.setProperty('--p', p.toFixed(4));
+      }
+
       const whole = Math.floor(seconds);
       if (whole !== this.shownSeconds()) zone.run(() => this.shownSeconds.set(whole));
       frame = requestAnimationFrame(tick);
     };
-    inject(DestroyRef).onDestroy(() => cancelAnimationFrame(frame));
+
+    inject(DestroyRef).onDestroy(() => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+    });
   }
 
   /** A drag only moves the times; a key press (or a tap) seeks at once. */

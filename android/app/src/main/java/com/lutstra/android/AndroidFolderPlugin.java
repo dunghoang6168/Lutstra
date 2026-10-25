@@ -61,6 +61,8 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final String ARTWORK_DIR = "artwork";
     // Covers are shown at most a phone width wide (about 1000 px), so larger pictures are scaled down once.
     private static final int ARTWORK_SIZE = 1024;
+    private static final int ARTWORK_MEDIUM_SIZE = 512;
+    private static final int ARTWORK_SMALL_SIZE = 256;
     private static final Set<String> FOLDER_COVERS = new HashSet<>(java.util.Arrays.asList(
         "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.png"));
     /** Folder key → its cover image, found while a scan walks the folders. */
@@ -161,8 +163,25 @@ public final class AndroidFolderPlugin extends Plugin {
     @PluginMethod
     public void getLastScan(PluginCall call) {
         treeExecutor.execute(() -> {
+            generateMissingThumbnails();
             AtomicFile file = new AtomicFile(new File(getContext().getFilesDir(), LAST_SCAN_FILE));
-            try { call.resolve(new JSObject(new String(file.readFully(), StandardCharsets.UTF_8))); }
+            try {
+                JSObject response = new JSObject(new String(file.readFully(), StandardCharsets.UTF_8));
+                JSONArray tracks = response.optJSONArray("tracks");
+                if (tracks != null) {
+                    for (int i = 0; i < tracks.length(); i++) {
+                        JSONObject track = tracks.optJSONObject(i);
+                        if (track != null && track.has("artwork") && !track.has("artworkSmall")) {
+                            String artPath = track.getString("artwork");
+                            String medPath = artPath.replace("-" + ARTWORK_SIZE + ".jpg", "-" + ARTWORK_MEDIUM_SIZE + ".jpg");
+                            String smPath = artPath.replace("-" + ARTWORK_SIZE + ".jpg", "-" + ARTWORK_SMALL_SIZE + ".jpg");
+                            if (new File(medPath).exists()) track.put("artworkMedium", medPath);
+                            if (new File(smPath).exists()) track.put("artworkSmall", smPath);
+                        }
+                    }
+                }
+                call.resolve(response);
+            }
             catch (IOException | JSONException error) { call.resolve(new JSObject()); }
         });
     }
@@ -219,7 +238,13 @@ public final class AndroidFolderPlugin extends Plugin {
                     JSObject row = rows.get(i); JSONObject meta = metas.get(i);
                     for (String field : METADATA_FIELDS) if (meta.has(field)) row.put(field, meta.get(field));
                     String art = meta.has("art") ? meta.getString("art") : folderCover(row.getString("folderKey"));
-                    if (art != null) row.put("artwork", artworkFile(art).getAbsolutePath());
+                    if (art != null) {
+                        row.put("artwork", artworkFile(art, ARTWORK_SIZE).getAbsolutePath());
+                        File med = artworkFile(art, ARTWORK_MEDIUM_SIZE);
+                        if (med.exists()) row.put("artworkMedium", med.getAbsolutePath());
+                        File sm = artworkFile(art, ARTWORK_SMALL_SIZE);
+                        if (sm.exists()) row.put("artworkSmall", sm.getAbsolutePath());
+                    }
                     tracks.put(row);
                 }
                 writeCache(nextCache);
@@ -432,14 +457,25 @@ public final class AndroidFolderPlugin extends Plugin {
     private interface ImageSource { InputStream open() throws IOException; }
 
     /**
-     * Writes the image as files/artwork/<name>.jpg, at most ARTWORK_SIZE on its longer side, unless that file exists.
+     * Writes the image as files/artwork/<name>-<size>.jpg in 1024, 512, and 256 sizes.
      * Returns the name, or null when the image cannot be decoded.
      * ponytail: covers no longer used stay on disk; prune the folder if it grows large.
      */
     private String saveArtwork(String name, ImageSource source) {
-        File target = artworkFile(name);
-        if (target.exists()) return name;
+        File target1024 = artworkFile(name, ARTWORK_SIZE);
+        File target512 = artworkFile(name, ARTWORK_MEDIUM_SIZE);
+        File target256 = artworkFile(name, ARTWORK_SMALL_SIZE);
+        if (target1024.exists() && target512.exists() && target256.exists()) return name;
         try {
+            if (target1024.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(target1024.getAbsolutePath());
+                if (bitmap != null) {
+                    if (!target512.exists()) saveScaled(bitmap, target512, ARTWORK_MEDIUM_SIZE);
+                    if (!target256.exists()) saveScaled(bitmap, target256, ARTWORK_SMALL_SIZE);
+                    bitmap.recycle();
+                }
+                return name;
+            }
             BitmapFactory.Options bounds = new BitmapFactory.Options();
             bounds.inJustDecodeBounds = true;
             try (InputStream in = source.open()) { BitmapFactory.decodeStream(in, null, bounds); }
@@ -451,25 +487,58 @@ public final class AndroidFolderPlugin extends Plugin {
             Bitmap bitmap;
             try (InputStream in = source.open()) { bitmap = BitmapFactory.decodeStream(in, null, options); }
             if (bitmap == null) return null;
-            float scale = Math.min(1f, (float) ARTWORK_SIZE / Math.max(bitmap.getWidth(), bitmap.getHeight()));
-            Bitmap sized = scale < 1f ? Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale), Math.round(bitmap.getHeight() * scale), true) : bitmap;
-            File parent = target.getParentFile();
+            File parent = target1024.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) return null;
-            File temp = new File(parent, name + "." + Thread.currentThread().getId() + ".tmp");
-            try (FileOutputStream out = new FileOutputStream(temp)) { sized.compress(Bitmap.CompressFormat.JPEG, 85, out); }
-            if (sized != bitmap) sized.recycle();
+            saveScaled(bitmap, target1024, ARTWORK_SIZE);
+            saveScaled(bitmap, target512, ARTWORK_MEDIUM_SIZE);
+            saveScaled(bitmap, target256, ARTWORK_SMALL_SIZE);
             bitmap.recycle();
-            // Another reader may have written the same picture meanwhile; either copy is fine.
-            if (!temp.renameTo(target)) temp.delete();
-            return target.exists() ? name : null;
+            return target1024.exists() ? name : null;
         } catch (IOException | RuntimeException error) {
             return null;
         }
     }
 
+    private void saveScaled(Bitmap source, File target, int maxSize) {
+        try {
+            float scale = Math.min(1f, (float) maxSize / Math.max(source.getWidth(), source.getHeight()));
+            Bitmap sized = scale < 1f ? Bitmap.createScaledBitmap(source, Math.round(source.getWidth() * scale), Math.round(source.getHeight() * scale), true) : source;
+            File parent = target.getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) return;
+            File temp = new File(parent, target.getName() + "." + Thread.currentThread().getId() + ".tmp");
+            try (FileOutputStream out = new FileOutputStream(temp)) { sized.compress(Bitmap.CompressFormat.JPEG, 85, out); }
+            if (sized != source) sized.recycle();
+            if (!temp.renameTo(target)) temp.delete();
+        } catch (IOException | RuntimeException ignored) {}
+    }
+
+    private void generateMissingThumbnails() {
+        executor.execute(() -> {
+            try {
+                File dir = new File(getContext().getFilesDir(), ARTWORK_DIR);
+                File[] files = dir.listFiles((d, name) -> name.endsWith("-" + ARTWORK_SIZE + ".jpg"));
+                if (files == null) return;
+                for (File file : files) {
+                    String base = file.getName().substring(0, file.getName().length() - ("-" + ARTWORK_SIZE + ".jpg").length());
+                    File target512 = artworkFile(base, ARTWORK_MEDIUM_SIZE);
+                    File target256 = artworkFile(base, ARTWORK_SMALL_SIZE);
+                    if (target512.exists() && target256.exists()) continue;
+                    Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    if (bitmap == null) continue;
+                    if (!target512.exists()) saveScaled(bitmap, target512, ARTWORK_MEDIUM_SIZE);
+                    if (!target256.exists()) saveScaled(bitmap, target256, ARTWORK_SMALL_SIZE);
+                    bitmap.recycle();
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
     private File artworkFile(String name) {
-        // The size is in the name, so a new ARTWORK_SIZE writes new files instead of reusing smaller ones.
-        return new File(new File(getContext().getFilesDir(), ARTWORK_DIR), name + "-" + ARTWORK_SIZE + ".jpg");
+        return artworkFile(name, ARTWORK_SIZE);
+    }
+
+    private File artworkFile(String name, int size) {
+        return new File(new File(getContext().getFilesDir(), ARTWORK_DIR), name + "-" + size + ".jpg");
     }
 
     private static String hash(byte[] bytes) {

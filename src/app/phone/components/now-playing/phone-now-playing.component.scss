@@ -230,7 +230,8 @@
   touch-action: none; /* a sideways drag is a seek, not a scroll */
 }
 
-/* Both parts span the bar and are clipped at the playhead, so a frame repaints without a layout. */
+/* Both parts span the bar, using transform on ::before inside an overflow: hidden container
+   so updates run on compositor without CPU repaint or clip-path rasterization. */
 .seek-played,
 .seek-rest {
   position: absolute;
@@ -240,17 +241,33 @@
   height: var(--phone-seek-height);
   margin-top: calc(var(--phone-seek-height) / -2);
   border-radius: var(--radius-full);
-  transition: scale var(--phone-press-dur) var(--motion-ease), background-color var(--np-tint-dur) var(--motion-ease);
+  overflow: hidden;
+  pointer-events: none;
+  transition: scale var(--phone-press-dur) var(--motion-ease);
 }
 
-.seek-played {
-  clip-path: inset(0 calc((1 - var(--p)) * 100% + var(--seek-gap)) 0 0 round var(--radius-full));
+.seek-played::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
   background: var(--seek-fill);
+  translate: calc((var(--p) - 1) * 100% - var(--seek-gap)) 0;
+  transition: background-color var(--np-tint-dur) var(--motion-ease);
 }
 
-.seek-rest {
-  clip-path: inset(0 0 0 calc(var(--p) * 100% + var(--seek-gap)) round var(--radius-full));
+.seek-rest::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
   background: var(--seek-rest);
+  translate: calc(var(--p) * 100% + var(--seek-gap)) 0;
+  transition: background-color var(--np-tint-dur) var(--motion-ease);
 }
 
 /* The thumb rides a full-width layer moved by translate (a percentage of the bar). */
