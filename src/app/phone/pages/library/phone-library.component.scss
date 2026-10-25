@@ -298,7 +298,7 @@
 .pane-scroll {
   position: absolute;
   inset: 0;
-  padding: 2px 10px var(--space-6) 0;
+  padding: 2px 10px calc(var(--space-6) + var(--dock-space, 0px)) 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;

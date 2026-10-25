@@ -5,12 +5,21 @@
   background: var(--bg-app);
 }
 
+/* The mini player and the bar float over the pages (PixelPlayer); `--dock-space` is what they cover at the bottom,
+   so scrollers pad by it and their last row still clears the dock. */
 .phone-shell {
+  --dock-space: calc(var(--phone-nav-height) + var(--space-2) * 2 + env(safe-area-inset-bottom, 0px));
+  --scrollbar-inset-bottom: calc(var(--dock-space) + var(--space-2));
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   padding-top: env(safe-area-inset-top, 0px);
   transition: background-color var(--motion-dur) var(--motion-ease);
+}
+
+.phone-shell.has-mini {
+  --dock-space: calc(var(--phone-nav-height) + var(--phone-mini-player-height) + var(--space-2) * 3 + env(safe-area-inset-bottom, 0px));
 }
 
 /* Resting on the Library, the status bar strip takes its header's tint; a swipe away fades it with the sheet. */
@@ -53,6 +62,7 @@
 .pane-scroll {
   flex: 1;
   min-height: 0;
+  padding-bottom: var(--dock-space);
   overflow-y: auto;
   overscroll-behavior-y: contain;
   container: main-content / inline-size;
@@ -106,20 +116,23 @@
 .phone-content {
   flex: 1;
   min-height: 0;
+  padding-bottom: var(--dock-space);
   overflow-y: auto;
   overscroll-behavior: contain;
   container: main-content / inline-size;
 }
 
 .mini-player {
-  position: relative;
+  position: absolute;
+  z-index: 2;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: calc(var(--phone-nav-height) + var(--space-2) * 2 + env(safe-area-inset-bottom, 0px));
   isolation: isolate;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex: none;
   height: var(--phone-mini-player-height);
-  margin: 0 var(--space-2) var(--space-2);
   padding-right: var(--space-2);
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -261,15 +274,18 @@
   .mini-play { transition: none; }
 }
 
-/* Icons only. The bar takes horizontal drags itself (they move the pager), so it never pans. */
+/* Icons only, on a floating pill. The bar takes horizontal drags itself (they move the pager), so it never pans. */
 .bottom-nav {
-  position: relative;
+  position: absolute;
+  z-index: 2;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
   display: flex;
-  flex: none;
-  height: calc(var(--phone-nav-height) + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-sidebar);
+  height: var(--phone-nav-height);
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
   touch-action: none;
 }
 
@@ -311,7 +327,7 @@
   z-index: 1300;
   left: var(--space-4);
   right: var(--space-4);
-  bottom: calc(var(--phone-nav-height) + var(--phone-mini-player-height) + var(--space-4) + env(safe-area-inset-bottom, 0px));
+  bottom: var(--dock-space);
   display: flex;
   align-items: center;
   gap: var(--space-2);
