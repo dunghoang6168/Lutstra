@@ -1,7 +1,9 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, ViewChild, effect, inject, input } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, ViewChild, afterRenderEffect, effect, inject, input } from '@angular/core';
 import { AUDIO_ANALYSIS_ENGINE } from '../../../core/contracts';
 import { PlayerService } from '../../../core/player/player.service';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { LayoutPreferenceService } from '../../../core/layout/layout-preference.service';
+import { CoverToneService } from '../../../phone/cover-tone.service';
 import { FrequencyBand, createLogFrequencyBands, decaySpectrumLevels, updateSpectrumLevels } from './spectrum-utils';
 
 const CANVAS_RESIZE_DEBOUNCE_MS = 120;
@@ -34,6 +36,8 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
   private readonly analysis = inject(AUDIO_ANALYSIS_ENGINE);
   readonly player = inject(PlayerService);
   private readonly theme = inject(ThemeService);
+  private readonly coverTone = inject(CoverToneService);
+  private readonly layoutPreference = inject(LayoutPreferenceService);
   private readonly zone = inject(NgZone);
   private readonly host = inject(ElementRef<HTMLElement>);
   private levels = new Float32Array(0);
@@ -57,10 +61,13 @@ export class SpectrumVisualizerComponent implements AfterViewInit, OnDestroy {
     if (this.viewReady) this.syncPlaybackState();
   });
 
-  private readonly themeEffect = effect(() => {
+  /** After render, so the colours read are the ones just applied, Now Playing's cover tint (`.np-tint`) included. */
+  private readonly themeEffect = afterRenderEffect(() => {
     this.theme.effectiveTheme();
     this.theme.themePreset();
     this.theme.accentColor();
+    this.coverTone.tone();
+    this.layoutPreference.mode();
     this.colorVar();
     if (this.viewReady) {
       this.readThemeColors();

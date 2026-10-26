@@ -163,7 +163,7 @@
                     <td class="col-title">
                       <div class="title-cell">
                         @if (row.track.artwork) {
-                          <img [src]="row.track.artwork" [alt]="row.track.title" class="thumb-img" />
+                          <img [src]="row.track.artworkSmall ?? row.track.artwork" [alt]="row.track.title" class="thumb-img" loading="lazy" decoding="async" />
                         } @else {
                           <div class="thumb-placeholder">
                             <app-icon name="music" [size]="16" />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coverTone } from '../src/app/phone/cover-tone';
+import { coverTone, nowPlayingTones } from '../src/app/phone/cover-tone';
 
 function fill(count: number, rgb: [number, number, number]): number[] {
   return Array.from({ length: count }, () => [...rgb, 255]).flat();
@@ -26,5 +26,19 @@ describe('coverTone', () => {
 
   it('goes neutral for a grey cover', () => {
     expect(coverTone(new Uint8ClampedArray(fill(50, [128, 128, 128])))).toEqual({ hue: 0, chroma: 0 });
+  });
+});
+
+describe('nowPlayingTones', () => {
+  it('caps each role at its own chroma, at a fixed lightness', () => {
+    const tones = nowPlayingTones({ hue: 96, chroma: 0.118 }, 'dark');
+    expect(tones['--np-ink']).toBe('oklch(0.94 0.035 96)');
+    expect(tones['--np-on']).toBe('oklch(0.8 0.118 96)');
+    expect(tones['--np-on-muted']).toBe('oklch(0.8 0.118 96 / 0.15)');
+  });
+
+  it('turns grey with a grey cover and darkens for the light theme', () => {
+    expect(nowPlayingTones({ hue: 0, chroma: 0 }, 'dark')['--np-play']).toBe('oklch(0.86 0 0)');
+    expect(nowPlayingTones({ hue: 243, chroma: 0.093 }, 'light')['--np-on']).toBe('oklch(0.45 0.093 243)');
   });
 });

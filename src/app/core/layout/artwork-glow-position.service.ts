@@ -5,6 +5,8 @@ export interface ArtworkGlowBounds {
   top: number;
   width: number;
   height: number;
+  /** The sheet's rounded box as a clip-path, so the glow stays off the header and gutters. */
+  clip: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -15,7 +17,7 @@ export class ArtworkGlowPositionService {
   setBounds(bounds: ArtworkGlowBounds): void {
     const previous = this.boundsState();
     if (previous && previous.left === bounds.left && previous.top === bounds.top &&
-      previous.width === bounds.width && previous.height === bounds.height) return;
+      previous.width === bounds.width && previous.height === bounds.height && previous.clip === bounds.clip) return;
     this.boundsState.set(bounds);
   }
 

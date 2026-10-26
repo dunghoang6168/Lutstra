@@ -119,7 +119,7 @@
             @if (artworks.length === 4) {
               <div class="cover-mosaic" aria-hidden="true">
                 @for (url of artworks; track url) {
-                  <span class="cover-cell"><img [src]="url" alt="" class="cover-img" (error)="onArtworkError(url)" /></span>
+                  <span class="cover-cell"><img [src]="url" alt="" class="cover-img" loading="lazy" decoding="async" (error)="onArtworkError(url)" /></span>
                 }
               </div>
             } @else if (artworks.length > 0) {

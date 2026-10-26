@@ -24,6 +24,9 @@ import { AcrylicScrollbarService } from './core/layout/acrylic-scrollbar.service
 import { LIBRARY_GATEWAY } from './core/contracts';
 import { getDesktopApi } from './core/desktop/desktop-api';
 import { ContentSheetService } from './core/layout/content-sheet.service';
+import { ThemeService } from './core/theme/theme.service';
+import { CoverToneService } from './phone/cover-tone.service';
+import { nowPlayingTones } from './phone/cover-tone';
 import { devShellContent } from './dev-hooks';
 
 const SIDEBAR_COLLAPSED_KEY = 'lutsra.sidebar.collapsed';
@@ -110,6 +113,15 @@ export class AppComponent implements AfterViewChecked {
     if (this.layout() === 'classic') return null;
     if (this.layout() === 'liquid-glass' && !this.layoutPreference.ambientArtwork()) return null;
     return this.layout() === 'liquid-glass' || this.onNowPlaying() ? artwork : null;
+  });
+  private readonly coverTone = inject(CoverToneService).tone;
+  private readonly theme = inject(ThemeService);
+  /** Now Playing in Gallery and Ambient takes the cover's colours (`.np-tint` in _base.scss), the dock included;
+   *  without a readable cover it keeps the accent. */
+  readonly nowPlayingTint = computed(() => {
+    const tone = this.coverTone();
+    if (!tone || !this.onNowPlaying() || this.layout() === 'classic') return null;
+    return nowPlayingTones(tone, this.theme.effectiveTheme());
   });
   /** Console's strip is permanent; Gallery's rail and Ambient's dock appear once there is music.
    *  On an embedded page each shows only while Lutstra plays, leaving the room to the page's own player. */

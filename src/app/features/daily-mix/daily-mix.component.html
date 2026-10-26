@@ -55,7 +55,7 @@
               <td class="col-title">
                 <div class="title-cell">
                   @if (track.artwork) {
-                    <img [src]="track.artwork" alt="" class="thumb-img" />
+                    <img [src]="track.artworkSmall ?? track.artwork" alt="" class="thumb-img" loading="lazy" decoding="async" />
                   } @else {
                     <div class="thumb-placeholder" aria-hidden="true">
                       <app-icon name="music" [size]="16" />

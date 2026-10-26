@@ -95,7 +95,8 @@ app.whenReady().then(async () => {
   const migratedFrom = await migrateLegacyProfile(userData, app.getPath('appData'));
   if (migratedFrom) console.info('[profile] Migrated legacy library from', migratedFrom);
   database = new DatabaseService(path.join(userData, 'lutstra.sqlite'));
-  const artwork = new ArtworkService(path.join(userData, 'artwork-cache'), database);
+  const artworkCache = path.join(userData, 'artwork-cache');
+  const artwork = new ArtworkService(artworkCache, database);
   const scanner = new ScannerService(database, artwork, (progress) => broadcastProgress(mainWindow, progress));
   const trackDetails = new TrackDetailsService(database);
   const lyrics = new LyricsService(database);
@@ -104,7 +105,7 @@ app.whenReady().then(async () => {
   });
   const rendererRoot = path.join(app.getAppPath(), 'dist', 'lutstra', 'browser');
 
-  installProtocolHandlers(database, rendererRoot, development);
+  installProtocolHandlers(database, rendererRoot, development, artworkCache);
   audioHost = new AudioHostService(database, () => mainWindow);
   registerIpc(database, scanner, trackDetails, artistMetadata, lyrics, audioHost, () => mainWindow, development, setNativeMediaKeysActive);
   installDev({ database, getWindow: () => mainWindow, handle: (channel, listener) => handle(channel, listener, development) });

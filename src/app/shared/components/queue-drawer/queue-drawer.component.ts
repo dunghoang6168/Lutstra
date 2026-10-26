@@ -1,10 +1,13 @@
 import { Component, HostListener, afterNextRender, computed, effect, ElementRef, Injector, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import type { Track } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
 import { QueueActionsService } from '../../../core/player/queue-actions.service';
 import { ListeningHistoryService } from '../../../core/history/listening-history.service';
 import { SmartShuffleService } from '../../../core/smart-shuffle/smart-shuffle.service';
 import { focusListItem, nextRowIndex } from '../../utils/row-navigation';
+import { suggestionTailStart } from '../../utils/list-media';
+import { AddToPlaylistDialogComponent, QueueSave } from '../add-to-playlist-dialog/add-to-playlist-dialog.component';
 import { DurationPipe } from '../../pipes/duration.pipe';
 import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
@@ -14,7 +17,7 @@ const COLLAPSED_SUGGESTIONS = 3;
 @Component({
   selector: 'app-queue-drawer',
   standalone: true,
-  imports: [CommonModule, DurationPipe, IconComponent, TipDirective],
+  imports: [AddToPlaylistDialogComponent, CommonModule, DurationPipe, IconComponent, TipDirective],
   templateUrl: './queue-drawer.component.html',
   styleUrl: './queue-drawer.component.scss'
 })
@@ -36,10 +39,20 @@ export class QueueDrawerComponent {
   readonly refreshingAutoplay = signal(false);
   readonly suggestionTail = computed(() => {
     const queue = this.player.queue();
-    let start = queue.length;
-    while (start > this.player.currentIndex() + 1 && queue[start - 1].suggested) start--;
+    const start = suggestionTailStart(queue, this.player.currentIndex());
     return { start, length: queue.length - start };
   });
+  /** Save queue as playlist: everything up to the waiting suggestions, which the dialog offers behind a checkbox. */
+  readonly saving = signal<{ tracks: Track[]; save: QueueSave } | null>(null);
+
+  openSave(): void {
+    const queue = this.player.queue();
+    const { start } = this.suggestionTail();
+    this.saving.set({
+      tracks: queue.slice(0, start).map((entry) => entry.track),
+      save: { suggested: queue.slice(start).map((entry) => entry.track), source: this.player.smartShuffle() ? 'Smart Shuffle' : 'Autoplay' },
+    });
+  }
   /** Where Autoplay's run starts, for its divider; Smart Shuffle marks each of its rows instead. */
   readonly autoplayFrom = computed(() => {
     const tail = this.suggestionTail();

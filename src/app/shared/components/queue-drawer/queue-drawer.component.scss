@@ -91,6 +91,17 @@
       border-color: var(--status-error);
     }
 
+    .save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .save-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+
     .close-btn {
       width: 32px;
       height: 32px;

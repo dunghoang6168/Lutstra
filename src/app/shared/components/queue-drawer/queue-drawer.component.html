@@ -17,6 +17,17 @@
         <div class="drawer-actions">
           <button
             type="button"
+            class="clear-btn save-btn"
+            (click)="openSave()"
+            [disabled]="player.queue().length === 0"
+            appTip="Save queue as playlist"
+            aria-label="Save queue as playlist">
+            <app-icon name="list-plus" [size]="13" />
+            Save
+          </button>
+
+          <button
+            type="button"
             class="clear-btn"
             (click)="queueActions.clearWithUndo()"
             [disabled]="player.queue().length === 0"
@@ -119,7 +130,7 @@
 
                 <!-- Artwork Thumbnail -->
                 @if (entry.track.artwork) {
-                  <img [src]="entry.track.artwork" [alt]="entry.track.title" class="thumb-img" />
+                  <img [src]="entry.track.artworkSmall ?? entry.track.artwork" [alt]="entry.track.title" class="thumb-img" loading="lazy" decoding="async" />
                 } @else {
                   <div class="thumb-placeholder" aria-hidden="true">
                     <app-icon name="music" [size]="16" />
@@ -175,3 +186,6 @@
         <span class="sr-only" aria-live="polite">{{ reorderAnnouncement() }}</span>
       </div>
     </aside>
+    @if (saving(); as s) {
+      <app-add-to-playlist-dialog [tracks]="s.tracks" [queueSave]="s.save" (closed)="saving.set(null)" />
+    }

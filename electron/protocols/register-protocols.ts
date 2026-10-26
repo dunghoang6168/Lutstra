@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { DatabaseService } from '../services/database.service.js';
 import { isPathInside } from '../utils/path-utils.js';
 import { createFileResponse } from './file-response.js';
+import { smallArtwork } from '../services/artwork-thumbnail.js';
 
 
 export function registerPrivilegedSchemes(): void {
@@ -14,7 +15,7 @@ export function registerPrivilegedSchemes(): void {
   ]);
 }
 
-export function installProtocolHandlers(database: DatabaseService, rendererRoot: string, development: boolean): void {
+export function installProtocolHandlers(database: DatabaseService, rendererRoot: string, development: boolean, artworkCache: string): void {
   protocol.handle('app', async (request) => {
     const url = new URL(request.url);
     let pathname = decodeURIComponent(url.pathname || '/');
@@ -33,6 +34,11 @@ export function installProtocolHandlers(database: DatabaseService, rendererRoot:
     if (url.hostname === 'artwork') {
       if (!/^[a-f0-9]{64}$/.test(id)) return response(400, 'Invalid resource ID');
       const artwork = database.resolveArtwork(id); if (!artwork) return response(404, 'Artwork not found');
+      // ?size=small: the list copy; a cover nativeImage cannot read falls back to the original.
+      if (url.searchParams.get('size') === 'small') {
+        const small = await smallArtwork(artworkCache, id, artwork.path).catch(() => null);
+        if (small) return createFileResponse(small, request, small === artwork.path ? artwork.mime : 'image/jpeg', initiatorOrigin);
+      }
       return createFileResponse(artwork.path, request, artwork.mime, initiatorOrigin);
     }
     if (url.hostname !== 'track') return response(404, 'Resource not found');

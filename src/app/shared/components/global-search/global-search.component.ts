@@ -188,7 +188,7 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
         .map((track) => ({
           key: `song-${track.id}`, kind: 'song', title: track.title,
           subtitle: [track.artist, track.album].filter(Boolean).join(' · ') || track.fileName,
-          artwork: track.artwork, disabled: !track.isAvailable, item: track,
+          artwork: track.artworkSmall ?? track.artwork, disabled: !track.isAvailable, item: track,
         })),
     },
     {
@@ -197,7 +197,7 @@ function buildGroups(snapshot: LibrarySnapshot | null, rawQuery: string): Search
         .slice(0, 5)
         .map((album) => ({
           key: `album-${album.id}`, kind: 'album', title: album.title,
-          subtitle: album.artist || 'Unknown Artist', artwork: album.artwork, disabled: false, item: album,
+          subtitle: album.artist || 'Unknown Artist', artwork: album.artworkSmall ?? album.artwork, disabled: false, item: album,
         })),
     },
     {

@@ -61,6 +61,8 @@
             ],
             "styles": [
               "node_modules/@fontsource-variable/manrope/wght.css",
+              "node_modules/@fontsource-variable/google-sans-flex/full.css",
+              "node_modules/@fontsource-variable/google-sans-code/wght.css",
               "src/styles.scss"
             ],
             "scripts": []
@@ -137,6 +139,8 @@
               ],
               "styles": [
                 "node_modules/@fontsource-variable/manrope/wght.css",
+                "node_modules/@fontsource-variable/google-sans-flex/full.css",
+                "node_modules/@fontsource-variable/google-sans-code/wght.css",
                 "src/styles.scss",
                 "dev/renderer/styles.scss"
               ]

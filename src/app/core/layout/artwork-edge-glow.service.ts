@@ -4,7 +4,7 @@ const SAMPLE_SIZE = 60;
 const CACHE_LIMIT = 30;
 
 /** Distance the glow travels on each side, as a fraction of the cover size. */
-export const EDGE_GLOW_SPREAD = 1;
+export const EDGE_GLOW_SPREAD = 0.6;
 
 export function createEdgeGlowPixels(cover: ImageData, spread = EDGE_GLOW_SPREAD): ImageData {
   const { width, height } = cover;

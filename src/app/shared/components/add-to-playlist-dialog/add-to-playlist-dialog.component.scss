@@ -22,6 +22,42 @@
 .modal-desc { font-size: var(--font-size-sm); color: var(--text-secondary); margin-bottom: var(--space-4); }
 .dialog-error { color: var(--status-error); font-size: var(--font-size-sm); margin-bottom: var(--space-3); }
 
+.suggested-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); cursor: pointer; }
+.suggested-check input { flex: none; width: 16px; height: 16px; margin: 0; cursor: pointer; }
+.suggested-extra { color: var(--text-muted); }
+
+/* Saving the queue: one tab names a new playlist, the other adds to one that exists. */
+.save-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin: var(--space-4) 0;
+  padding: 3px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--dialog-control-radius);
+  button {
+    padding: var(--space-2) 0;
+    border-radius: calc(var(--dialog-control-radius) - 2px);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    &:hover { color: var(--text-primary); }
+    &[aria-pressed='true'] { background: var(--bg-elevated); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+  }
+}
+.field-label { font-size: var(--font-size-xs); font-weight: 700; color: var(--text-secondary); margin-bottom: var(--space-2); }
+.name-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--dialog-control-radius);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
 .search-box { position: relative; display: flex; align-items: center; margin-bottom: var(--space-3); }
 .search-icon { position: absolute; left: var(--space-3); color: var(--text-muted); pointer-events: none; }
 .search-box input {

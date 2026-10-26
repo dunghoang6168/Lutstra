@@ -155,11 +155,13 @@
 }
 :host-context(html[data-theme='light']) .ambient-art { opacity: 0.42; }
 
+/* Gallery's Now Playing glow: the cover's edge colours, saturated rather than brightened (a brightness boost burns
+   light covers to white), clipped to the sheet by the backdrop's clip-path. */
 .panel-glow-img, .panel-edge-glow-img {
   position: absolute;
   object-fit: cover;
-  opacity: 0.94;
-  filter: blur(32px) brightness(2.4);
+  opacity: 0.75;
+  filter: blur(48px) brightness(1.1) saturate(1.7);
 }
 
 :host-context(html[data-theme='light']) .panel-glow-img,

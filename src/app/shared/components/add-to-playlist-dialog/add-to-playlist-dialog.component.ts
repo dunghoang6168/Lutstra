@@ -8,6 +8,8 @@ import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
 
 interface PendingAdd { playlist: Playlist; duplicates: string[]; fresh: string[]; }
+/** Saving the queue: the suggestions still waiting at its end, offered behind a checkbox, and who picked them. */
+export interface QueueSave { suggested: readonly Track[]; source: string; }
 
 @Component({
   selector: 'app-add-to-playlist-dialog',
@@ -19,6 +21,8 @@ interface PendingAdd { playlist: Playlist; duplicates: string[]; fresh: string[]
 export class AddToPlaylistDialogComponent implements OnDestroy {
   readonly tracks = input.required<readonly Track[]>();
   readonly excludePlaylistId = input<string>();
+  /** Set when saving the queue: the dialog shows New / Existing playlist tabs. */
+  readonly queueSave = input<QueueSave | null>(null);
   readonly closed = output<void>();
   readonly added = output<Playlist>();
   private readonly gateway = inject(PLAYLIST_GATEWAY);
@@ -34,13 +38,22 @@ export class AddToPlaylistDialogComponent implements OnDestroy {
   readonly libraryTracks = signal<ReadonlyMap<string, Track>>(new Map());
   readonly query = signal('');
   readonly pending = signal<PendingAdd | null>(null);
-  readonly available = computed(() => this.tracks().filter((track) => track.isAvailable));
+  readonly tab = signal<'new' | 'existing'>('new');
+  readonly includeSuggested = signal(false);
+  readonly newName = signal('Queue · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+  readonly chosen = computed(() => {
+    const save = this.queueSave();
+    return save && this.includeSuggested() ? [...this.tracks(), ...save.suggested] : this.tracks();
+  });
+  readonly minutes = computed(() => Math.round(this.tracks().reduce((sum, track) => sum + track.duration, 0) / 60));
+  readonly suggestedMinutes = computed(() => Math.round((this.queueSave()?.suggested ?? []).reduce((sum, track) => sum + track.duration, 0) / 60));
+  readonly available = computed(() => this.chosen().filter((track) => track.isAvailable));
   readonly trackIds = computed(() => this.available().map((track) => track.id));
   readonly filtered = computed(() => {
     const query = this.query().trim().toLocaleLowerCase();
     return this.playlists().filter((playlist) => playlist.name.toLocaleLowerCase().includes(query));
   });
-  readonly title = computed(() => this.tracks().length === 1 ? '“' + this.tracks()[0].title + '”' : this.tracks().length + ' tracks');
+  readonly title = computed(() => this.chosen().length === 1 ? '“' + this.chosen()[0].title + '”' : this.chosen().length + ' tracks');
 
   constructor() {
     afterNextRender(() => {
@@ -84,8 +97,7 @@ export class AddToPlaylistDialogComponent implements OnDestroy {
     else void this.add(playlist, split.fresh);
   }
 
-  async create(): Promise<void> {
-    const name = this.query().trim();
+  async create(name = this.query().trim()): Promise<void> {
     if (!name || this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
@@ -114,7 +126,7 @@ export class AddToPlaylistDialogComponent implements OnDestroy {
       const updated = await this.gateway.addTracks(playlist.id, [...trackIds]);
       if (this.destroyRef.destroyed) return;
       this.added.emit(updated);
-      const skipped = this.tracks().length - this.available().length;
+      const skipped = this.chosen().length - this.available().length;
       const count = trackIds.length;
       this.queueActions.notify('Added ' + count + (count === 1 ? ' track' : ' tracks') + ' to “' + playlist.name + '”'
         + (skipped ? ', skipped ' + skipped + ' unavailable' : ''));

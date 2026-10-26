@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { splitDuplicates } from '../src/app/shared/utils/list-media';
+import { splitDuplicates, suggestionTailStart } from '../src/app/shared/utils/list-media';
 
 const entries = [{ trackId: 'a' }, { trackId: 'b' }];
 
@@ -15,5 +15,18 @@ describe('splitDuplicates', () => {
   });
   it('keeps repeated selection ids', () => {
     expect(splitDuplicates(entries, ['a', 'c', 'a', 'c'])).toEqual({ duplicates: ['a', 'a'], fresh: ['c', 'c'] });
+  });
+});
+
+describe('suggestionTailStart', () => {
+  const q = (...flags: boolean[]) => flags.map((suggested) => ({ suggested }));
+  it('starts at the first waiting suggestion', () => {
+    expect(suggestionTailStart(q(false, false, true, true), 1)).toBe(2);
+  });
+  it('keeps suggestions that already played or are playing', () => {
+    expect(suggestionTailStart(q(false, true, true, true), 2)).toBe(3);
+  });
+  it('is the queue length when nothing waits', () => {
+    expect(suggestionTailStart(q(false, true, false), 0)).toBe(3);
   });
 });

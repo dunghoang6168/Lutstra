@@ -61,6 +61,8 @@ class OverlayScrollArea {
     const thumbHeight = Math.min(trackHeight, Math.max(24, trackHeight * height / this.host.scrollHeight));
     this.thumbTravel = trackHeight - thumbHeight;
     this.anchor.style.top = `${paddingTop}px`;
+    // The anchor sits at the content's right edge; the thumb goes out into the right padding so it never covers content.
+    this.hitArea.style.right = `${-(parseFloat(style.paddingRight) || 0)}px`;
     this.hitArea.style.height = `${trackHeight}px`;
     this.thumb.style.height = `${thumbHeight}px`;
     this.thumb.style.transform = `translateY(${this.maxScroll ? this.host.scrollTop / this.maxScroll * this.thumbTravel : 0}px)`;

@@ -6,13 +6,14 @@
       [class.has-player]="showPlayer()"
       [class.rail-hidden]="isSidebarHidden()"
       [style.--rail-width.px]="railWidth()"
+      [class.np-tint]="nowPlayingTint()" [style]="nowPlayingTint()"
       [attr.inert]="showOnboarding() || showShortcuts() ? '' : null">
       @if (layout() === 'liquid-glass') {
         <div class="now-playing-backdrop" aria-hidden="true">
           <app-cover-art class="ambient-art" [src]="backdropArtwork()" [icon]="null" />
         </div>
       } @else if (backdropArtwork(); as artwork) {
-        <div class="now-playing-backdrop" aria-hidden="true">
+        <div class="now-playing-backdrop" aria-hidden="true" [style.clip-path]="artworkGlowPosition.bounds()?.clip">
           @if (artworkGlowPosition.bounds(); as bounds) {
             @if (panelGlow(); as glow) {
               @if (glow.url) {

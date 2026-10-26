@@ -68,12 +68,16 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
       if (!appLayout) return;
       const cover = this.glowCard.getBoundingClientRect();
       const layout = appLayout.getBoundingClientRect();
-      if (!cover.width || !cover.height) return;
+      const main = this.host.nativeElement.closest<HTMLElement>('.main-content');
+      if (!cover.width || !cover.height || !main) return;
+      const sheet = main.getBoundingClientRect();
       this.artworkGlowPosition.setBounds({
         left: cover.left - layout.left,
         top: cover.top - layout.top,
         width: cover.width,
         height: cover.height,
+        clip: `inset(${sheet.top - layout.top}px ${layout.right - sheet.right}px ${layout.bottom - sheet.bottom}px `
+          + `${sheet.left - layout.left}px round ${getComputedStyle(main).borderRadius})`,
       });
     });
   };

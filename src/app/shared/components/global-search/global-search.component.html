@@ -55,7 +55,7 @@
                         [attr.aria-disabled]="result.disabled"
                         (click)="activate(result)">
                         @if (result.artwork) {
-                          <img [src]="result.artwork" alt="" />
+                          <img [src]="result.artwork" alt="" loading="lazy" decoding="async" />
                         } @else {
                           <span class="result-icon" aria-hidden="true">
                             <app-icon [name]="result.kind === 'artist' ? 'user' : result.kind === 'album' ? 'disc' : 'music'" [size]="17" />

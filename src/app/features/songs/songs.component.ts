@@ -1,4 +1,4 @@
-import { linkedSignal, WritableSignal, Component, DestroyRef, ElementRef, OnInit, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { linkedSignal, WritableSignal, Component, DestroyRef, ElementRef, Injector, OnInit, afterNextRender, afterRenderEffect, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +18,7 @@ import { compareNames } from '../library-browse';
 import { formatKhz, formatResolution, formatTrackFormat, matchesQualityFilter, trackQuality } from '../home/library-quality';
 import { TrackSelectionService } from '../../core/layout/track-selection.service';
 import { nextRowIndex } from '../../shared/utils/row-navigation';
+import { rowWindow, scrollTopToReveal } from '../../shared/utils/row-window';
 
 type SortColumn = 'title' | 'artist' | 'album' | 'duration' | 'codec' | 'sampleRate';
 type SortDirection = 'asc' | 'desc';
@@ -57,7 +58,24 @@ export class SongsComponent implements OnInit {
   private readonly route = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly songsBody = viewChild<ElementRef<HTMLTableSectionElement>>('songsBody');
+  private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
+  private readonly injector = inject(Injector);
   private rowNavigationInitialized = false;
+
+  /*
+   * Only the rows in view (plus ROW_OVERSCAN each side) are in the DOM; spacer rows stand in for the rest.
+   * Rows share one height (--row-height), measured from the rendered rows; 44px until then.
+   */
+  private readonly scrollTop = signal(0);
+  private readonly viewportHeight = signal(0);
+  private readonly headerHeight = signal(0);
+  readonly rowHeight = signal(44);
+  private readonly rowRange = computed(() => rowWindow(this.scrollTop(), this.viewportHeight() - this.headerHeight(), this.rowHeight(), this.filteredTracks().length));
+  readonly windowStart = computed(() => this.rowRange().start);
+  readonly windowEnd = computed(() => this.rowRange().end);
+  readonly renderedTracks = computed(() => this.filteredTracks().slice(this.windowStart(), this.windowEnd()));
+  /** Keeps the table in the tab order when the active row is scrolled out of the DOM. */
+  readonly activeRendered = computed(() => this.renderedTracks().some((track) => track.id === this.activeTrackId()));
 
   readonly tracks = signal<Track[]>([]);
   readonly lyricTrackIds = signal<ReadonlySet<string>>(new Set());
@@ -129,6 +147,29 @@ export class SongsComponent implements OnInit {
   }
 
   constructor() {
+    effect((onCleanup) => {
+      const scroller = this.scroller()?.nativeElement;
+      if (!scroller) return;
+      const onScroll = (): void => this.scrollTop.set(scroller.scrollTop);
+      const resize = new ResizeObserver(() => this.viewportHeight.set(scroller.clientHeight));
+      scroller.addEventListener('scroll', onScroll, { passive: true });
+      resize.observe(scroller);
+      onScroll();
+      onCleanup(() => { scroller.removeEventListener('scroll', onScroll); resize.disconnect(); });
+    });
+    afterRenderEffect({
+      read: () => {
+        this.renderedTracks();
+        const body = this.songsBody()?.nativeElement;
+        const rows = body?.querySelectorAll<HTMLElement>('.song-row');
+        if (!body || !rows?.length) return;
+        // The stride between rows, fractions included, so spacer heights do not drift over a long list.
+        const height = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : rows[0].getBoundingClientRect().height;
+        if (height > 0 && Math.abs(height - this.rowHeight()) > 0.01) this.rowHeight.set(height);
+        const header = body.closest('table')?.tHead?.getBoundingClientRect().height ?? 0;
+        if (Math.abs(header - this.headerHeight()) > 0.01) this.headerHeight.set(header);
+      },
+    });
     effect(() => {
       const tracks = this.filteredTracks();
       if (this.isLoading() || this.errorMessage()) return;
@@ -358,10 +399,20 @@ export class SongsComponent implements OnInit {
     this.activeTrackId.set(track.id);
     this.onSelectTrack(track);
     if (!moveFocus) return;
-    // Click and key events refer to already-rendered rows, including tabindex=-1 rows.
     const row = this.songsBody()?.nativeElement.querySelector<HTMLTableRowElement>(
       `[data-track-id="${CSS.escape(track.id)}"]`,
     );
+    const scrollerEl = this.scroller()?.nativeElement;
+    if (!row && scrollerEl) {
+      // Keys can move to a row outside the rendered window: scroll it in, then focus it once it renders.
+      const index = this.filteredTracks().findIndex((item) => item.id === track.id);
+      const target = index < 0 ? null : scrollTopToReveal(index, scrollerEl.scrollTop, scrollerEl.clientHeight - this.headerHeight(), this.rowHeight());
+      if (target === null) return;
+      scrollerEl.scrollTop = target;
+      this.scrollTop.set(scrollerEl.scrollTop);
+      afterNextRender(() => { if (this.activeTrackId() === track.id) this.onActivateTrack(track, true); }, { injector: this.injector });
+      return;
+    }
     const scroller = row?.closest<HTMLElement>('.table-scroll-container');
     const header = row?.closest('table')?.tHead;
     if (scroller && header) {

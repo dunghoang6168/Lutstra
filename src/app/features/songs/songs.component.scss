@@ -209,6 +209,9 @@
       color: var(--text-accent);
     }
 
+    /* Stand-ins for the rows scrolled out of the DOM. */
+    .row-spacer { border: 0; }
+
     .song-row {
       height: var(--row-height);
       border-bottom: 1px solid var(--border-subtle);
@@ -552,6 +555,11 @@
   top: 0;
   z-index: 2;
   background: var(--bg-elevated);
+}
+// Ambient's --bg-elevated is 46% glass, so rows scrolling under the sticky header would show through.
+// Solid, not blurred: a blur smears a bright cover under the header into its edges.
+:host-context(.layout-liquid-glass) .selection-header {
+  background: var(--glass-solid);
 }
 .selection-header .selection-overlay-row {
   position: absolute; inset: 0; display: block; height: 100%; z-index: 1;

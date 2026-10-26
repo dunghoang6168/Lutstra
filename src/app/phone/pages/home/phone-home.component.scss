@@ -13,12 +13,14 @@
 
 .hero-text { flex: 1; min-width: 0; }
 
+/* PixelPlayer's "Your Mix": widest, medium-heavy, half-rounded (its XTRA/YOPQ/YTLC settings are no-ops on this font). */
 .hero-title {
   margin: 0;
   font-size: var(--phone-hero-title-size);
-  font-weight: var(--type-display-weight);
-  letter-spacing: -0.04em;
-  line-height: 0.92;
+  font-weight: 636;
+  font-stretch: 151%;
+  font-variation-settings: 'ROND' 50;
+  line-height: 0.97;
 
   span { display: block; }
 }

@@ -52,6 +52,21 @@ html[data-layout='phone'][data-theme='light'] .cover-tinted {
   --np-text-2: oklch(0.4 min(var(--np-chroma), 0.04) var(--np-hue));
 }
 
+/* Desktop Now Playing (Gallery, Ambient) takes the cover's colours, owner's choice 2026-10-26: AppComponent puts
+   .np-tint and the --np-* tones (nowPlayingTones, cover-tone.ts) on .app-layout while Now Playing is open. Every accent
+   on the page and in Ambient's dock becomes the cover tone, primary text is lightly tinted, secondary text stays, and
+   Play and the control icons are cover-tinted like the phone's. The amber warning keeps its own colour. */
+.np-tint :is(.now-playing-page, .ambient-dock) {
+  --text-accent: var(--np-on);
+  --accent-primary: var(--np-on);
+  --accent-muted: var(--np-on-muted);
+}
+.np-tint .now-playing-page { --text-primary: var(--np-ink); }
+.np-tint :is(.now-playing-page .btn-play-large, .ambient-dock .play-pause-btn) { background: var(--np-play); color: var(--np-on-play); }
+.np-tint .now-playing-page .btn-play-large:hover { background: var(--np-ink); }
+.np-tint :is(.now-playing-page .btn-icon, .ambient-dock .ctrl-btn) { color: var(--np-icon); }
+.np-tint :is(.now-playing-page .btn-icon.active, .ambient-dock .ctrl-btn.active) { color: var(--np-on); }
+
 html, body, app-root {
   height: 100%;
   width: 100%;

@@ -206,7 +206,7 @@ File truth is the thing every shell shows. Format, bit depth and sample rate, an
 
 **Key Characteristics:**
 - One shared palette (Graphite / Cloud plus six accent sets). Layouts never introduce hues.
-- Manrope Variable for all prose. The system monospace is used only for measurements.
+- Manrope Variable for all prose on desktop, Google Sans Flex on the phone. Monospace (the system's on desktop, Google Sans Code on the phone) is used only for measurements.
 - Three distinct topologies driven by a single set of per-layout custom properties on `html[data-layout]`.
 - Density spans three steps: 52px rows (Gallery), 44px (Ambient), 30px (Console).
 - Motion character differs by layout: an ease-out glide at 320ms, a linear snap at 100ms, a long ease-out at 460ms. All of it collapses to 0ms under reduced motion. Covers crossfade to the next track at `--cover-fade-dur`: the layout's motion duration, 0ms (a straight swap) in Console.
@@ -236,13 +236,14 @@ The palette is cool graphite or cloud paper, with exactly one user-chosen hue on
 
 **The Absence Rule.** Amber means a file or output is not there. If nothing is missing or disconnected, no amber appears on screen.
 
-**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player, the Home hero and the desktop Now Playing. The one exception is the phone's Now Playing and mini player (owner's choice, 2026-10-18): after PixelPlayer, every control there, Play included, takes its colour from the cover (`cover-tone.ts`, `.cover-tinted` in `_base.scss`, OKLCH tones fixed per role so each label keeps 4.5:1; a grey cover gives grey controls), while the rest of the phone keeps the accent. On the phone, a page's one primary action (Settings › Choose folders) is ink too, by the owner's choice (2026-10-17): the phone keeps accent for meaning only, so it never fills a button there. The owner overturned that for the phone Library on 2026-10-22: after PixelPlayer, its action buttons are accent tonal buttons (below), and the lit chip and the Settings button take the strong accent tone.
+**The Ink Play Rule.** The play/pause control is solid ink: `--text-primary` fill with a `--text-inverse` icon, never accent and never glow, so it reads with every accent set and on glass. This holds for the player and the Home hero. The exceptions are the desktop Now Playing in Gallery and Ambient (owner's choice, 2026-10-26, see the Now Playing Cover Colour Rule) and the phone's Now Playing and mini player (owner's choice, 2026-10-18): after PixelPlayer, every control there, Play included, takes its colour from the cover (`cover-tone.ts`, `.cover-tinted` in `_base.scss`, OKLCH tones fixed per role so each label keeps 4.5:1; a grey cover gives grey controls), while the rest of the phone keeps the accent. On the phone, a page's one primary action (Settings › Choose folders) is ink too, by the owner's choice (2026-10-17): the phone keeps accent for meaning only, so it never fills a button there. The owner overturned that for the phone Library on 2026-10-22: after PixelPlayer, its action buttons are accent tonal buttons (below), and the lit chip and the Settings button take the strong accent tone.
 
 ## Typography
 
 **Display Font:** Manrope Variable (with system-ui, Segoe UI)
 **Body Font:** Manrope Variable
 **Label/Mono Font:** system monospace (ui-monospace, Consolas), used for measurements only
+**Phone (Android):** Google Sans Flex Variable for all prose and Google Sans Code Variable for measurements, set on `html[data-layout='phone']`. Chosen 2026-10-25 over Manrope and Be Vietnam Pro: it reads clearer at arm's length and keeps Vietnamese diacritics apart. The phone loads the family's full-axis files (width, roundness, optical size). Home's "Flex Mix" title is set like PixelPlayer's "Your Mix": `font-stretch: 151%`, weight 636, `'ROND' 50`, 4rem / 0.97.
 
 **Character:** One geometric-humanist sans changes voice by weight and tracking per layout: heavy and tight in Gallery, compact and small-capped in Console, medium and soft in Ambient. Monospace appears only where a number is a measurement.
 
@@ -301,6 +302,10 @@ Dialogs take `--dialog-*` tokens per layout: Gallery lifted r12, Console flat r3
 
 **The Ambient Ground Rule.** In Ambient, the current cover blurred (80px, saturate 1.25, 55% opacity dark and 42% light) is the ground on every page. It crossfades to the next cover over 1.2s, and fades out when the next track has no cover. Inside the glass sheet, surfaces map to glass tints derived from the active preset by `color-mix`, so both presets work.
 
+**The Gallery Glow Rule.** On Gallery's Now Playing, the cover's edge colours spread 0.6 of the cover's size around it (`artwork-edge-glow.service.ts`), blurred 48px and saturated ×1.7 rather than brightened (a brightness boost burned light covers to white), at 75% opacity (50% light), and clipped to the sheet's rounded box so the header and gutters stay clean (owner's choice, 2026-10-26).
+
+**The Now Playing Cover Colour Rule.** On the desktop Now Playing in Gallery and Ambient, and on Ambient's dock while Now Playing is open, colour comes from the cover (owner's choice, 2026-10-26): `AppComponent` puts `.np-tint` and the `--np-*` tones from `nowPlayingTones` (`cover-tone.ts`, the phone's cover tone with lightness fixed per role and chroma capped, for each theme) on `.app-layout`, and `_base.scss` maps every accent there (`--text-accent`, `--accent-primary`, `--accent-muted`: Hi-Res, bit-perfect, links, the active lyric, active icons, the spectrum, progress, volume, focus) to the cover tone, tints primary text lightly, leaves secondary text alone, and gives Play and the control icons the cover's tones. The amber warning keeps its colour. Without a readable cover, Now Playing keeps the accent; Console never tints.
+
 **The Solid Fallback Rule.** Under `prefers-reduced-transparency` or forced colours, every glass surface becomes its solid preset surface and the artwork ground is removed. Settings › Layout › Artwork backdrop (`ambientArtwork`, Ambient only) also removes the artwork ground, leaving the glass over the plain theme canvas.
 
 ## Shapes
@@ -347,7 +352,7 @@ Gallery and Ambient share one listening-first Home; Console keeps its table Home
 Between the signal path and the timeline, the rail shows the current track's timed lyrics from `CurrentLyricsService` (`features/now-playing`, shared with Now Playing). Lines are real buttons that seek, the active line is accent and kept centred, and the list fades at both edges. A track without lyrics shows "No lyrics for this track." The block is hidden below 1101 × 701. Upcoming tracks live in the queue drawer.
 
 ### Signal Path (signature)
-A mono line reading `source → path`, for example `FLAC 24/96 → bit-perfect` or `M4A 256k → shared mixer`. The source is set in the text colour (accent if Hi-Res). The path is accent when bit-perfect, amber when the output is disconnected, and secondary otherwise. It states only what the engine reports. It appears in the Console strip, the Gallery rail and the chip on Ambient's Now Playing; the Ambient dock shows only the resolution (accent for Hi-Res), or "Output disconnected" in amber. Its tooltip names the device and explains the current state in one sentence; Settings › Audio output explains the engines and the Windows shared mixer in place.
+A mono line reading `source → path`, for example `FLAC 24/96 → bit-perfect` or `M4A 256k → shared mixer`. The source is set in the text colour (accent if Hi-Res; on the desktop Now Playing the accent is the cover tone). The path is accent when bit-perfect, amber when the output is disconnected, and secondary otherwise. It states only what the engine reports. It appears in the Console strip, the Gallery rail and the chip on Ambient's Now Playing; the Ambient dock shows only the resolution (accent for Hi-Res), or "Output disconnected" in amber. Its tooltip names the device and explains the current state in one sentence; Settings › Audio output explains the engines and the Windows shared mixer in place.
 
 ### Console Table and Inspector
 30px rows separated by subtle hairlines, with small-caps headers. Hover uses surface-hover, and the playing row uses surface-active. Missing rows go muted, with the state cell in amber. The inspector opens with the file-truth block (18px mono format plus the on-disk state) before the tag sections.
@@ -380,7 +385,7 @@ Interface copy is sentence case; the one exception is the phone Library's tab ch
 ### Don't:
 - **Don't** add glow, drop shadows or radii above 4px inside Console.
 - **Don't** use amber for emphasis, scan progress or anything that is not an absent file or output.
-- **Don't** introduce a second typeface or a system display face. Mono is for measurements only.
+- **Don't** introduce another typeface or a system display face. Each platform has one sans (Manrope on desktop, Google Sans Flex on the phone) and one mono for measurements only.
 - **Don't** reskin one topology three times. A layout earns its id by moving navigation, content and the player.
 - **Don't** hard-code hues or gradients for placeholders or heroes. They must follow the preset and accent.
 

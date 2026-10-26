@@ -343,6 +343,9 @@ html[data-layout='liquid-glass'][data-runtime='desktop'] {
 
 /* Phone (Android): Gallery's palette and voice, sized for a thumb. Only the phone shell sets it. */
 html[data-layout='phone'] {
+  /* Google Sans Flex reads clearer than Manrope at arm's length on the phone; desktop keeps Manrope. */
+  --font-family-base: 'Google Sans Flex Variable', system-ui, Roboto, sans-serif;
+  --font-family-mono: 'Google Sans Code Variable', ui-monospace, monospace;
   --page-pad-x: 16px;
   --page-pad-top: var(--space-2);
   --type-display: 2rem;
@@ -357,7 +360,7 @@ html[data-layout='phone'] {
   --phone-transport-size: 56px;
   --phone-play-size: 72px;
   /* Home's "Flex / Mix" display title and the covers stacked in its card head (PixelPlayer's Your Mix). */
-  --phone-hero-title-size: 4.25rem;
+  --phone-hero-title-size: 4rem;
   --phone-mix-cover: 52px;
   --phone-np-transport-height: 80px;
   --phone-np-play-radius: 26px;

@@ -115,7 +115,7 @@
 
       <!-- Main Songs Table View -->
       <div class="table-frame">
-        <div class="table-scroll-container">
+        <div class="table-scroll-container" #scroller>
         @if (errorMessage()) {
           <div class="error-state" role="alert">
             <app-icon name="alert-triangle" [size]="48" />
@@ -220,7 +220,11 @@
             }
             </thead>
             <tbody #songsBody (keydown)="onRowsKeyDown($event)">
-              @for (track of filteredTracks(); track track.id; let i = $index) {
+              @if (windowStart() > 0) {
+                <tr class="row-spacer" aria-hidden="true" [style.height.px]="windowStart() * rowHeight()"></tr>
+              }
+              @for (track of renderedTracks(); track track.id; let j = $index, first = $first) {
+                @let i = windowStart() + j;
                 <tr
                   class="song-row"
                   [class.selected]="selectedRows().ids.has(track.id)"
@@ -230,7 +234,7 @@
                     (click)="onRowClick(track, $event)"
                   (dblclick)="onPlayTrack(track, i)"
                   (focusin)="onActivateTrack(track, false)"
-                  [attr.tabindex]="activeTrackId() === track.id ? 0 : -1"
+                  [attr.tabindex]="activeTrackId() === track.id || (first && !activeRendered()) ? 0 : -1"
                   [attr.data-track-id]="track.id"
                   [attr.aria-rowindex]="i + 2"
                   [attr.aria-selected]="selectedRows().ids.has(track.id)">
@@ -255,7 +259,7 @@
                   <td class="col-title">
                     <div class="title-cell">
                       @if (track.artwork) {
-                        <img [src]="track.artwork" [alt]="track.title" class="thumb-img" />
+                        <img [src]="track.artworkSmall ?? track.artwork" [alt]="track.title" class="thumb-img" loading="lazy" decoding="async" />
                       } @else {
                         <div class="thumb-placeholder" aria-hidden="true">
                           <app-icon name="music" [size]="16" />
@@ -325,6 +329,9 @@
                     <app-track-actions-menu [track]="track" [tabIndex]="activeTrackId() === track.id ? 0 : -1" />
                   </td>
                 </tr>
+              }
+              @if (windowEnd() < filteredTracks().length) {
+                <tr class="row-spacer" aria-hidden="true" [style.height.px]="(filteredTracks().length - windowEnd()) * rowHeight()"></tr>
               }
             </tbody>
           </table>

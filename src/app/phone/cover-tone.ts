@@ -51,3 +51,18 @@ export function coverTone(pixels: Uint8ClampedArray): CoverTone {
   const neutral = colourful / (pixels.length / 4) < MIN_COLOURFUL_SHARE || chroma < MIN_CHROMA;
   return { hue, chroma: neutral ? 0 : Math.round(chroma * 1000) / 1000 };
 }
+
+/**
+ * Desktop Now Playing's cover colours (Gallery and Ambient), as --np-* custom properties for `.np-tint` in _base.scss.
+ * Lightness is fixed per role and chroma capped, as on the phone, so each keeps its contrast whatever the cover;
+ * literal oklch() values, so the spectrum canvas can draw with them.
+ */
+export function nowPlayingTones({ hue, chroma }: CoverTone, theme: 'dark' | 'light'): Record<string, string> {
+  const tone = (lightness: number, cap: number, alpha?: number): string =>
+    `oklch(${lightness} ${Math.min(chroma, cap)} ${hue}${alpha === undefined ? '' : ` / ${alpha}`})`;
+  return theme === 'dark'
+    ? { '--np-ink': tone(0.94, 0.035), '--np-play': tone(0.86, 0.11), '--np-on-play': tone(0.26, 0.05),
+      '--np-icon': tone(0.82, 0.06), '--np-on': tone(0.8, 0.12), '--np-on-muted': tone(0.8, 0.12, 0.15) }
+    : { '--np-ink': tone(0.24, 0.04), '--np-play': tone(0.42, 0.12), '--np-on-play': tone(0.98, 0.02),
+      '--np-icon': tone(0.4, 0.06), '--np-on': tone(0.45, 0.12), '--np-on-muted': tone(0.45, 0.12, 0.12) };
+}
