@@ -21,6 +21,8 @@ const MAX_INTERPOLATION_SECONDS = 1.25;
 })
 export class WaveformSeekComponent implements AfterViewInit, OnDestroy {
   readonly track = input.required<Track>();
+  /** Ambient's floor strip: a low wave without time pills; the played part in the accent, the rest faint text colour. */
+  readonly compact = input(false);
   readonly player = inject(PlayerService);
   private readonly peaksService = inject(WaveformPeaksService);
   private readonly theme = inject(ThemeService);
@@ -241,17 +243,19 @@ export class WaveformSeekComponent implements AfterViewInit, OnDestroy {
     const count = Math.max(1, Math.floor((this.plotWidth + BAR_GAP) / (BAR_WIDTH + BAR_GAP)));
     const levels = aggregateWaveformLevels(peaks, count);
     const barWidth = Math.max(2, (this.plotWidth - (count - 1) * BAR_GAP) / count);
-    const center = (height - 25) / 2;
-    const maximumHeight = Math.max(8, height - 52);
+    const compact = this.compact();
+    const center = compact ? height / 2 : (height - 25) / 2;
+    const maximumHeight = Math.max(8, compact ? height - 6 : height - 52);
     const accentColor = styles.getPropertyValue('--accent-primary').trim() || '#8b5cf6';
-    const playedColor = darkenAccent(accentColor);
+    const futureColor = compact ? styles.getPropertyValue('--text-primary').trim() || '#fff' : accentColor;
+    const playedColor = compact ? accentColor : darkenAccent(accentColor);
     [future, played].forEach((layer, layerIndex) => {
       const context = layer.getContext('2d');
       if (!context) return;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, width, height);
-      context.fillStyle = layerIndex === 0 ? accentColor : playedColor;
-      context.globalAlpha = layerIndex === 0 ? 0.94 : 1;
+      context.fillStyle = layerIndex === 0 ? futureColor : playedColor;
+      context.globalAlpha = layerIndex === 0 ? (compact ? 0.34 : 0.94) : 1;
       for (let index = 0; index < Math.min(count, Math.floor(count * coverage)); index++) {
         const barHeight = Math.max(2, levels[index] * maximumHeight);
         const x = PADDING + index * (barWidth + BAR_GAP);

@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, computed, ElementRef, inject, OnDestroy } from '@angular/core';
+import { AfterViewChecked, Component, computed, ElementRef, inject, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { PlayerService } from '../../core/player/player.service';
@@ -38,6 +38,10 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
   readonly lyricsStatus = this.lyrics.status;
   readonly lyricLines = this.lyrics.lines;
   readonly activeLineIndex = this.lyrics.activeLineIndex;
+  /** Ambient: the tall lyrics card beside the cover card, opened from the sung line. */
+  private readonly lyricsOpen = signal(false);
+  readonly showLyrics = computed(() => this.lyricsOpen() && this.lyricsStatus() === 'ready');
+  readonly sungLine = computed(() => this.lyricLines()[Math.max(0, this.activeLineIndex())]?.text || '♪');
   readonly trackMetadataLabel = computed(() => {
     const track = this.player.currentTrack();
     if (!track) return '';
@@ -104,9 +108,11 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
     if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
     this.scrollFrame = requestAnimationFrame(() => {
       this.scrollFrame = null;
-      const viewport = this.host.nativeElement.querySelector<HTMLElement>('.lyrics-lines');
-      if (!viewport || this.destroyed) return;
-      centerLyricLine(viewport, active);
+      if (this.destroyed) return;
+      // Ambient can hold two lists (the lyrics card, the short-window card); only the shown one has a size.
+      for (const viewport of this.host.nativeElement.querySelectorAll<HTMLElement>('.lyrics-lines')) {
+        if (viewport.clientHeight) centerLyricLine(viewport, active);
+      }
     });
   }
 
@@ -146,6 +152,11 @@ export class NowPlayingComponent implements AfterViewChecked, OnDestroy {
   }
 
   seekToLyric(line: LyricLine): void { this.lyrics.seek(line); }
+
+  toggleLyrics(): void {
+    this.lyricsOpen.update((open) => !open);
+    this.lastScrolledLine = null; // the opened card centres the sung line
+  }
 
   onTimelinePointerDown(event: PointerEvent): void {
     if (!this.canSeek()) return;

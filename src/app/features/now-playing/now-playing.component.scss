@@ -486,169 +486,205 @@
       background: var(--color-accent-fill-hover);
     }
 
-    .now-playing-page.layout-liquid-glass { padding: var(--page-pad-top) clamp(24px, 4vw, 52px) clamp(24px, 4vw, 52px); }
-    .layout-liquid-glass .now-playing-content {
-      grid-template-columns: clamp(300px, 34%, 430px) minmax(0, 1fr);
-      column-gap: clamp(28px, 4vw, 64px);
-      row-gap: 22px;
-      width: min(100%, 1120px);
+    /* ---------- Ambient: the cover is the hero (owner, 2026-10-26) ----------
+       The cover, its floor visualisation and the text are one glass card as wide as the cover; the cover's foot fades
+       into the card. The sung line opens a tall lyrics card on the left; the two spread over ~1000px and the cover takes
+       the sung line's room. The cover is sized by the window's height so the card clears the dock (960px caps only
+       very large screens). */
+    .now-playing-page.layout-liquid-glass {
+      --np-cover: max(240px, min(100dvh - 350px, 960px, 100cqw - 48px));
+      padding: var(--page-pad-top) 24px calc(var(--ambient-dock-clearance, 0px) + 16px);
+    }
+    .ambient-np {
+      display: grid;
+      grid-template-columns: var(--np-cover);
+      justify-content: center;
       align-items: start;
     }
-    .layout-liquid-glass .large-artwork-card {
-      border-radius: var(--cover-radius);
-      box-shadow: var(--glass-shadow);
+    .ambient-np.lyrics-open {
+      --np-cover: max(240px, min(100dvh - 310px, 960px, 100cqw - 412px));
+      grid-template-columns: 340px var(--np-cover);
+      justify-content: space-evenly;
+      width: min(100%, max(1000px, var(--np-cover) + 388px));
+      margin-inline: auto;
     }
-    .layout-liquid-glass .details-column {
-      align-self: stretch;
-      gap: 10px;
-    }
-    .layout-liquid-glass .track-heading-card {
-      padding: 4px 0 18px;
-      margin: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-    }
-    .layout-liquid-glass .track-title {
-      font-size: var(--type-display);
-      font-weight: var(--type-display-weight, 600);
-      letter-spacing: var(--type-display-tracking, -0.02em);
-      line-height: 1.05;
-    }
-    .layout-liquid-glass .artist-album-row { font-size: 15px; }
-    .layout-liquid-glass .visualization-controls {
-      display: flex;
-      flex: 1 1 auto;
-      flex-direction: column;
-      min-height: 0;
-      padding: 18px;
-      border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      background: var(--glass-regular);
-      box-shadow: inset 0 1px 0 var(--glass-specular);
+    .ambient-card {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
       overflow: hidden;
-    }
-    .layout-liquid-glass .visualization-controls app-spectrum-visualizer {
-      flex: 1 1 auto;
-      min-height: 0;
-      margin-bottom: 0;
-    }
-    .layout-liquid-glass .inline-controls { margin-top: var(--space-3); padding: var(--space-2) var(--space-3); }
-    /* The Ambient dock drops its timeline at 900px; only then does the spectrum card carry one. */
-    @media (min-width: 901px) { .layout-liquid-glass .inline-controls { display: none; } }
-    .layout-liquid-glass .timeline-group { margin-bottom: 0; }
-    .layout-liquid-glass .timeline-track { background: var(--color-border); }
-    .layout-liquid-glass .visualization-controls app-waveform-seek {
-      flex: 1 1 auto;
-      min-height: 0;
-    }
-    .layout-liquid-glass .lyrics-card {
-      grid-column: 1 / -1;
-      grid-row: 3;
-      height: clamp(240px, 30vh, 380px);
-      padding: 20px 22px;
-      border-color: var(--glass-border);
-      border-radius: 16px;
-      background: var(--glass-regular);
-      box-shadow: inset 0 1px 0 var(--glass-specular);
-    }
-    /* Ambient folds Source file into a chip on the heading card; it opens All properties. */
-    .layout-liquid-glass .lyrics-card { grid-row: 2; }
-    .heading-source-btn {
-      flex: 0 0 auto;
-      align-self: flex-start;
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-1);
-      max-width: 50%;
-      padding: 5px 6px 5px 10px;
       border: 1px solid var(--glass-border);
-      border-radius: var(--control-radius);
+      border-radius: var(--cover-radius);
+      background: var(--glass-readable-surface);
+      box-shadow: inset 0 1px 0 var(--glass-specular), 0 24px 60px rgb(0 0 0 / 0.3);
+    }
+    .ambient-cover { position: relative; aspect-ratio: 1; }
+    .ambient-cover app-cover-art {
+      position: absolute;
+      inset: 0;
+      mask-image: linear-gradient(180deg, #000 72%, transparent);
+    }
+    /* The spectrum or the waveform rises from the cover's foot. */
+    .ambient-floor { position: absolute; left: 12px; right: 12px; bottom: 0; height: 44px; }
+    .ambient-floor app-spectrum-visualizer { height: 100%; min-height: 0; margin: 0; }
+    .ambient-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      padding: 14px 22px 18px;
+      text-align: center;
+    }
+    .ambient-title {
+      max-width: 100%;
+      font-size: 1.625rem;
+      font-weight: var(--type-display-weight, 600);
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
+    }
+    /* The title opens All properties; the chevron marks it (the source chip is gone, owner 2026-10-26). */
+    .ambient-title-btn {
+      display: inline;
+      font: inherit;
+      letter-spacing: inherit;
+      color: var(--text-primary);
+      text-align: inherit;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .ambient-title-btn .title-chevron {
+      display: inline-flex;
+      margin-left: 4px;
+      vertical-align: middle;
       color: var(--text-secondary);
+      transition: color var(--transition-fast), transform var(--transition-fast);
+    }
+    .ambient-title-btn:hover .title-chevron,
+    .ambient-title-btn[aria-expanded='true'] .title-chevron { color: var(--text-primary); transform: translateX(2px); }
+    .ambient-title-btn:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+    .ambient-text .artist-album-row { max-width: 100%; font-size: var(--font-size-sm); }
+    .ambient-timeline { display: none; width: 100%; margin: 4px 0 0; }
+    @media (max-width: 900px) { .ambient-timeline { display: flex; } }
+    .sung-line {
+      display: block; /* not the button's inline-flex: the ellipsis needs a block box */
+      max-width: 100%;
+      margin-top: 4px;
+      padding: 4px 10px;
+      border-radius: var(--control-radius);
+      color: var(--text-accent);
+      font: inherit;
+      font-size: var(--font-size-md);
+      font-weight: 750;
       white-space: nowrap;
       overflow: hidden;
-      transition: background var(--transition-fast), border-color var(--transition-fast);
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: background var(--transition-fast);
     }
-    .heading-source-btn app-signal-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .heading-source-btn:hover { background: var(--bg-surface-hover); }
-    .heading-source-btn.active {
-      background: var(--accent-muted);
-      border-color: var(--accent-primary);
-    }
-    .heading-source-btn:focus-visible {
-      outline: 2px solid var(--accent-primary);
-      outline-offset: 2px;
-    }
-    .layout-liquid-glass .lyrics-card h2,
-    .layout-liquid-glass .lyrics-lines,
-    .layout-liquid-glass .lyrics-message {
-      width: 100%;
-      margin-inline: 0;
-    }
-    .layout-liquid-glass .lyrics-card h2 { font-size: var(--font-size-md); }
-    .layout-liquid-glass .lyrics-line {
-      font-size: var(--font-size-md);
-      line-height: 1.45;
-    }
-    .layout-liquid-glass .lyrics-line.past {
-      color: var(--text-muted);
-      opacity: 0.48;
-    }
-    .layout-liquid-glass .lyrics-line.upcoming {
-      color: var(--text-secondary);
-      opacity: 0.68;
-    }
-    .layout-liquid-glass .lyrics-line.active {
-      color: var(--text-accent);
-      font-size: var(--font-size-lg);
-      font-weight: 800;
-      opacity: 1;
-    }
-    .layout-liquid-glass .lyrics-line:not(.active):is(:hover, :focus-visible) {
-      color: var(--text-primary);
-      opacity: 1;
-    }
+    .sung-line:hover { background: var(--accent-muted); }
+    .sung-line:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 
-    :host-context(html[data-runtime='desktop'][data-layout='liquid-glass']) .layout-liquid-glass .track-heading-card {
-      padding: 15px 18px;
+    /* The lyrics card is a window through the sheet onto the app's ground (Windows acrylic plus the Artwork backdrop):
+       it paints the sheet's glass around itself as a spread shadow, clipped by the sheet, while the sheet drops its
+       own (_base.scss). A thin scrim of that glass keeps the lines readable on light covers. */
+    .ambient-lyrics {
+      position: relative;
+      z-index: 0;
+      align-self: stretch;
+      contain: size; /* as tall as the cover card, never by its own lines: they scroll inside */
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      min-height: 320px;
+      padding: 20px 22px;
       border: 1px solid var(--glass-border);
-      border-radius: 16px;
-      background: var(--glass-text-backplate);
-      box-shadow: inset 0 1px 0 var(--glass-specular), var(--shadow-sm);
+      border-radius: var(--cover-radius);
+      background: color-mix(in srgb, var(--glass-content) 30%, transparent);
+      box-shadow: inset 0 1px 0 var(--glass-specular), 0 0 0 100vmax var(--glass-content);
     }
-    :host-context(html[data-runtime='desktop'][data-layout='liquid-glass']) .layout-liquid-glass .lyrics-card {
-      background: var(--glass-readable-surface);
+    .lyrics-toggle {
+      align-self: flex-start;
+      padding: 5px 12px;
+      border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent);
+      border-radius: var(--radius-full);
+      background: var(--accent-muted);
+      color: var(--text-accent);
+      font: inherit;
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition-fast);
     }
-    :host-context(html[data-runtime='desktop'][data-layout='liquid-glass']) .layout-liquid-glass .lyrics-lines {
-      mask-image: linear-gradient(to bottom, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+    .lyrics-toggle:hover { background: color-mix(in srgb, var(--accent-primary) 26%, transparent); }
+    .lyrics-toggle:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+    .ambient-lyrics .lyrics-lines { mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
+    .ambient-lyrics .lyrics-line { font-size: var(--font-size-md); line-height: 1.45; text-align: center; }
+    .ambient-lyrics .lyrics-line.past { color: var(--text-muted); opacity: 0.6; }
+    .ambient-lyrics .lyrics-line.upcoming { color: var(--text-secondary); opacity: 0.8; }
+    .ambient-lyrics .lyrics-line.active { color: var(--text-accent); font-size: var(--font-size-lg); font-weight: 800; opacity: 1; }
+    .ambient-lyrics .lyrics-line:not(.active):is(:hover, :focus-visible) { color: var(--text-primary); opacity: 1; }
+    /* Solid fallback: no window through the sheet, a solid card instead. */
+    @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+      .ambient-lyrics { background: var(--glass-readable-surface); box-shadow: none; }
+      .ambient-cover app-cover-art { mask-image: none; }
+    }
+    .card-lyrics { display: none; }
+    /* Narrow windows: the lyrics card goes under the cover card. */
+    @container main-content (max-width: 820px) {
+      .ambient-np.lyrics-open {
+        --np-cover: max(240px, min(100dvh - 350px, 960px, 100cqw - 48px));
+        grid-template-columns: var(--np-cover);
+        justify-content: center;
+        row-gap: 16px;
+        width: auto;
+      }
+      .ambient-lyrics { order: 1; min-height: 0; height: 320px; }
+    }
+    /* Short windows (owner, 2026-10-27): the card lies on its side — the text and the lyrics on the left in the card's
+       glass, the cover on the right sized by the window's height, its left edge fading into the text. The lyrics stay
+       in the card (no sung line, no lyrics card) and scroll inside it. _base.scss keeps the sheet's glass here. */
+    @media (max-height: 819px) and (min-width: 760px) {
+      .ambient-np,
+      .ambient-np.lyrics-open {
+        --np-cover: max(200px, min(100dvh - 200px, 100cqw - 380px));
+        grid-template-columns: auto;
+        justify-content: center;
+        width: auto;
+      }
+      .ambient-lyrics, .sung-line { display: none; }
+      .ambient-card { display: grid; grid-template-columns: clamp(240px, 32cqw, 400px) var(--np-cover); }
+      .ambient-cover { grid-area: 1 / 2; }
+      .ambient-cover app-cover-art {
+        mask-image: linear-gradient(180deg, #000 78%, transparent), linear-gradient(270deg, #000 82%, transparent);
+        mask-composite: intersect;
+      }
+      .ambient-text {
+        grid-area: 1 / 1;
+        align-items: flex-start;
+        gap: 8px;
+        min-height: 0;
+        padding: 24px 8px 18px 26px;
+        text-align: left;
+      }
+      .ambient-title { font-size: 1.5rem; }
+      .ambient-text .artist-album-row { width: 100%; text-align: left; }
+      .card-lyrics {
+        display: flex;
+        flex: 1;
+        contain: size; /* as tall as the cover, never by its own lines */
+        width: 100%;
+        margin-top: 10px;
+        mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+      }
+      .card-lyrics .lyrics-line { display: block; font-size: var(--font-size-md); line-height: 1.45; text-align: left; }
+      .card-lyrics .lyrics-line.past { color: var(--text-muted); opacity: 0.6; }
+      .card-lyrics .lyrics-line.active { color: var(--text-accent); font-weight: 800; }
     }
 
-    @media (forced-colors: active) {
-      .layout-liquid-glass .lyrics-line.past,
-      .layout-liquid-glass .lyrics-line.upcoming {
-        color: CanvasText;
-        opacity: 1;
-      }
-      .layout-liquid-glass .lyrics-line.active {
-        color: Highlight;
-        text-shadow: none;
-      }
-    }
-
-    .layout-liquid-glass .now-playing-content:not(.has-lyrics) {
-      align-items: center;
-      width: min(100%, 980px);
-    }
-
-    @container main-content (min-width: 761px) and (max-width: 1000px) {
-      .now-playing-page.layout-liquid-glass { padding: var(--page-pad-top) 24px 24px; }
-      .layout-liquid-glass .now-playing-content {
-        grid-template-columns: clamp(260px, 34%, 340px) minmax(0, 1fr);
-        column-gap: 24px;
-        row-gap: 18px;
-      }
-      .layout-liquid-glass .track-title { font-size: var(--type-display); }
-    }
 
     @container main-content (max-width: 760px) {
       .now-playing-page { padding: var(--space-4); }
@@ -674,25 +710,6 @@
       .artist-album-row { text-align: center; }
       .specs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .details-affordance > span { display: none; }
-      .layout-liquid-glass .now-playing-content,
-      .layout-liquid-glass .now-playing-content:not(.has-lyrics) {
-        width: min(80cqw, 100%);
-        align-items: stretch;
-        gap: var(--space-5);
-      }
-      .layout-liquid-glass .artwork-column { width: 100%; }
-      .layout-liquid-glass .details-column {
-        align-self: auto;
-        width: 100%;
-        gap: 10px;
-      }
-      .layout-liquid-glass .lyrics-card {
-        width: 100%;
-        height: clamp(240px, 40vh, 300px);
-      }
-      .layout-liquid-glass .track-heading-card { text-align: left; }
-      .layout-liquid-glass .artist-album-row { text-align: left; }
-      .layout-liquid-glass .visualization-controls { min-height: 190px; }
     }
 
     @container main-content (max-width: 360px) {
@@ -710,8 +727,4 @@
       @container main-content (min-width: 761px) {
         .artwork-column { width: min(100%, 190px); }
       }
-      .layout-liquid-glass .now-playing-content {
-        grid-template-columns: minmax(190px, 28%) minmax(0, 1fr);
-      }
-      .layout-liquid-glass .lyrics-card { height: 220px; }
     }

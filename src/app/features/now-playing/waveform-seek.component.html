@@ -1,4 +1,4 @@
-<div class="waveform-area" [class.fallback]="state() === 'fallback'"
+<div class="waveform-area" [class.compact]="compact()" [class.fallback]="state() === 'fallback'"
   [class.partial]="state() === 'partial'" [class.preview-complete]="state() === 'ready' && hasPreview()">
   @if (state() === 'fallback') {
     <span class="fallback-time">{{ player.currentTime() | duration }}</span>

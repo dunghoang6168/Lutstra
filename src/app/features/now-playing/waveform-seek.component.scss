@@ -18,3 +18,8 @@
 .fallback-time { flex: 0 0 40px; text-align: center; color: var(--text-muted); font: var(--font-size-xs) var(--font-family-mono); }
 .fallback-track { width: 100%; height: 6px; border-radius: var(--radius-full); background: var(--border-default); overflow: hidden; }
 .fallback-track span { display: block; height: 100%; background: var(--accent-primary); }
+/* Compact (Ambient's floor strip, over the cover's faded foot): no time pills, the cursor spans the strip. */
+.compact.waveform-area:not(.fallback) { height: 44px; }
+.compact .waveform-times, .compact .fallback-time { display: none; }
+.compact .waveform-cursor { top: 2px; bottom: 2px; box-shadow: 0 0 6px rgb(0 0 0 / 0.35); }
+.compact .waveform-message { font-size: var(--font-size-xs); }

@@ -3,6 +3,93 @@
       [class.layout-classic]="layoutPreference.mode() === 'classic'"
       [class.layout-liquid-glass]="layoutPreference.mode() === 'liquid-glass'">
       @if (player.currentTrack(); as track) {
+        @if (layoutPreference.mode() === 'liquid-glass') {
+        <!-- Ambient: the cover is the hero. The cover, its floor visualisation and the text are one card; the sung line
+             opens a tall lyrics card on the left that looks through the sheet onto the window's ground. -->
+        <div class="ambient-np" [class.lyrics-open]="showLyrics()">
+          @if (showLyrics()) {
+            <section id="ambient-lyrics" class="ambient-lyrics" aria-label="Lyrics">
+              <button type="button" class="lyrics-toggle" aria-pressed="true" (click)="toggleLyrics()">Lyrics</button>
+              <div class="lyrics-lines" aria-label="Timed lyrics">
+                @for (line of lyricLines(); track $index) {
+                  <button type="button" class="lyrics-line"
+                    [class.past]="activeLineIndex() > $index"
+                    [class.active]="activeLineIndex() === $index"
+                    [class.upcoming]="activeLineIndex() < $index"
+                    [attr.data-lyric-index]="$index"
+                    [attr.aria-current]="activeLineIndex() === $index ? 'true' : null"
+                    (click)="seekToLyric(line)">{{ line.text }}</button>
+                }
+              </div>
+            </section>
+          }
+          <article class="ambient-card">
+            <div class="ambient-cover">
+              <app-cover-art [src]="track.artwork" [alt]="track.title" [iconSize]="80" />
+              <div class="ambient-floor">
+                @if (audioVisualization.mode() === 'waveform') {
+                  <app-waveform-seek [track]="track" [compact]="true" />
+                } @else {
+                  <app-spectrum-visualizer [bare]="true" [barCount]="40" />
+                }
+              </div>
+            </div>
+            <div class="ambient-text">
+              <h1 class="ambient-title">
+                <button #detailsTrigger type="button" class="ambient-title-btn"
+                  (click)="openTrackDetails($event)" aria-controls="track-details-panel"
+                  [attr.aria-expanded]="rightPanels.isTrackDetailsOpen()"
+                  [attr.aria-label]="track.title + ': all properties'">{{ track.title }}<app-icon name="chevron-right" [size]="22" class="title-chevron" /></button>
+              </h1>
+              <div class="artist-album-row" appTipOverflow>
+                <span class="track-artist">{{ track.artist || 'Unknown Artist' }}</span>
+                @if (track.album) {
+                  <span class="dot-separator">•</span>
+                  <span class="track-album">{{ track.album }}</span>
+                }
+                @if (track.year) {
+                  <span class="dot-separator">•</span>
+                  <span class="track-year">{{ track.year }}</span>
+                }
+              </div>
+              <!-- The dock drops its timeline at 900px; then the card carries one (the waveform seeks itself). -->
+              @if (audioVisualization.mode() === 'spectrum') {
+                <div class="timeline-group ambient-timeline">
+                  <span class="time-label">{{ displayTime() | duration }}</span>
+                  <div class="timeline-bar-wrap"
+                    (pointerdown)="onTimelinePointerDown($event)" (pointermove)="onTimelinePointerMove($event)"
+                    (pointerup)="onTimelinePointerUp($event)" (pointercancel)="onTimelinePointerCancel($event)"
+                    (keydown)="onTimelineKeyDown($event)" role="slider"
+                    [attr.tabindex]="player.duration() > 0 ? 0 : -1" [attr.aria-disabled]="player.duration() <= 0"
+                    [attr.aria-valuenow]="displayTime()" [attr.aria-valuemin]="0" [attr.aria-valuemax]="player.duration()"
+                    aria-label="Timeline scrubber">
+                    <div class="timeline-track"><div class="timeline-fill" [style.width.%]="displayPercent()"></div></div>
+                  </div>
+                  <span class="time-label">{{ player.duration() | duration }}</span>
+                </div>
+              }
+              <!-- Short windows lay the card on its side and keep the lyrics in it; the sung line and the lyrics card go. -->
+              @if (lyricsStatus() === 'ready') {
+                <div class="lyrics-lines card-lyrics" aria-label="Timed lyrics">
+                  @for (line of lyricLines(); track $index) {
+                    <button type="button" class="lyrics-line"
+                      [class.past]="activeLineIndex() > $index"
+                      [class.active]="activeLineIndex() === $index"
+                      [class.upcoming]="activeLineIndex() < $index"
+                      [attr.data-lyric-index]="$index"
+                      [attr.aria-current]="activeLineIndex() === $index ? 'true' : null"
+                      (click)="seekToLyric(line)">{{ line.text }}</button>
+                  }
+                </div>
+              }
+              @if (!showLyrics() && lyricsStatus() === 'ready') {
+                <button type="button" class="sung-line" (click)="toggleLyrics()"
+                  aria-expanded="false" aria-controls="ambient-lyrics" appTip="Show lyrics">{{ sungLine() }}</button>
+              }
+            </div>
+          </article>
+        </div>
+        } @else {
         <div class="now-playing-content" [class.has-lyrics]="lyricsStatus() !== 'missing'">
           <!-- Cover -->
           <div class="artwork-column">
@@ -45,15 +132,6 @@
                   appTip="Toggle queue drawer">
                   <app-icon name="queue" [size]="18" />
                 </button>
-              } @else if (layoutPreference.mode() === 'liquid-glass') {
-                <button #detailsTrigger type="button" class="heading-source-btn"
-                  (click)="openTrackDetails($event)" aria-controls="track-details-panel"
-                  [attr.aria-expanded]="rightPanels.isTrackDetailsOpen()"
-                  [class.active]="rightPanels.isTrackDetailsOpen()"
-                  aria-label="Source file: all properties">
-                  <app-signal-path />
-                  <app-icon name="chevron-right" [size]="14" />
-                </button>
               }
             </div>
 
@@ -64,8 +142,7 @@
                 <app-spectrum-visualizer />
               }
 
-            <!-- Embedded Timeline & Controls; Ambient keeps only the spectrum timeline (the dock holds transport, the waveform seeks itself) -->
-            @if (layoutPreference.mode() !== 'liquid-glass' || audioVisualization.mode() === 'spectrum') {
+            <!-- Embedded Timeline & Controls -->
             <div class="inline-controls">
               @if (audioVisualization.mode() === 'spectrum') {
               <div class="timeline-group">
@@ -92,7 +169,6 @@
               </div>
               }
 
-              @if (layoutPreference.mode() !== 'liquid-glass') {
               <div class="transport-buttons" [class.panel-transport]="layoutPreference.mode() === 'inset'">
                 @if (layoutPreference.mode() === 'inset') {
                   <button
@@ -170,14 +246,11 @@
                   <app-inline-volume-control class="panel-volume-control" />
                 }
               </div>
-              }
             </div>
-            }
             </div>
           </div>
 
-            <!-- Technical Audio Specification Box (Source Quality); Ambient folds it into the heading chip -->
-            @if (layoutPreference.mode() !== 'liquid-glass') {
+            <!-- Technical Audio Specification Box (Source Quality) -->
             <section class="technical-specs-card" aria-labelledby="specs-title"
               [class.hidden-while-details-open]="rightPanels.isTrackDetailsOpen()">
               <span class="specs-header">
@@ -225,7 +298,6 @@
                 <span class="path-value truncate" appTipOverflow>{{ track.path }}</span>
               </span>
             </section>
-            }
 
           @if (lyricsStatus() !== 'missing') {
             <section class="lyrics-card" aria-labelledby="lyrics-heading">
@@ -252,6 +324,7 @@
             </section>
           }
         </div>
+        }
 
       } @else {
         <div class="empty-screen">

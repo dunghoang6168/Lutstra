@@ -67,6 +67,17 @@ html[data-layout='phone'][data-theme='light'] .cover-tinted {
 .np-tint :is(.now-playing-page .btn-icon, .ambient-dock .ctrl-btn) { color: var(--np-icon); }
 .np-tint :is(.now-playing-page .btn-icon.active, .ambient-dock .ctrl-btn.active) { color: var(--np-on); }
 
+/* Ambient Now Playing: the page itself keeps the dock clear (it covers the whole sheet), and while the lyrics card is
+   open the sheet drops its glass because that card paints it around itself, leaving a window onto the app's ground
+   (now-playing.component.scss). The solid fallback keeps the sheet. !important: the shell's scoped rules outrank a
+   global selector. */
+.layout-liquid-glass .main-content:has(.ambient-np) { padding-bottom: 0 !important; }
+.layout-liquid-glass .main-content:has(.ambient-np.lyrics-open) { background: transparent !important; }
+/* Short windows keep the lyrics inside the cover card (now-playing.component.scss), so there is no hole. */
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), (max-height: 819px) and (min-width: 760px) {
+  .layout-liquid-glass .main-content:has(.ambient-np.lyrics-open) { background: var(--glass-content) !important; }
+}
+
 html, body, app-root {
   height: 100%;
   width: 100%;
