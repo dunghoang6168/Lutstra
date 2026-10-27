@@ -13,7 +13,7 @@
     .playlist-detail-page {
       flex: 1;
       min-width: 0;
-      padding: var(--page-pad-top) var(--page-pad-x) var(--space-10);
+      padding: var(--page-pad-top) var(--page-pad-x) calc(var(--space-10) + var(--ambient-dock-clearance, 0px));
       height: 100%;
       overflow-y: auto;
       // The Add tracks panel narrows this column, so the compact table follows this page, not main-content.

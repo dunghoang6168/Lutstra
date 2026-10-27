@@ -1,5 +1,5 @@
 .home-page {
-  padding: var(--page-pad-top) var(--page-pad-x) var(--space-10);
+  padding: var(--page-pad-top) var(--page-pad-x) calc(var(--space-10) + var(--ambient-dock-clearance, 0px));
   height: 100%;
   overflow-y: auto;
   display: flex;

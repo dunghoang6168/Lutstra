@@ -121,9 +121,8 @@
   --bg-elevated: var(--glass-clear);
   --border-subtle: var(--glass-border);
 }
-/* Space kept clear of the floating dock by the sheet and the slide-in panels. */
+/* Space kept clear of the floating dock: page scrollers pad their foot by it so they run under the dock. */
 .layout-liquid-glass.has-player { --ambient-dock-clearance: 84px; }
-.layout-liquid-glass.has-player .main-content { padding-bottom: var(--ambient-dock-clearance); }
 .ambient-dock {
   position: absolute;
   z-index: 40;
