@@ -72,10 +72,6 @@
           </div>
           <div class="np-times" [class.dragging]="dragging()">
             <span class="np-time">{{ position() | duration }}</span>
-            <!-- The file's format between the times, as PixelPlayer's chip; the output is the top bar's. -->
-            @if (format(); as format) {
-              <span class="np-format">{{ format }}</span>
-            }
             <button type="button" class="np-time np-time-end" (click)="toggleRemaining()"
               [attr.aria-label]="showRemaining() ? (remaining() | duration) + ' left. Tap to show the length' : 'Length ' + (player.duration() | duration) + '. Tap to show the time left'">
               {{ showRemaining() ? '−' + (remaining() | duration) : (player.duration() | duration) }}

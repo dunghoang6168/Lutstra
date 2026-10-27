@@ -57,7 +57,7 @@ public final class AndroidFolderPlugin extends Plugin {
     private static final int READ_THREADS = 4;
     private static final String[] METADATA_FIELDS = { "title", "artist", "albumArtist", "album", "durationMs", "trackNumber", "year", "bitrate", "sampleRate", "bitDepth" };
     // Bumped when readMetadata gains fields, so older cache entries are read again.
-    private static final int METADATA_VERSION = 4;
+    private static final int METADATA_VERSION = 5;
     private static final String ARTWORK_DIR = "artwork";
     // Covers are shown at most a phone width wide (about 1000 px), so larger pictures are scaled down once.
     private static final int ARTWORK_SIZE = 1024;
@@ -560,8 +560,12 @@ public final class AndroidFolderPlugin extends Plugin {
         try {
             reader.setDataSource(getContext(), uri);
             row.put("title", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE));
-            // With several ARTIST tags Android returns only one of them, so the album artist groups the library.
-            row.put("artist", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST));
+            // With several ARTIST tags Android returns only one of them; a FLAC's are read from its Vorbis comment.
+            String artists = null;
+            try (InputStream stream = getContext().getContentResolver().openInputStream(uri)) {
+                if (stream != null) artists = FlacArtists.read(stream);
+            } catch (IOException ignored) { }
+            row.put("artist", artists != null ? artists : reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST));
             row.put("albumArtist", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST));
             row.put("album", reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM));
             row.put("durationMs", number(reader.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)));

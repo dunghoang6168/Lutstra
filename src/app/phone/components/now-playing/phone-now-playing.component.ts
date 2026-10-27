@@ -10,7 +10,6 @@ import { CoverArtComponent } from '../../../shared/components/cover-art/cover-ar
 import { PhoneLibraryService } from '../../phone-library.service';
 import { RouterLink, Router } from '@angular/router';
 import { IconName } from '../../../shared/components/icon/icon.component';
-import { formatTrackQualityLine } from '../../../features/home/library-quality';
 import { MarqueeDirective } from '../../marquee.directive';
 import { CarouselCover, PhoneCoverCarouselComponent } from '../cover-carousel/phone-cover-carousel.component';
 import { focusQuietly } from '../../focus';
@@ -92,11 +91,6 @@ export class PhoneNowPlayingComponent {
   /** Where the sound goes: the path, what Lutstra hands Android and the device's rate. The file's own format is in the ⋯ sheet and the mini player. */
   readonly output = computed(() => describeOutput(liveOutput()));
   readonly device = computed(() => DEVICES[liveOutput()?.device?.kind ?? ''] ?? DEVICES['speaker']);
-  /** The file's format, as the mini player shows it ("FLAC 24/96 · 2605 kbps"). */
-  readonly format = computed(() => {
-    const track = this.player.currentTrack();
-    return track ? formatTrackQualityLine(track)?.label ?? null : null;
-  });
   /** Media3 is fetching data while play is wanted (PixelPlayer's isBuffering); the styles wait a moment before showing it. */
   readonly buffering = computed(() => this.player.playbackState() === 'buffering' || (this.player.isLoading() && this.player.isPlaybackActive()));
   readonly albumId = computed(() => this.libraryIdOf('albums'));

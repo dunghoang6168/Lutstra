@@ -254,24 +254,6 @@
   }
 }
 
-/* The file's format between the times, after PixelPlayer's audio meta chip, centred over the row. */
-.np-format {
-  position: absolute;
-  left: 50%;
-  translate: -50% 0;
-  max-width: calc(100% - 120px);
-  overflow: hidden;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Three pills that share the row; the one pressed widens and the others give way for a moment. */
 .np-transport {
   display: flex;
@@ -378,7 +360,6 @@
   .transport-btn.play { color: var(--np-on-play); background: var(--np-play); }
   .np-artist,
   .np-times { color: var(--np-text-2); }
-  .np-format { color: var(--np-on-skip); background: var(--np-track); }
   .np-loading { color: var(--np-on); background: var(--np-skip); }
   .np-toggles { background: var(--np-track); }
   .toggle { color: var(--np-text-2); background: color-mix(in srgb, var(--np-on-skip) 8%, transparent); }

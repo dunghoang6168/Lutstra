@@ -46,11 +46,11 @@ const STUCK_MS = 700;
       user-select: none;
     }
 
-    /* The neighbours wait outside, as the pager clips them; the shadow below still shows. */
+    /* The neighbours wait outside, as the pager clips them. */
     .strip {
       position: absolute;
       inset: 0;
-      clip-path: inset(0 0 -48px 0);
+      clip-path: inset(0);
       transition: scale 260ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -63,7 +63,6 @@ const STUCK_MS = 700;
       height: 100%;
       overflow: hidden;
       border-radius: 18px;
-      box-shadow: var(--cover-shadow);
       will-change: translate, width;
     }
 
