@@ -1,4 +1,4 @@
-import { dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { dialog, ipcMain, nativeTheme, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import path from 'node:path';
 import { EqCurve, MusicFolder, ScanProgress, isEqCurve } from '../../src/app/core/models/index.js';
 import { canonicalPath, pathsOverlap } from '../utils/path-utils.js';
@@ -9,7 +9,7 @@ import { ArtistMetadataService } from '../services/artist-metadata.service.js';
 import { LyricsService } from '../services/lyrics.service.js';
 import { AudioHostService } from '../services/audio-host.service.js';
 import { validPlaybackSession, validSettings } from './settings-validation.js';
-import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validHistoryPageRequest, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validPlayEvent, validTitleBarAppearance, validWikipediaOverride } from './ipc-validation.js';
+import { validOutputMode, validExclusiveBufferMs, validArtistSourceUrl, validDirectoryPath, validHistoryPageRequest, validId, validIdArray, validMediaControlsInfo, validMusicBrainzId, validName, validPlayEvent, validTitleBarAppearance, validWikipediaOverride, validWindowMaterial } from './ipc-validation.js';
 import { updateWindowSnapBounds } from '../window-snap.js';
 import { updateMediaControls } from '../media-controls.js';
 
@@ -37,6 +37,8 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
   handle('audio-host:set-eq', (_event, curve) => audioHost.setEq(validEqCurve(curve)), development);
   handle('window:set-title-bar-appearance', (_event, mode) => {
     const appearance = validTitleBarAppearance(mode);
+    // Windows tints Acrylic by the app's theme rather than the system's (a light theme gets light Acrylic).
+    nativeTheme.themeSource = appearance;
     const window = getWindow();
     if (process.platform === 'win32' || !window || window.isDestroyed()) return;
     window.setTitleBarOverlay({
@@ -44,6 +46,13 @@ export function registerIpc(database: DatabaseService, scanner: ScannerService, 
       symbolColor: appearance === 'light' ? '#111827' : '#f9fafb',
       height: 64,
     });
+  }, development);
+  // Windows 11 draws this material behind the transparent page (Ambient shows it; the other layouts paint over it).
+  handle('window:set-material', (_event, material) => {
+    const value = validWindowMaterial(material);
+    const window = getWindow();
+    if (process.platform !== 'win32' || !window || window.isDestroyed()) return;
+    window.setBackgroundMaterial(value);
   }, development);
   handle('window:get-state', (event) => ({ isMaximized: controlWindow(event, getWindow).isMaximized() }), development);
   handle('window:set-snap-button-bounds', (event, bounds) => updateWindowSnapBounds(controlWindow(event, getWindow), bounds), development);

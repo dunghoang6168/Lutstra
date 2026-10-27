@@ -10,6 +10,9 @@
       [attr.inert]="showOnboarding() || showShortcuts() ? '' : null">
       @if (layout() === 'liquid-glass') {
         <div class="now-playing-backdrop" aria-hidden="true">
+          @if (ambientGround()) {
+            <div class="ambient-ground" [class.covered]="backdropArtwork()"></div>
+          }
           <app-cover-art class="ambient-art" [src]="backdropArtwork()" [icon]="null" />
         </div>
       } @else if (backdropArtwork(); as artwork) {

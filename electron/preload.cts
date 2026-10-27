@@ -62,6 +62,7 @@ const api: DesktopApi = {
   windowControls: {
     customControls: process.platform === 'win32',
     setTitleBarAppearance: (mode) => ipcRenderer.invoke('window:set-title-bar-appearance', mode),
+    setMaterial: (material) => ipcRenderer.invoke('window:set-material', material),
     getState: () => ipcRenderer.invoke('window:get-state'),
     setSnapButtonBounds: (bounds) => ipcRenderer.invoke('window:set-snap-button-bounds', bounds),
     minimize: () => ipcRenderer.invoke('window:minimize'),

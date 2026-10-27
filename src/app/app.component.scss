@@ -154,6 +154,19 @@
   opacity: 0.55;
 }
 :host-context(html[data-theme='light']) .ambient-art { opacity: 0.42; }
+/* The window is clear while the artwork backdrop is on (window:set-material 'auto'); before a cover plays, this
+   theme layer at the artwork's opacity keeps the page readable. It fades out under the cover. */
+.ambient-ground {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: var(--color-navigation);
+  opacity: 0.55;
+  transition: opacity 1200ms ease;
+}
+:host-context(html[data-runtime='desktop']) .ambient-ground { display: block; }
+:host-context(html[data-theme='light']) .ambient-ground { opacity: 0.42; }
+.ambient-ground.covered { opacity: 0; }
 
 /* Gallery's Now Playing glow: the cover's edge colours, saturated rather than brightened (a brightness boost burns
    light covers to white), clipped to the sheet by the backdrop's clip-path. */
@@ -171,7 +184,7 @@
   .ambient-dock { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  .ambient-art { display: none; }
+  .ambient-art, .ambient-ground { display: none; }
 }
 
 /* ---------- Dialogs and notices ---------- */

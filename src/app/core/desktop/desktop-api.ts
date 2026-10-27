@@ -9,6 +9,9 @@ export type NativeAudioHostEvent =
   | { kind: 'output-interrupted'; value: { reason: 'device-invalidated' | 'device-busy' } }
   | { kind: 'spectrum'; bins: number[] };
 
+/** Windows 11's system backdrop behind the window (Electron's backgroundMaterial). */
+export type WindowMaterial = 'acrylic' | 'mica' | 'tabbed' | 'auto' | 'none';
+
 export type NativeMediaKeyAction = 'play-pause' | 'previous' | 'next' | 'stop';
 
 export interface DesktopApi {
@@ -50,6 +53,8 @@ export interface DesktopApi {
   windowControls: {
     readonly customControls: boolean;
     setTitleBarAppearance(mode: 'light' | 'dark'): Promise<void>;
+    /** No-op outside Windows. */
+    setMaterial(material: WindowMaterial): Promise<void>;
     getState(): Promise<{ isMaximized: boolean }>;
     setSnapButtonBounds(bounds: { x: number; y: number; width: number; height: number }): Promise<boolean>;
     minimize(): Promise<void>;

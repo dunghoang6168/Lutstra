@@ -30,6 +30,14 @@ export function validTitleBarAppearance(value: unknown): 'light' | 'dark' {
   return value;
 }
 
+const WINDOW_MATERIALS = ['acrylic', 'mica', 'tabbed', 'auto', 'none'] as const;
+export type WindowMaterial = (typeof WINDOW_MATERIALS)[number];
+
+export function validWindowMaterial(value: unknown): WindowMaterial {
+  if (!WINDOW_MATERIALS.includes(value as WindowMaterial)) throw new Error('Invalid window material');
+  return value as WindowMaterial;
+}
+
 export function validMusicBrainzId(value: unknown): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) throw new Error('Invalid MusicBrainz identifier');
   return value.toLowerCase();

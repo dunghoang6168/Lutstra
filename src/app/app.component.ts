@@ -114,6 +114,8 @@ export class AppComponent implements AfterViewChecked {
     if (this.layout() === 'liquid-glass' && !this.layoutPreference.ambientArtwork()) return null;
     return this.layout() === 'liquid-glass' || this.onNowPlaying() ? artwork : null;
   });
+  /** Ambient's theme-coloured ground for a clear window while there is no artwork to tint it. */
+  readonly ambientGround = computed(() => this.layout() === 'liquid-glass' && this.layoutPreference.ambientArtwork());
   private readonly coverTone = inject(CoverToneService).tone;
   private readonly theme = inject(ThemeService);
   /** Now Playing in Gallery and Ambient takes the cover's colours (`.np-tint` in _base.scss), the dock included;
@@ -166,6 +168,12 @@ export class AppComponent implements AfterViewChecked {
     });
     effect(() => {
       if (this.layoutPreference.mode() !== 'classic' && !this.hasTrackOrQueue()) this.rightPanels.closeQueue();
+    });
+    effect(() => {
+      // Ambient with the artwork backdrop on: a clear window tinted by the blurred cover (or the theme ground
+      // before anything plays). Otherwise Acrylic frosts the desktop behind.
+      const clear = this.layout() === 'liquid-glass' && this.layoutPreference.ambientArtwork();
+      void getDesktopApi()?.windowControls.setMaterial(clear ? 'auto' : 'acrylic').catch(() => undefined);
     });
     effect(() => {
       const artwork = this.backdropArtwork();
