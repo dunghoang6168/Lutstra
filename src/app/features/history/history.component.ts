@@ -10,53 +10,10 @@ import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { TrackActionsMenuComponent } from '../../shared/components/track-actions-menu/track-actions-menu.component';
 import { TipDirective } from '../../shared/directives/tip.directive';
+import { HistoryRow, historyDays, mergeHistory } from '../../core/history/history-days';
 
-export interface HistoryRow {
-  id: string;
-  track: Track;
-  startedAt: number;
-}
-
-export interface HistoryDay {
-  key: string;
-  label: string;
-  rows: HistoryRow[];
-}
-
-const dayKey = (time: number) => {
-  const date = new Date(time);
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-};
-
-/** Groups rows (newest first) by local day: Today, Yesterday, then the date. */
-export function historyDays(rows: readonly HistoryRow[], now: number): HistoryDay[] {
-  const today = dayKey(now);
-  const yesterdayDate = new Date(now);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterday = dayKey(yesterdayDate.getTime());
-  const thisYear = new Date(now).getFullYear();
-  const days: HistoryDay[] = [];
-  for (const row of rows) {
-    const key = dayKey(row.startedAt);
-    let day = days.at(-1);
-    if (day?.key !== key) {
-      const date = new Date(row.startedAt);
-      const label = key === today ? 'Today' : key === yesterday ? 'Yesterday'
-        : date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: date.getFullYear() === thisYear ? undefined : 'numeric' });
-      day = { key, label, rows: [] };
-      days.push(day);
-    }
-    day.rows.push(row);
-  }
-  return days;
-}
-
-/** Adds a newly fetched page to the loaded entries: no duplicates, newest first. */
-export function mergeHistory(current: readonly HistoryEntry[], page: readonly HistoryEntry[]): HistoryEntry[] {
-  const byId = new Map(current.map((entry) => [entry.id, entry]));
-  for (const entry of page) byId.set(entry.id, entry);
-  return [...byId.values()].sort((a, b) => b.startedAt - a.startedAt || b.id - a.id);
-}
+export { historyDays, mergeHistory } from '../../core/history/history-days';
+export type { HistoryDay, HistoryRow } from '../../core/history/history-days';
 
 @Component({
   selector: 'app-history',

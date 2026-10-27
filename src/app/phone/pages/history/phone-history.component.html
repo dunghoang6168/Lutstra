@@ -1,0 +1,48 @@
+<header class="head">
+  <button type="button" class="back" (click)="back()" aria-label="Back"><app-icon name="chevron-left" [size]="24" /></button>
+  <h1 class="title">History</h1>
+</header>
+
+<div #rangeRow class="ranges" role="group" aria-label="Time range">
+  @for (item of ranges; track item.id) {
+    <button type="button" class="range" [class.active]="range() === item.id" [attr.aria-pressed]="range() === item.id" (click)="pick(item.id)">
+      <!-- The icon's slot grows on a spring as PixelPlayer's, so the chip and its neighbours bounce into place. -->
+      <span class="range-icon" aria-hidden="true"><app-icon name="history" [size]="18" /></span>
+      {{ item.label }}
+    </button>
+  }
+</div>
+
+<div class="actions">
+  <button type="button" class="tonal-btn latest" (click)="playLatest()" [disabled]="!canPlay()">
+    <app-icon name="play-fill" [size]="18" /> Play latest
+  </button>
+  <button type="button" class="tonal-btn neutral shuffle" (click)="shuffle()" [disabled]="!canPlay()">
+    <app-icon name="shuffle" [size]="18" /> Shuffle
+  </button>
+</div>
+
+<!-- Swipe left for the next range, right for the previous one; the list leaves and comes back in changed. -->
+<div class="listens" appSwipe [swipeAllow]="swipeAllow()" (swiped)="swiped($event)">
+  @if (failed()) {
+    <div class="page-note" role="alert">
+      Could not load your history. <button type="button" class="retry" (click)="load()">Retry</button>
+    </div>
+  } @else if (loading()) {
+    <p class="page-note" role="status">Loading history…</p>
+  } @else {
+    @for (day of days(); track day.key) {
+      <section class="day" [attr.aria-label]="day.label">
+        <h2 class="divider"><span class="day-label">{{ day.label }}</span></h2>
+        @for (row of day.rows; track row.id) {
+          <app-phone-track-row [track]="row.track" [time]="time(row)" (play)="playRow(row)" />
+        }
+      </section>
+    } @empty {
+      @if (!wantsMore()) {
+        <p class="page-note">{{ range() === 'all' ? 'Tracks you play will show up here.' : 'Nothing played in this time.' }}</p>
+      }
+    }
+    @if (wantsMore()) { <div #more class="more" aria-hidden="true"></div> }
+  }
+</div>

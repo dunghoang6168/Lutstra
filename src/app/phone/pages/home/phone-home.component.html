@@ -79,22 +79,29 @@
   }
 }
 
-@if (recentlyPlayed().length) {
-  <h2 class="section-title">Recently played</h2>
-  <ul class="album-strip">
-    @for (album of recentlyPlayed(); track album.id) {
-      <li>
-        <a class="album-card" [routerLink]="['/library/albums', album.id]">
-          <app-cover-art class="album-cover" [src]="album.artworkMedium ?? album.artwork" [iconSize]="36" />
-          <span class="album-title">{{ album.title }}</span>
-          <span class="album-artist">{{ album.artist ?? 'Unknown artist' }}</span>
-          @if (albumFormats().get(album.id); as format) {
-            <span class="album-format" [class.hires]="format.hires">{{ format.label }}</span>
-          }
-        </a>
-      </li>
+@if (recentRows().length) {
+  <!-- After PixelPlayer's: the last tracks as pills tinted from their covers, in three rows that scroll as one. -->
+  <div class="recent-head">
+    <h2 class="section-title">Recently played</h2>
+    <a class="see-all" routerLink="/history" aria-label="Open history"><app-icon name="arrow-right" [size]="18" /></a>
+  </div>
+  <div class="pills">
+    @for (row of recentRows(); track $index) {
+      <div class="pill-row">
+        @for (pill of row; track pill.track.id) {
+          <button type="button" class="pill" [appCoverTone]="pill.track.artworkSmall ?? pill.track.artwork" [style.width.px]="pill.width"
+            [class.current]="player.currentTrack()?.id === pill.track.id" [disabled]="!pill.track.isAvailable"
+            [attr.aria-current]="player.currentTrack()?.id === pill.track.id ? 'true' : null" (click)="playRecent(pill.track)">
+            <app-cover-art class="pill-cover" [src]="pill.track.artworkSmall ?? pill.track.artwork" icon="music" [iconSize]="18" lazy />
+            <span class="pill-text">
+              <span class="pill-title">{{ pill.track.title }}</span>
+              <span class="pill-artist">{{ pill.track.artist ?? 'Unknown artist' }}</span>
+            </span>
+          </button>
+        }
+      </div>
     }
-  </ul>
+  </div>
 }
 
 @if (recentlyAdded().length) {

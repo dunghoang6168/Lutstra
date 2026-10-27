@@ -22,6 +22,17 @@
   --dock-space: calc(var(--phone-nav-height) + var(--phone-mini-player-height) + var(--space-2) * 3 + env(safe-area-inset-bottom, 0px));
 }
 
+/* Off Home, EQ and Library the bottom nav is gone (PixelPlayer), so a page's dock is the mini player alone, or
+   nothing. Only the page's: the hidden tabs keep theirs, so their scroll stays put. */
+.no-nav .detail {
+  --dock-space: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  --scrollbar-inset-bottom: calc(var(--dock-space) + var(--space-2));
+}
+
+.no-nav.has-mini .detail {
+  --dock-space: calc(var(--phone-mini-player-height) + var(--space-2) * 2 + env(safe-area-inset-bottom, 0px));
+}
+
 /* Resting on the Library, the status bar strip takes its header's tint; a swipe away fades it with the sheet. */
 .phone-shell.own-header { background: var(--phone-head-tint); }
 
@@ -138,8 +149,10 @@
   border-radius: var(--radius-xl);
   background: var(--np-base);
   box-shadow: var(--shadow-md);
-  transition: background-color var(--np-tint-dur) var(--motion-ease);
+  transition: background-color var(--np-tint-dur) var(--motion-ease), bottom var(--motion-dur) var(--motion-ease);
 }
+
+.no-nav .mini-player { bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); }
 
 /* The card takes its own drags: up opens Now Playing, sideways changes track (the shell and appSwipe read them). */
 .mini-player { touch-action: none; }
@@ -287,6 +300,19 @@
   background: var(--bg-elevated);
   box-shadow: var(--shadow-md);
   touch-action: none;
+  transition: translate var(--motion-dur) var(--motion-ease), visibility 0s;
+}
+
+/* Slides down off the screen, then hides, so it takes no taps or focus while gone. */
+.no-nav .bottom-nav {
+  translate: 0 calc(100% + var(--space-2) * 2 + env(safe-area-inset-bottom, 0px));
+  visibility: hidden;
+  transition: translate var(--motion-dur) var(--motion-ease), visibility 0s linear var(--motion-dur);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav,
+  .no-nav .bottom-nav { transition: none; }
 }
 
 /* One pill for the bar, in a slot a tab wide that `--nav-at` (the pager's position, in tabs) slides along. */

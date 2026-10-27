@@ -24,7 +24,7 @@
         }
       </span>
     </span>
-    <span class="row-time">{{ track().duration | duration }}</span>
+    <span class="row-time">{{ time() ?? (track().duration | duration) }}</span>
   </button>
   <button type="button" class="row-more" (click)="openActions()" aria-haspopup="dialog"
     [attr.aria-label]="'More actions for ' + track().title">

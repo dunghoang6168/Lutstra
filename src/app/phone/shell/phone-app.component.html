@@ -1,4 +1,4 @@
-<div class="phone-shell" [class.own-header]="ownHeader()" [class.has-mini]="!!player.currentTrack()" [attr.inert]="sheet.covering() ? '' : null">
+<div class="phone-shell" [class.own-header]="ownHeader()" [class.no-nav]="!onTab()" [class.has-mini]="!!player.currentTrack()" [attr.inert]="sheet.covering() ? '' : null">
   <div class="stage">
     <!-- Home, EQ and Library side by side, kept alive: a native scroller with snap points follows the finger, flings
          and settles. A scroller inside a page (the Library's tabs, a strip of covers) takes a swipe first, and hands
@@ -26,12 +26,14 @@
 
     <!-- Every other page: the router's, under an app bar with Back. -->
     <div class="detail" [class.off]="onTab()">
-      <header class="app-bar">
-        <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
-          <app-icon name="chevron-left" [size]="24" />
-        </button>
-        <h1 class="app-bar-title">{{ title() }}</h1>
-      </header>
+      @if (!pageHeader()) {
+        <header class="app-bar">
+          <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back">
+            <app-icon name="chevron-left" [size]="24" />
+          </button>
+          <h1 class="app-bar-title">{{ title() }}</h1>
+        </header>
+      }
       <main #content class="phone-content">
         <router-outlet />
       </main>
@@ -67,7 +69,8 @@
     </div>
   }
 
-  <!-- Icons only; one pill slides under them with the pager, and a drag along the bar moves the pager too. -->
+  <!-- Icons only; one pill slides under them with the pager, and a drag along the bar moves the pager too.
+       Only on Home, EQ and Library: a page opened from a button slides it away and the mini player drops to the edge. -->
   <nav #nav class="bottom-nav" aria-label="Main" [style.--nav-count]="tabs.length">
     <span class="nav-pill" aria-hidden="true"></span>
     @for (tab of tabs; track tab.path; let i = $index) {

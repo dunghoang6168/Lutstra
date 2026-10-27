@@ -109,8 +109,10 @@ export class PhoneAppComponent {
     return route.data;
   });
   readonly title = computed(() => (this.routeData()['title'] as string | undefined) ?? '');
-  /** Resting on the Library: the status bar strip takes its header's tint (and fades back as a swipe leaves it). */
-  readonly ownHeader = computed(() => this.onTab() && settledTab() === '/library');
+  /** A page that draws its own header (History): the shell's app bar steps aside. */
+  readonly pageHeader = computed(() => !!this.routeData()['ownHeader']);
+  /** Resting on the Library or a page with its own header: the status bar strip takes the header's tint (and fades back as a swipe leaves it). */
+  readonly ownHeader = computed(() => this.onTab() ? settledTab() === '/library' : this.pageHeader());
   readonly tone = inject(CoverToneService).tone;
 
   // The swipe pager of the three main tabs.

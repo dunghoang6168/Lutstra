@@ -22,6 +22,8 @@ import { PhoneLibraryService } from '../../phone-library.service';
 export class PhoneTrackRowComponent {
   readonly track = input.required<Track>();
   readonly number = input<number | null | undefined>(undefined);
+  /** Shown in place of the duration (History: when it was played). */
+  readonly time = input<string | null>(null);
   readonly play = output<void>();
   readonly player = inject(PlayerService);
   private readonly library = inject(PhoneLibraryService);

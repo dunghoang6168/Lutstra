@@ -1,26 +1,47 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Album } from '../../../core/models';
+import { Album, Track } from '../../../core/models';
 import { PlayerService } from '../../../core/player/player.service';
 import { DailyMixService } from '../../../core/smart-shuffle/daily-mix.service';
 import { RecentPlaysService, recentlyPlayedAlbums } from '../../../core/layout/recent-plays.service';
 import { albumFormatMap } from '../../../features/home/library-quality';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CoverArtComponent } from '../../../shared/components/cover-art/cover-art.component';
+import { CoverToneDirective } from '../../cover-tone.directive';
 import { PhoneLibraryService } from '../../phone-library.service';
 
 const STRIP_LENGTH = 10;
 /** The collage's shapes, in the order its slots are laid out. */
 const COLLAGE_SHAPES = ['circle', 'pill', 'circle', 'tile', 'blob'] as const;
 
+/** Recently played pills, after PixelPlayer's: at most ten, hidden below four, in three rows. */
+const PILL_LIMIT = 10;
+const PILL_MIN = 4;
+const PILL_ROWS = 3;
+/** PixelPlayer's pill widths in px, one step per band of text length. */
+const PILL_WIDTHS = [148, 166, 184, 202, 220];
+
+/** A pill's width from its text: the title, plus a little over half the artist (set smaller). */
+export function pillWidth(title: string, artist: string): number {
+  const length = title.trim().length + artist.trim().length * 0.55;
+  return PILL_WIDTHS[[18, 28, 40, 54].filter((edge) => length >= edge).length];
+}
+
+/** Deals items newest first down three rows, column by column, so the newest sit at the left. */
+export function pillRows<T>(items: readonly T[]): T[][] {
+  const rows: T[][] = Array.from({ length: PILL_ROWS }, () => []);
+  items.forEach((item, i) => rows[i % PILL_ROWS].push(item));
+  return rows.filter((row) => row.length);
+}
+
 /**
  * Home, after PixelPlayer's: Flex Mix (today's Daily Mix) up top, a collage of recently played covers, the mix's
- * Up next card, then album strips.
+ * Up next card, the recently played tracks as pills, then recently added albums.
  */
 @Component({
   selector: 'app-phone-home',
   standalone: true,
-  imports: [RouterLink, IconComponent, CoverArtComponent],
+  imports: [RouterLink, IconComponent, CoverArtComponent, CoverToneDirective],
   templateUrl: './phone-home.component.html',
   styleUrls: ['../../phone-lists.scss', './phone-home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +59,20 @@ export class PhoneHomeComponent {
     return [...this.albums()].sort((a, b) => newest(b) - newest(a)).slice(0, STRIP_LENGTH);
   });
   readonly recentlyPlayed = computed(() => recentlyPlayedAlbums(this.recentPlays.entries(), this.albums(), null).slice(0, STRIP_LENGTH));
+  /** The tracks last played, each once, newest first; what a pill plays from. */
+  private readonly recentTracks = computed(() => {
+    const byId = this.library.trackById();
+    const tracks = this.recentPlays.entries().map((entry) => byId.get(entry.trackId)).filter((track): track is Track => !!track);
+    return tracks.length >= PILL_MIN ? tracks.slice(0, PILL_LIMIT) : [];
+  });
+  readonly recentRows = computed(() => pillRows(this.recentTracks().map((track) => ({
+    track, width: pillWidth(track.title, track.artist ?? 'Unknown artist'),
+  }))));
+
+  playRecent(track: Track): void {
+    const tracks = this.recentTracks().filter((item) => item.isAvailable);
+    this.library.play(tracks, Math.max(0, tracks.indexOf(track)));
+  }
   /** Covers only: recently played first, topped up with recently added. Hidden below three. */
   readonly collage = computed(() => {
     const seen = new Set<string>();

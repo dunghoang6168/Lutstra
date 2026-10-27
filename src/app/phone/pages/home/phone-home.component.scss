@@ -208,6 +208,93 @@
   color: var(--text-secondary);
 }
 
+/* Recently played, after PixelPlayer's: a header with → to History, then pills in three rows that scroll as one. */
+.recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--page-pad-x);
+
+  .section-title { padding-left: 22px; }
+}
+
+.see-all {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  color: var(--text-accent);
+  background: var(--bg-elevated);
+}
+
+.see-all:active { background: var(--bg-surface-hover); }
+
+.pills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--page-pad-x) var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.pill-row {
+  display: flex;
+  gap: var(--space-2);
+  width: max-content;
+}
+
+/* A cover-tinted pill (`appCoverTone`), filled at the playing row's lightness so white text reads on any cover. */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  height: 58px;
+  padding: 0 var(--space-3) 0 10px;
+  border-radius: 29px;
+  color: #fff;
+  background: oklch(0.42 min(var(--np-chroma, 0), 0.1) var(--np-hue, 0));
+  text-align: left;
+  transition: border-radius var(--motion-dur) var(--motion-ease), background-color var(--motion-dur) var(--motion-ease);
+}
+
+/* The playing track squares off, as PixelPlayer's. */
+.pill.current { border-radius: 14px; }
+.pill:active:not(:disabled) { filter: brightness(1.12); }
+.pill:disabled { opacity: 0.5; }
+
+.pill-cover {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+}
+
+.pill-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pill-title,
+.pill-artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill-title { font-size: var(--font-size-sm); font-weight: 600; }
+.pill-artist { font-size: var(--font-size-xs); opacity: 0.8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pill { transition: none; }
+}
+
 .page-note a { color: var(--text-accent); font-weight: 600; }
 
 /* Loading: the page's own shapes in quiet surface tones, so nothing jumps when the library arrives. */

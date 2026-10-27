@@ -44,6 +44,8 @@ export type IconName =
   | 'arrow-up'
   | 'arrow-down'
   | 'clock'
+  | 'history'
+  | 'arrow-right'
   | 'flask'
   | 'alert-triangle'
   | 'info'

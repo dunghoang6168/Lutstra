@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 /**
- * `data.title` is the phone app bar's heading. Home, EQ and Library have no component here: the shell keeps
+ * `data.title` is the phone app bar's heading; `data.ownHeader` pages draw their own instead. Home, EQ and Library have no component here: the shell keeps
  * all three alive side by side in its swipe pager, and these routes only name which one shows.
  */
 export const phoneRoutes: Routes = [
@@ -40,6 +40,11 @@ export const phoneRoutes: Routes = [
     path: 'library/playlists/:id',
     data: { title: 'Playlist' },
     loadComponent: () => import('./pages/playlist/phone-playlist.component').then((m) => m.PhonePlaylistComponent),
+  },
+  {
+    path: 'history',
+    data: { title: 'History', ownHeader: true },
+    loadComponent: () => import('./pages/history/phone-history.component').then((m) => m.PhoneHistoryComponent),
   },
   {
     path: 'settings',

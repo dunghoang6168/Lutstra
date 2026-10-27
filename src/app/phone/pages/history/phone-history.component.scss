@@ -1,0 +1,142 @@
+:host { display: block; }
+
+/* A large title on the Library's tint, fading out below it, after PixelPlayer's Recently Played. */
+.head {
+  padding: var(--space-4) var(--page-pad-x) var(--space-4);
+  background: linear-gradient(var(--phone-head-tint), var(--bg-app));
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+/* Same face as the Library's title. */
+.title {
+  margin: var(--space-8) 0 0 6px;
+  font-size: 2.625rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.ranges {
+  position: relative; /* chips' offsetLeft is measured from the row */
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 var(--page-pad-x);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Outlined; the chosen range fills and takes the history icon. */
+.range {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color var(--motion-dur) var(--motion-ease), color var(--motion-dur) var(--motion-ease);
+}
+
+/* PixelPlayer's chip: the icon's slot opens on a spring with a little overshoot while the icon fades and grows from 0.82. */
+.range-icon {
+  display: inline-flex;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  scale: 0.82;
+  transition: width 420ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease, scale 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.range.active .range-icon {
+  width: 24px; /* the 18px icon and its gap */
+  opacity: 1;
+  scale: 1;
+}
+
+.range.active {
+  border-color: transparent;
+  color: var(--on-tonal-strong);
+  background: var(--tonal-strong);
+}
+
+/* Two halves meeting with tighter inner corners, as PixelPlayer's pair. */
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--page-pad-x) var(--space-4);
+
+  .tonal-btn { flex: 1; height: 52px; font-size: var(--font-size-base); }
+  .latest { border-radius: 26px 12px 12px 26px; }
+  .shuffle { border-radius: 12px 26px 26px 12px; }
+}
+
+/* The list takes horizontal swipes and leaves vertical moves to the page; it fills the screen so a short list swipes too. */
+.listens {
+  min-height: 60dvh;
+  touch-action: pan-y;
+}
+
+.day { padding-bottom: var(--space-2); }
+
+/* The day as a small pill between two rails. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--space-2) 0;
+  padding: 0 var(--page-pad-x);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-surface);
+  }
+}
+
+.day-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+  }
+}
+
+.retry {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.more { height: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .range, .range-icon { transition: none; }
+}
