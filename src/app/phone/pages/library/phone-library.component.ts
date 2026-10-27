@@ -33,16 +33,13 @@ const TABS: { id: LibraryTab; label: string }[] = [
   { id: 'folders', label: 'Folders' },
 ];
 
-/** Pixels of scroll in one direction before the sheet slides. */
-const SCROLL_SLOP = 6;
-
 const text = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
 /**
  * Library, after PixelPlayer's: a large title, chips, and a sheet holding an action row over a pager of the five
  * tabs. The pager is a native horizontal scroller with snap points, so it follows the finger, flings and settles
- * by itself; the chip follows the page nearest the middle. Scrolling a tab down slides the sheet up over the title
- * and chips, any scroll up brings them back. Folders open inside their tab (`?folder=`), and Back goes up one.
+ * by itself; the chip follows the page nearest the middle. The title and chips stay put while a tab scrolls
+ * under the sheet's rounded top. Folders open inside their tab (`?folder=`), and Back goes up one.
  * The shell keeps it alive beside Home and EQ, so it reads the URL only while it is the page, and its sheet covers
  * the title and chips whenever the shell's pager is not resting on it.
  */
@@ -91,10 +88,8 @@ export class PhoneLibraryComponent {
   readonly onPlaylists = computed(() => this.activeTab() === 'playlists');
   /** Pages are built once they are shown or next to the shown one, then kept, so each keeps its scroll. */
   readonly built = signal(new Set<LibraryTab>());
-  /** Scrolled down: the sheet has slid up over the title and chips. */
-  readonly collapsed = signal(false);
-  /** The sheet is up over the title and chips: scrolled down, or the shell's pager is moving or resting elsewhere. */
-  readonly covered = computed(() => this.collapsed() || settledTab() !== '/library');
+  /** The sheet is up over the title and chips while the shell's pager is moving or resting elsewhere. */
+  readonly covered = computed(() => settledTab() !== '/library');
 
   private readonly pager = viewChild.required<ElementRef<HTMLElement>>('pager');
   private readonly chips = viewChild.required<ElementRef<HTMLElement>>('chips');
@@ -230,7 +225,6 @@ export class PhoneLibraryComponent {
 
   /** One listener for the pager and every page inside it: scroll events do not bubble, but capture sees them. */
   private followScroll(pager: HTMLElement, destroyRef: DestroyRef): void {
-    const last = new Map<string, number>();
     const onScroll = (event: Event): void => {
       const target = event.target as HTMLElement;
       if (target === pager) {
@@ -240,17 +234,7 @@ export class PhoneLibraryComponent {
       }
       const tab = target.dataset['tab'] as LibraryTab | undefined;
       if (!tab) return;
-      const top = target.scrollTop;
-      this.library.tabScroll.set(tab, top);
-      if (tab !== this.activeTab()) return;
-      const before = last.get(tab) ?? 0;
-      let collapse = this.collapsed();
-      if (top <= 0) collapse = false;
-      else if (top - before > SCROLL_SLOP) collapse = true;
-      else if (before - top > SCROLL_SLOP) collapse = false;
-      else return;
-      last.set(tab, top);
-      if (collapse !== this.collapsed()) this.zone.run(() => this.collapsed.set(collapse));
+      this.library.tabScroll.set(tab, target.scrollTop);
     };
     // Once the pager settles, the URL names the tab, so Back from a detail page lands on it.
     const onSettle = (event: Event): void => {
@@ -278,8 +262,6 @@ export class PhoneLibraryComponent {
   private select(index: number): void {
     this.active.set(index);
     this.build(index);
-    // A tab at its top cannot scroll up to bring the title back, so arriving there brings it back.
-    if (!this.library.tabScroll.get(TABS[index].id)) this.collapsed.set(false);
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     afterNextRender(() => {
       const row = this.chips().nativeElement;

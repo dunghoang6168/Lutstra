@@ -1,7 +1,7 @@
 /*
  * Library after PixelPlayer: a tinted band with the large title and chips, and a sheet with rounded top corners
- * that overlaps it. Scrolled down, the whole column slides up by the title and chips; it grows by the same amount
- * at once, so the sheet still reaches the bottom, and shrinks back only after sliding down.
+ * that overlaps it. Tabs scroll under those corners; the column slides up over the title and chips only while the
+ * shell's pager is away, growing at once so the sheet still reaches the bottom, and shrinking after sliding down.
  */
 :host {
   --head-title: 76px;
@@ -303,6 +303,8 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-width: none;
+  /* Rows scroll away under rounded top corners lined up with the cards' edges, as PixelPlayer's list does. */
+  clip-path: inset(0 calc(10px + var(--space-3)) 0 var(--space-3) round 20px 20px 0 0);
 
   &::-webkit-scrollbar { display: none; }
 }
