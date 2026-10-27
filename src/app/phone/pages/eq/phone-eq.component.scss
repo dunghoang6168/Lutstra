@@ -48,24 +48,133 @@
   text-decoration: none;
 }
 
-.curve {
-  display: block;
-  width: 100%;
-  height: 84px;
-  border-radius: var(--radius-xl);
+/* Material 3 filter chips: 8px corners, outlined; the chosen one is tonal with a check. */
+.presets {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 calc(var(--page-pad-x) * -1);
+  padding: var(--space-1) var(--page-pad-x);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  height: 32px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+
+  /* 32px drawn, 48px to touch, as Material 3 chips. */
+  &::after { content: ''; position: absolute; inset: -8px 0; }
+
+  &.active { padding-left: var(--space-2); border-color: transparent; color: var(--text-accent); background: var(--accent-muted); }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  border-radius: var(--sheet-radius);
   background: var(--bg-surface);
 }
 
-.grid { stroke: var(--border-subtle); stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
-.grid.zero { stroke: var(--border-default); stroke-dasharray: none; }
-.curve-fill { fill: color-mix(in srgb, var(--accent-primary) 14%, transparent); }
-.curve-line { fill: none; stroke: var(--accent-primary); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-1);
+  margin-bottom: var(--space-3);
+}
 
-/* Poweramp-style rails: a thin line with end ticks, a fill from 0 dB, a pill thumb with a dash. */
-.rail {
-  --inset: 22px;
-  position: relative;
+.card-heading { flex: 1; min-width: 0; }
+
+.card-title { margin: 0; font-size: var(--font-size-md, 15px); font-weight: 700; }
+
+.card-sub {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Material 3 text button. */
+.text-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--text-accent);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.curve {
   display: block;
+  width: 100%;
+  height: 64px;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.grid { stroke: var(--border-default); vector-effect: non-scaling-stroke; }
+.curve-fill { fill: color-mix(in srgb, var(--accent-primary) 14%, transparent); }
+.curve-line { fill: none; stroke: var(--accent-primary); stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+
+.bands { display: flex; }
+
+.band {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.band-value {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+
+  &.set { color: var(--text-primary); }
+}
+
+.band-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--text-secondary); }
+
+/*
+ * A vertical Material 3 slider, matching the timeline (phone-seek.scss): a thick track, the part between 0 dB and the
+ * thumb filled, a thumb line with a gap cut round it in the card's colour, stop dots at both ends.
+ * --pos, --from and --size are percentages of the travel, counted from the bottom (-12 dB).
+ */
+.rail {
+  /* The native thumb is 16px, so the input's travel runs from 8px to the height less 8px. */
+  --inset: 8px;
+  --travel: calc(100% - 2 * var(--inset));
+  position: relative;
+  align-self: stretch;
+  height: 196px;
   touch-action: none; /* a drag on a rail moves it, never the page */
 
   input {
@@ -77,230 +186,146 @@
     margin: 0;
     opacity: 0;
     cursor: pointer;
-  }
-
-  .line, .fill, .tick { position: absolute; pointer-events: none; }
-  .line { background: var(--border-default); }
-  .fill { background: var(--accent-primary); box-shadow: 0 0 6px color-mix(in srgb, var(--accent-primary) 60%, transparent); }
-  .tick { background: var(--text-muted); opacity: 0.6; }
-
-  .thumb {
-    position: absolute;
-    display: grid;
-    place-items: center;
-    box-sizing: border-box;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-full);
-    background: var(--bg-elevated);
-    box-shadow: var(--shadow-md);
-    pointer-events: none;
-
-    span { border-radius: 2px; background: var(--text-primary); }
-  }
-
-  input:focus-visible ~ .thumb { outline: 2px solid var(--border-focus); outline-offset: 2px; }
-
-  /* A 16px native thumb, so the input's travel lines up with the drawn rail between the ticks. */
-  input::-webkit-slider-thumb { width: 16px; height: 16px; appearance: none; }
-}
-
-.rail.vertical {
-  /* The band column centres its children, and a rail has no in-flow content, so it must be told to fill the column. */
-  align-self: stretch;
-  height: 200px;
-
-  /* The whole column is the touch target; the travel matches the drawn rail between the ticks. */
-  input {
-    inset: calc(var(--inset) - 8px) auto auto 0;
-    width: 100%;
-    height: calc(100% - 2 * (var(--inset) - 8px));
     writing-mode: vertical-lr;
     direction: rtl;
   }
 
-  .line { top: var(--inset); bottom: var(--inset); left: calc(50% - 1px); width: 2px; }
-  .tick { left: 20%; right: 20%; height: 1px; }
-  .tick.top { top: var(--inset); }
-  .tick.bottom { bottom: var(--inset); }
-  /* --pos, --from and --size are percentages of the travel, counted from the bottom (-12 dB). */
+  input::-webkit-slider-thumb { width: 16px; height: 16px; appearance: none; }
+
+  .track, .fill, .stop, .thumb { position: absolute; left: 50%; translate: -50% 0; pointer-events: none; }
+
+  .track { top: 0; bottom: 0; width: var(--phone-seek-height); border-radius: var(--radius-full); background: var(--accent-muted); }
+
   .fill {
-    left: calc(50% - 1px);
-    width: 2px;
-    bottom: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--from) / 100);
-    height: calc((100% - 2 * var(--inset)) * var(--size) / 100);
+    width: var(--phone-seek-height);
+    bottom: calc(var(--inset) + var(--travel) * var(--from) / 100);
+    height: calc(var(--travel) * var(--size) / 100);
+    border-radius: 2px;
+    background: var(--accent-primary);
   }
+
+  .stop { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-primary); }
+  .stop.top { top: 5px; }
+  .stop.bottom { bottom: 5px; }
+
   .thumb {
-    left: calc(50% - 13px);
-    bottom: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--pos) / 100 - 22px);
-    width: 26px;
-    height: 44px;
-
-    span { width: 12px; height: 3px; }
+    bottom: calc(var(--inset) + var(--travel) * var(--pos) / 100 - var(--phone-seek-thumb-width) / 2);
+    width: calc(var(--phone-seek-height) + var(--space-3));
+    height: var(--phone-seek-thumb-width);
+    border-radius: var(--radius-full);
+    background: var(--accent-primary);
+    box-shadow: 0 0 0 var(--phone-seek-gap) var(--bg-surface);
+    transition: scale var(--phone-press-dur) var(--motion-ease);
   }
+
+  input:active ~ .thumb { scale: var(--phone-seek-grow) 1; background: var(--text-primary); }
+  input:focus-visible ~ .thumb { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 }
 
-.rail.horizontal {
-  --inset: 22px;
-  flex: 1;
-  height: var(--touch-target);
-
-  input { inset: 0 calc(var(--inset) - 8px); width: auto; }
-
-  .line { left: var(--inset); right: var(--inset); top: calc(50% - 1px); height: 2px; }
-  .tick { top: 30%; bottom: 30%; width: 1px; }
-  .tick.start { left: var(--inset); }
-  .tick.end { right: var(--inset); }
-  .tick.zero { left: calc(50% - 0.5px); }
-  .fill {
-    top: calc(50% - 1px);
-    height: 2px;
-    left: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--from) / 100);
-    width: calc((100% - 2 * var(--inset)) * var(--size) / 100);
-  }
-  .thumb {
-    top: calc(50% - 13px);
-    left: calc(var(--inset) + (100% - 2 * var(--inset)) * var(--pos) / 100 - 22px);
-    width: 44px;
-    height: 26px;
-
-    span { width: 3px; height: 12px; }
-  }
+/* The shared slider takes the EQ's colours: accent fill, tonal rest. */
+.seek-bar {
+  --seek-fill: var(--accent-primary);
+  --seek-rest: var(--accent-muted);
 }
 
-.bands { display: flex; }
-
-.band {
-  flex: 1;
-  min-width: 0;
+.row-head {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: baseline;
+  padding: 0 var(--space-1);
+
+  .card-title { flex: 1; }
 }
 
-.band-label { margin-top: var(--space-1); font-size: var(--font-size-xs); font-weight: 700; }
-
-.band-value {
-  font-family: var(--font-family-mono);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-
-  &.set { color: var(--text-primary); }
-}
-
-.preamp {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-xl);
-  background: var(--bg-surface);
-}
-
-.preamp-label { flex: none; font-size: var(--font-size-sm); font-weight: 700; }
-
-.preamp-value {
+.value {
   flex: none;
-  min-width: 6.5em; /* "-11.5 dB" on one line, so the rail does not jump as the value changes */
-  white-space: nowrap;
+  min-width: 3.5em; /* "-11.5 dB" and "100%" without the slider jumping */
   text-align: right;
-  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 0 dB sits mid-rail (see the component), so the scale reads -12 · 0 · +6 evenly. */
+.scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }
 
-.presets {
+.effect-head {
   display: flex;
-  gap: var(--space-2);
-  margin: 0 calc(var(--page-pad-x) * -1);
-  padding: 0 var(--page-pad-x);
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar { display: none; }
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+.effect-icon {
   flex: none;
-  min-height: var(--space-10);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  background: transparent;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-
-  &.active { border-color: transparent; color: var(--text-accent); background: var(--accent-muted); }
-  &.save { border-style: dashed; }
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  background: var(--bg-surface-active);
 }
 
-.effects { display: flex; gap: var(--space-2); }
+/* The slider row is a full touch target already, so the card needs less padding below it. */
+.effect { padding-bottom: var(--space-2); }
 
-.effect {
-  flex: 1;
-  min-width: 0;
+.effect.on .effect-icon { color: var(--text-accent); background: var(--accent-muted); }
+
+.effect-amount {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-1);
-  border-radius: var(--radius-xl);
-  background: var(--bg-surface);
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+
+  .seek-bar { flex: 1; }
 }
 
-/* The knob turns with a sideways drag; up and down still scroll the page. */
-.knob {
-  position: relative;
-  width: 80px;
-  height: 70px;
-  touch-action: pan-y;
+.effect:not(.on) .effect-amount {
+  opacity: 0.5;
 
-  input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; }
-  svg { display: block; }
+  .seek-bar { --seek-fill: var(--text-muted); --seek-rest: var(--bg-surface-active); }
 }
 
-.knob-track { fill: none; stroke: var(--border-default); stroke-width: 5; stroke-linecap: round; }
-.knob-fill { fill: none; stroke: var(--accent-primary); stroke-width: 5; stroke-linecap: round; }
-.knob-dot { fill: var(--text-primary); }
-
-.knob-value {
-  position: absolute;
-  inset: 26px 0 auto;
-  text-align: center;
-  font-size: var(--font-size-md, 15px);
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.effect:has(.switch[aria-checked='false']) {
-  .knob-fill { stroke: var(--text-muted); }
-  .knob-dot { fill: var(--text-muted); }
-  .knob-value { color: var(--text-muted); }
-}
-
+/* Material 3 switch: 52×32; off is an outlined track with a small thumb, on a filled track with a large thumb and a check. */
 .switch {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: flex-start; /* buttons centre by default (_base.scss); the thumb starts at the off end */
-  width: 44px;
-  height: 26px;
-  padding: 0 3px;
-  border: 0;
+  box-sizing: border-box;
+  width: 52px;
+  height: 32px;
+  padding: 0 2px;
+  border: 2px solid var(--text-muted);
   border-radius: var(--radius-full);
   background: var(--bg-surface-active);
 
-  span { width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--text-muted); transition: transform var(--motion-dur) var(--motion-ease); }
+  /* One 24px thumb, scaled to 16px when off, so the change is transform only. */
+  span {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background: var(--text-muted);
+    transform: scale(calc(2 / 3));
+    transition: transform var(--motion-dur) var(--motion-ease);
+  }
 
   &[aria-checked='true'] {
+    border-color: var(--accent-primary);
     background: var(--accent-primary);
 
-    span { transform: translateX(18px); background: var(--text-inverse); }
+    span { transform: translateX(20px); color: var(--accent-primary); background: var(--text-inverse); }
   }
 }
 
-.effect-label { font-size: var(--font-size-sm); font-weight: 700; text-align: center; }
+@media (prefers-reduced-motion: reduce) {
+  .rail .thumb, .switch span { transition: none; }
+}

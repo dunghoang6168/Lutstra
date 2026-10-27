@@ -1,29 +1,30 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EQ_GAIN_LIMIT_DB, EQ_PREAMP_MAX_DB, EQ_PREAMP_MIN_DB } from '../../../core/models/eq.model';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { IconComponent, IconName } from '../../../shared/components/icon/icon.component';
+import { describeOutput, output } from '../../app-shell';
 import { PhoneEqService } from '../../eq/phone-eq.service';
 import { PHONE_EFFECTS, PHONE_EQ_FREQUENCIES, PhoneEffect, effectFilters, monotoneSlopes, responseDb } from '../../eq/phone-eq';
 
-const CURVE_W = 358;
-const CURVE_H = 84;
+const CURVE_W = 334;
+const CURVE_H = 64;
 /** ±15 dB, as the desktop graph: a +12 band and its slight overshoot stay inside the box. */
 const CURVE_DB = 15;
 /** Half a decibel per step on the cut side (24 steps to -12 dB). */
 const PREAMP_STEPS = 24;
-const EFFECT_NAMES: Record<PhoneEffect, string> = { bassBoost: 'Bass Boost', virtualizer: 'Virtualizer', loudness: 'Loudness' };
-/** The knob's arc: from 135° round 270°, as PixelPlayer's. */
-const ARC_START = 135;
-const ARC_SWEEP = 270;
-const ARC_R = 30;
+const EFFECT_INFO: Record<PhoneEffect, { label: string; hint: string; icon: IconName }> = {
+  bassBoost: { label: 'Bass Boost', hint: 'Low shelf for more weight', icon: 'speaker' },
+  virtualizer: { label: 'Virtualizer', hint: 'Wider stereo for headphones', icon: 'headphones' },
+  loudness: { label: 'Loudness', hint: 'Keeps bass and treble at low volume', icon: 'volume-2' },
+};
 
-/** The EQ tab: response curve, ten Poweramp-style bands, preamp, presets, and three effects. Always on; Flat is off. */
+/** The EQ tab in Material 3 cards: presets, the response curve over ten bands, preamp, three effects. Always on; Flat is off. */
 @Component({
   selector: 'app-phone-eq',
   standalone: true,
   imports: [RouterLink, IconComponent],
   templateUrl: './phone-eq.component.html',
-  styleUrl: './phone-eq.component.scss',
+  styleUrls: ['../../phone-seek.scss', './phone-eq.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneEqComponent {
@@ -33,8 +34,8 @@ export class PhoneEqComponent {
   readonly preampMax = EQ_PREAMP_MAX_DB;
   readonly curveW = CURVE_W;
   readonly curveH = CURVE_H;
-  /** Dashed lines at ±12 dB, the sliders' ends. */
-  readonly gridInset = CURVE_H / 2 - EQ_GAIN_LIMIT_DB / CURVE_DB * (CURVE_H / 2 - 4);
+  /** The EQ is kept per output, so the card says which one it is editing. */
+  readonly outputName = computed(() => describeOutput(output())?.device ?? 'Phone speaker');
 
   readonly bands = computed(() => PHONE_EQ_FREQUENCIES.map((freq, index) => {
     const gain = this.eq.current().gains[index];
@@ -42,18 +43,18 @@ export class PhoneEqComponent {
   }));
 
   /**
-   * 0 dB sits mid-rail with a tick: each half spans its own range (cut to -12, boost to +6), so the rail reads the same
-   * both ways. The input runs in rail steps, -PREAMP_STEPS..PREAMP_STEPS.
+   * 0 dB sits mid-rail: each half spans its own range (cut to -12, boost to +6), so the rail reads the same both ways.
+   * The input runs in rail steps, -PREAMP_STEPS..PREAMP_STEPS; p (0–1) places the slider's thumb.
    */
   readonly preampSteps = PREAMP_STEPS;
   readonly preamp = computed(() => {
     const value = this.eq.preampDb();
     const at = value < 0 ? -value / this.preampMin * -PREAMP_STEPS : value / this.preampMax * PREAMP_STEPS;
-    return { value, at, ...railFill(at, -PREAMP_STEPS, PREAMP_STEPS) };
+    return { value, at, p: (at + PREAMP_STEPS) / (2 * PREAMP_STEPS) };
   });
 
   /**
-   * A smooth line through the sliders, each point under its column, as Poweramp and PixelPlayer draw it. Effects add
+   * A smooth line through the sliders, each point over its column, as Poweramp and PixelPlayer draw it. Effects add
    * their lift at each band. Monotone, so equal neighbours meet in a flat line instead of a bump or a dip; the filters'
    * own ripple between centres (about ±0.5 dB) is left out on purpose.
    */
@@ -74,12 +75,7 @@ export class PhoneEqComponent {
   });
   readonly curveFill = computed(() => `${this.curvePath()} L${CURVE_W},${CURVE_H} L0,${CURVE_H} Z`);
 
-  readonly effects = computed(() => PHONE_EFFECTS.map((name) => {
-    const state = this.eq.current().effects[name];
-    const end = ARC_START + ARC_SWEEP * state.amount / 100;
-    const [kx, ky] = arcPoint(end);
-    return { name, label: EFFECT_NAMES[name], ...state, track: arc(ARC_START, ARC_START + ARC_SWEEP), fill: state.amount ? arc(ARC_START, end) : '', kx, ky };
-  }));
+  readonly effects = computed(() => PHONE_EFFECTS.map((name) => ({ name, ...EFFECT_INFO[name], ...this.eq.current().effects[name] })));
 
   onGain(index: number, event: Event): void {
     this.eq.setGain(index, Number((event.target as HTMLInputElement).value));
@@ -110,23 +106,17 @@ export class PhoneEqComponent {
   dbText(value: number): string {
     return `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
   }
+
+  /** Band values over narrow columns: "+5", "-1.5", "0". */
+  dbShort(value: number): string {
+    return `${value > 0 ? '+' : ''}${value % 1 ? value.toFixed(1) : value}`;
+  }
 }
 
-/** Where a rail's thumb and its fill from 0 dB sit, as percentages from the top (vertical) or left (horizontal). */
+/** Where a rail's thumb and its fill from 0 dB sit, as percentages from the bottom. */
 function railFill(value: number, min: number, max: number): { pos: number; fillFrom: number; fillSize: number } {
   const at = (v: number) => (v - min) / (max - min) * 100;
   const pos = at(value);
   const zero = at(0);
   return { pos, fillFrom: Math.min(pos, zero), fillSize: Math.abs(pos - zero) };
-}
-
-function arcPoint(angle: number): [number, number] {
-  const rad = angle * Math.PI / 180;
-  return [40 + ARC_R * Math.cos(rad), 38 + ARC_R * Math.sin(rad)];
-}
-
-function arc(from: number, to: number): string {
-  const [x0, y0] = arcPoint(from);
-  const [x1, y1] = arcPoint(to);
-  return `M${x0.toFixed(1)},${y0.toFixed(1)} A${ARC_R},${ARC_R} 0 ${to - from > 180 ? 1 : 0} 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
 }

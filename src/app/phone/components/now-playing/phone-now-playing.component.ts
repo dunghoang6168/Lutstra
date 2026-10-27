@@ -48,7 +48,7 @@ const DEVICES: Record<string, { icon: IconName; name: string }> = {
   standalone: true,
   imports: [DurationPipe, IconComponent, CoverArtComponent, RouterLink, MarqueeDirective, PhoneCoverCarouselComponent],
   templateUrl: './phone-now-playing.component.html',
-  styleUrl: './phone-now-playing.component.scss',
+  styleUrls: ['../../phone-seek.scss', './phone-now-playing.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PhoneNowPlayingComponent {
