@@ -17,10 +17,11 @@ import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
 import { WindowControlsComponent } from '../window-controls/window-controls.component';
 
+import { LensGlassDirective } from '../../directives/lens-glass.directive';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, GlobalSearchComponent, IconComponent, WindowControlsComponent, TipDirective],
+  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, GlobalSearchComponent, IconComponent, WindowControlsComponent, TipDirective, LensGlassDirective],
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -80,7 +80,7 @@
       }
       @case ('liquid-glass') {
         <!-- Ambient: controls float over the content; no bar behind them. -->
-        <div class="header-left float-cluster">
+        <div class="header-left float-cluster" appLensGlass>
           <button type="button" class="header-button sidebar-visibility-button"
             [attr.aria-label]="sidebarHidden() ? 'Show navigation rail' : 'Hide navigation rail'"
             [appTip]="sidebarHidden() ? 'Show navigation rail' : 'Hide navigation rail'" tipPlacement="bottom"
@@ -92,7 +92,7 @@
           <app-global-search />
         </div>
         <div class="header-drag-space" aria-hidden="true"></div>
-        <div class="header-right float-cluster">
+        <div class="header-right float-cluster" appLensGlass>
           <ng-container *ngTemplateOutlet="status" />
           <ng-container *ngTemplateOutlet="developerMenu" />
           <a routerLink="/settings" routerLinkActive="active" class="header-button settings-button" aria-label="Settings" appTip="Settings" tipPlacement="bottom">

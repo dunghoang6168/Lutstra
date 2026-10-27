@@ -14,10 +14,11 @@ const COLLAPSE_WIDTH_DELAY_MS = 50;
 const WIDTH_TRANSITION_MS = 160;
 const TRANSITION_FALLBACK_PADDING_MS = 50;
 
+import { LensGlassDirective } from '../../directives/lens-glass.directive';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterModule, IconComponent, TipDirective],
+  imports: [RouterModule, IconComponent, TipDirective, LensGlassDirective],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })

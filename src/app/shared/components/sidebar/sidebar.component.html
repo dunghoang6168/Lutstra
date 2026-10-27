@@ -1,6 +1,6 @@
 @if (variant() === 'rail') {
   <!-- Ambient: a floating icon rail; labels surface on hover and focus. -->
-  <nav class="icon-rail" aria-label="Main navigation">
+  <nav class="icon-rail" appLensGlass aria-label="Main navigation">
     @for (item of navItems(); track item.path) {
       <a [routerLink]="item.path" routerLinkActive="active" class="rail-item" [attr.aria-label]="item.label"
         [appTip]="item.label" tipPlacement="right">

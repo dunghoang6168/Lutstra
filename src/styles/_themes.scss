@@ -339,6 +339,17 @@ html[data-layout='liquid-glass'][data-runtime='desktop'] {
   --dialog-bg: var(--glass-solid);
   --color-canvas: transparent;
   --glass-content: color-mix(in srgb, var(--color-surface) 58%, transparent);
+  /* LensGlassDirective (dock, header clusters, icon rail): a clearer tint, a light blur and a bent rim. */
+  --glass-lens: color-mix(in srgb, var(--color-surface) 28%, transparent);
+  --lens-bezel: 22px;
+  --lens-refract: 44;
+  --lens-blur: 6;
+  --lens-saturate: 1.6;
+}
+html[data-layout='liquid-glass'][data-runtime='desktop'] .lens-on {
+  background-color: var(--glass-lens);
+  backdrop-filter: var(--lens-filter);
+  -webkit-backdrop-filter: var(--lens-filter);
 }
 
 /* Phone (Android): Gallery's palette and voice, sized for a thumb. Only the phone shell sets it. */

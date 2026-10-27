@@ -131,7 +131,9 @@
   bottom: calc(var(--shell-gap) + 10px);
   width: min(860px, calc(100% - var(--ambient-content-left) - var(--shell-gap) - 32px));
   margin-inline: auto;
-  animation: dock-rise var(--motion-dur) var(--motion-ease) both;
+  /* backwards, not both: a filling opacity animation stays in effect and makes the dock a backdrop root, so the
+     pill's glass would see nothing behind it. */
+  animation: dock-rise var(--motion-dur) var(--motion-ease) backwards;
 }
 @keyframes dock-rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } }
 

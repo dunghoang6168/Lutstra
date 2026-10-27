@@ -17,10 +17,11 @@ import { formatKhz, trackQuality } from '../../../features/home/library-quality'
 
 export type PlayerVariant = 'strip' | 'rail' | 'pill';
 
+import { LensGlassDirective } from '../../directives/lens-glass.directive';
 @Component({
   selector: 'app-player-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, CoverArtComponent, RangeSliderComponent, SignalPathComponent, TipDirective, MarqueeDirective],
+  imports: [NgTemplateOutlet, RouterModule, DurationPipe, IconComponent, CoverArtComponent, RangeSliderComponent, SignalPathComponent, TipDirective, MarqueeDirective, LensGlassDirective],
   templateUrl: './player-bar.component.html',
   styleUrl: './player-bar.component.scss'
 })
