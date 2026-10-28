@@ -1418,6 +1418,7 @@ export class PlayerService implements OnDestroy {
     current.source.next();
     this.external.set({ ...current, item: this.externalItem(track) });
     this.currentTrack.set(track);
+    this.resetTimeFor(track);
     this.playRequested.set(true);
     this.error.set(null);
   }
@@ -1526,8 +1527,18 @@ export class PlayerService implements OnDestroy {
     this.preparationReady = false;
     if (nextIndex >= 0) this.currentIndex.set(nextIndex);
     this.currentTrack.set(track);
+    this.resetTimeFor(track);
     this.playRequested.set(true);
     this.error.set(null);
+  }
+
+  /**
+   * The engine moved on by itself: until its next time update, the old track's near-end position must not
+   * count for the new one, or the next track's preparation finishing would start a second crossfade at once.
+   */
+  private resetTimeFor(track: Track): void {
+    this.currentTime.set(0);
+    this.duration.set(track.duration);
   }
 
   /** The engine went on into Autoplay's reserve while the web slept: the track joins the queue after the current one. */
@@ -1643,6 +1654,7 @@ export class PlayerService implements OnDestroy {
     if (nextIndex < 0) return false;
     this.currentIndex.set(nextIndex);
     this.currentTrack.set(candidate.track);
+    this.resetTimeFor(candidate.track);
     this.playRequested.set(true);
     this.error.set(null);
     return true;
