@@ -43,7 +43,8 @@ yarn-error.log
 /connect.lock
 *.spec.ts
 *.test.ts
-!/tests/audio-engine.spec.ts
+# Tests are written, run, then deleted: never committed (owner choice 2026-09-30, c9d490b).
+/tests/
 /libpeerconnection.log
 testem.log
 /typings

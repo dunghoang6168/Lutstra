@@ -23,7 +23,6 @@
     "package:win": "npm run build && npm run build:native:required && npm run build:audio-host && node scripts/edition.mjs electron-builder --win",
     "package:win:dir": "npm run build && npm run build:native:required && npm run build:audio-host && node scripts/edition.mjs electron-builder --win --dir",
     "package:win:public": "node scripts/edition.mjs --public npm run package:win",
-    "test:audio": "vitest run tests/audio-engine.spec.ts",
     "test:audio-host": "node scripts/test-audio-host.mjs",
     "test:audio-host:smoke": "node scripts/smoke-audio-host.mjs",
     "test:audio-host:stress": "node scripts/stress-audio-host.mjs",
