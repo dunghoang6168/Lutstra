@@ -381,12 +381,13 @@ export class AppComponent implements AfterViewChecked {
     if (activeEl?.isContentEditable || activeEl?.closest(
       'input, textarea, select, [role="textbox"], [role="combobox"], [role="searchbox"]',
     )) return;
+    // Player keys work only on Now Playing or once the player is clicked, so typing on any other page
+    // (a webview chat included) never skips or pauses the music.
+    if (event.code !== 'Slash' && !this.onNowPlaying() && !activeEl?.closest('app-player-bar')) return;
 
     switch (event.code) {
       case 'ArrowUp':
       case 'ArrowDown':
-        // Arrows scroll lists elsewhere, so they only drive volume on Now Playing or inside the player.
-        if (!this.onNowPlaying() && !activeEl?.closest('app-player-bar')) return;
         if (activeEl?.closest('.rail-lyrics, [role="grid"], [role="listbox"], [role="menu"]')) return;
         this.player.setVolume(Math.round((this.player.volume() + (event.code === 'ArrowUp' ? 0.05 : -0.05)) * 100) / 100);
         this.playerBar?.flashVolume();
