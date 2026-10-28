@@ -12,6 +12,7 @@ import { LayoutPreferenceService } from '../../../core/layout/layout-preference.
 import { type ScanProgress } from '../../../core/models';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { devMenu } from '../../../dev-hooks';
+import type { DevMenuEntry } from '../../../dev-hooks/dev-hooks.types';
 import { GlobalSearchComponent } from '../global-search/global-search.component';
 import { IconComponent } from '../icon/icon.component';
 import { TipDirective } from '../../directives/tip.directive';
@@ -56,7 +57,7 @@ export class AppHeaderComponent {
   private readonly url = toSignal(inject(Router).events.pipe(
     filter((event): event is NavigationEnd => event instanceof NavigationEnd),
     map((event) => event.urlAfterRedirects),
-  ), { initialValue: '' });
+  ), { initialValue: inject(Router).url });
   /** Pressed while one of its pages shows. */
   readonly devMenuActive = computed(() => (this.devMenu?.entries ?? []).some((entry) => this.url().startsWith(entry.path)));
   readonly scanProgress = toSignal(this.gateway.scanProgress$, {
@@ -112,6 +113,18 @@ export class AppHeaderComponent {
   private closeCompactSearch(): void {
     this.compactSearchOpen.set(false);
     this.search().close();
+  }
+
+  /** Any developer page has unread messages: a dot on the menu's button. */
+  readonly devUnread = computed(() => (this.devMenu?.entries ?? []).some((entry) => (entry.unread?.() ?? 0) > 0));
+
+  /** A running page's switch is locked while that page shows. */
+  onDevPage(entry: DevMenuEntry): boolean {
+    return this.url().split(/[?#]/, 1)[0] === entry.path;
+  }
+
+  toggleDevRunning(entry: DevMenuEntry): void {
+    if (entry.running && !this.onDevPage(entry)) entry.running.set(!entry.running.on());
   }
 
   closeDevMenu(): void {

@@ -2,6 +2,7 @@ import { effect, inject, Injectable, InjectionToken, NgZone, OnDestroy } from '@
 import { Track } from '../models';
 import { PlayerService } from '../player/player.service';
 import { getDesktopApi, type NativeMediaKeyAction } from '../desktop/desktop-api';
+import { devMediaKey } from '../../dev-hooks';
 
 type MediaMetadataFactory = (init: MediaMetadataInit) => MediaMetadata | null;
 
@@ -118,6 +119,7 @@ export class MediaSessionService implements OnDestroy {
 
   private handleNativeMediaKey(action: NativeMediaKeyAction): void {
     this.run(() => {
+      if (devMediaKey?.(action)) return;
       if (action === 'play-pause') void this.player.togglePlayPause().catch(() => undefined);
       else if (action === 'previous') void this.player.previous().catch(() => undefined);
       else if (action === 'next') void this.player.next().catch(() => undefined);

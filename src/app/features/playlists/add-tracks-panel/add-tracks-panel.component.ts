@@ -68,6 +68,7 @@ export class AddTracksPanelComponent {
   private readonly roots = signal<MusicFolder[]>([]);
   private readonly folderTrees = signal<ReadonlyMap<string, FolderNode>>(new Map());
   private folderTreesRequested = false;
+  private savedQueries: string[] = [];
 
   readonly filterArtist = signal('');
   readonly filterAlbum = signal('');
@@ -223,6 +224,7 @@ export class AddTracksPanelComponent {
     this.tab.set(tab);
     this.drill.set(null);
     this.folderStack.set([]);
+    this.savedQueries = [];
     if (tab === 'folders') void this.loadFolderTrees();
     this.settingsGateway.saveSettings({ addTracksTab: tab }).catch((error) => console.error('Could not save Add tracks tab', error));
   }
@@ -245,13 +247,24 @@ export class AddTracksPanelComponent {
     }
   }
 
-  openAlbum(item: Album): void { this.drill.set({ kind: 'album', item }); }
-  openArtist(item: Artist): void { this.drill.set({ kind: 'artist', item }); }
-  openFolder(node: FolderNode | null): void { if (node) this.folderStack.update((stack) => [...stack, node]); }
+  openAlbum(item: Album): void { this.saveQuery(); this.drill.set({ kind: 'album', item }); }
+  openArtist(item: Artist): void { this.saveQuery(); this.drill.set({ kind: 'artist', item }); }
+  openFolder(node: FolderNode | null): void {
+    if (!node) return;
+    this.saveQuery();
+    this.folderStack.update((stack) => [...stack, node]);
+  }
 
   back(): void {
     if (this.drill()) this.drill.set(null);
     else this.folderStack.update((stack) => stack.slice(0, -1));
+    this.query.set(this.savedQueries.pop() ?? '');
+  }
+
+  /** The search found the group; inside it, show every song and bring the search back on Back. */
+  private saveQuery(): void {
+    this.savedQueries.push(this.query());
+    this.query.set('');
   }
 
   clearFilters(): void {

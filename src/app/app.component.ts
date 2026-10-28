@@ -126,9 +126,10 @@ export class AppComponent implements AfterViewChecked {
     return nowPlayingTones(tone, this.theme.effectiveTheme());
   });
   /** Console's strip is permanent; Gallery's rail and Ambient's dock appear once there is music.
-   *  On an embedded page each shows only while Lutstra plays, leaving the room to the page's own player. */
+   *  On an embedded page each shows only while Lutstra plays, leaving the room to the page's own player;
+   *  it stays through track changes (loading), so the page does not jump. */
   readonly showPlayer = computed(() => {
-    if (this.embeddedPage() && !this.player.isPlaying()) return false;
+    if (this.embeddedPage() && !this.player.isPlaying() && !this.player.playIntended()) return false;
     if (this.layout() === 'classic') return true;
     if (!this.hasTrackOrQueue()) return false;
     return this.layout() === 'liquid-glass' || !this.onNowPlaying();

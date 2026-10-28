@@ -29,14 +29,40 @@
 <ng-template #developerMenu>
   @if (devMenu && devMenu.visible()) {
     <details class="dev-menu" #devMenuElement>
-      <summary class="header-button" [class.active]="devMenuActive()" aria-label="Developer" appTip="Developer" tipPlacement="bottom">
+      <summary class="header-button" [class.active]="devMenuActive()" [attr.aria-label]="devUnread() ? 'Developer, unread messages' : 'Developer'"
+        appTip="Developer" tipPlacement="bottom">
         <app-icon name="flask" [size]="18" />
+        @if (devUnread()) {
+          <span class="dev-menu-dot" aria-hidden="true"></span>
+        }
       </summary>
       <nav class="tabs-menu-list dev-menu-list" aria-label="Developer pages">
-        @for (entry of devMenu.entries; track entry.path) {
-          <a [routerLink]="entry.path" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeDevMenu()">
-            <span class="dev-menu-icon" aria-hidden="true" [style.mask-image]="'url(' + entry.icon + ')'"></span>{{ entry.label }}
-          </a>
+        @for (entry of devMenu.entries; track entry.path; let i = $index) {
+          <!-- Pages that run in the background (webviews) follow a divider, each with its own switch. -->
+          @if (entry.running && i > 0 && !devMenu.entries[i - 1].running) {
+            <hr class="dev-menu-divider" />
+          }
+          <div class="dev-menu-row">
+            <a [routerLink]="entry.path" routerLinkActive="active" ariaCurrentWhenActive="page" [class.unread]="(entry.unread?.() ?? 0) > 0" (click)="closeDevMenu()">
+              <span class="dev-menu-icon" aria-hidden="true" [style.mask-image]="'url(' + entry.icon + ')'"></span>{{ entry.label }}
+              @if ((entry.unread?.() ?? 0) > 0) {
+                <span class="dev-menu-badge">{{ entry.unread!() > 99 ? '99+' : entry.unread!() }}<span class="sr-only"> unread</span></span>
+              }
+            </a>
+            @if (entry.running; as running) {
+              <!-- aria-disabled, not disabled, so the tip still explains the lock. -->
+              <button type="button" role="switch" class="dev-menu-switch" [attr.aria-checked]="running.on()"
+                [attr.aria-disabled]="onDevPage(entry)" [attr.aria-label]="'Run ' + entry.label + ' in the background'"
+                [appTip]="onDevPage(entry) ? 'Open now; go to another page to stop it' : running.on() ? 'Running in the background' : 'Not running'"
+                tipPlacement="bottom" (click)="toggleDevRunning(entry)">
+                <span class="dev-menu-switch-track" aria-hidden="true"><span class="dev-menu-switch-knob">
+                  @if (onDevPage(entry)) {
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                  }
+                </span></span>
+              </button>
+            }
+          </div>
         }
       </nav>
     </details>

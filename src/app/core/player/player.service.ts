@@ -124,6 +124,8 @@ export class PlayerService implements OnDestroy {
   private sessionTimer: ReturnType<typeof setInterval> | null = null;
   private savedSession: { queue: QueueEntry[]; index: number; position: number; at: number } | null = null;
   private readonly playRequested = signal(false);
+  /** Lutstra means to play: set by Play and by track changes, cleared by Pause, Stop and failures. */
+  readonly playIntended = this.playRequested.asReadonly();
   /** The user's last transport request, so the listening history can tell a skip from an automatic advance. */
   private transition: { cause: TransitionCause; at: number } | null = null;
 

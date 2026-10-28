@@ -110,7 +110,85 @@ app-window-controls { flex: 0 0 auto; }
 .dev-menu summary { list-style: none; }
 .dev-menu summary::-webkit-details-marker { display: none; }
 .dev-menu-list { left: auto; right: 0; }
-.dev-menu-list a { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.dev-menu-list a { flex: 1; display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.dev-menu-row { display: flex; align-items: center; border-radius: var(--radius-md); }
+.dev-menu-row:has(a.active) { background: var(--bg-surface-active); }
+.dev-menu-row:has(a.active) a { background: transparent; }
+.dev-menu-list a.unread { color: var(--text-primary); }
+/* Unread count: an accent pill after the label, 99+ past 99. */
+.dev-menu-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Some developer page has unread messages; the menu says which and how many. */
+.dev-menu summary { position: relative; }
+.dev-menu-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-fill);
+  box-shadow: 0 0 0 2px var(--color-navigation);
+}
+.dev-menu-divider { height: 1px; margin: 4px 6px; border: 0; background: var(--border-default); }
+
+/* A webview page's switch: its own 44x32 target beside the link, so a click never navigates. */
+.dev-menu-switch {
+  flex: none;
+  width: 44px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+}
+.dev-menu-switch:hover { background: var(--bg-surface-active); }
+.dev-menu-switch:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
+.dev-menu-switch-track {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--bg-surface-active);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  transition: background-color var(--transition-fast);
+}
+.dev-menu-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--accent-primary);
+  background: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+.dev-menu-switch[aria-checked='true'] .dev-menu-switch-track { background: var(--accent-primary); box-shadow: none; }
+.dev-menu-switch[aria-checked='true'] .dev-menu-switch-knob { transform: translateX(12px); background: var(--color-on-accent); }
+.dev-menu-switch[aria-disabled='true'] { cursor: default; }
+.dev-menu-switch[aria-disabled='true'] .dev-menu-switch-track { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .dev-menu-switch-track, .dev-menu-switch-knob { transition: none; }
+}
 .dev-menu-icon {
   width: 16px;
   height: 16px;

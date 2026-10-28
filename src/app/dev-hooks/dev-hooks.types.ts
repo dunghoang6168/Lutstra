@@ -7,6 +7,10 @@ export interface DevMenuEntry {
   path: string;
   /** An image URL drawn as a mask, so it takes the text colour. */
   icon: string;
+  /** A page that runs in the background (a webview): its switch, locked while the page shows. */
+  running?: { on: Signal<boolean>; set(on: boolean): void };
+  /** Unread messages on the page: a count badge on the entry and a dot on the menu's button. */
+  unread?: Signal<number>;
 }
 
 /** The header's Developer menu, beside Settings in every layout. */
