@@ -3,6 +3,7 @@
 Lutstra is a local-first desktop music player for lossless and Hi-Res libraries: Angular 21 in an Electron shell on Windows. The longer human guide is [docs/APP_GUIDE.md](docs/APP_GUIDE.md). The design system is [DESIGN.md](DESIGN.md), and its rules are binding.
 
 ## Hard rules
+- **The phone app is frozen (owner choice 2026-10-30).** Do not add or extend features in `src/app/phone/`, `src/app/core/android/` or `android/`, and do not carry desktop changes over to the phone. Fix only what breaks the Android build or a shared service it uses. New mobile work happens in the owner's PixelPlayer fork, not here. The phone notes below describe what exists.
 - **Stay in the UI layer unless the task says otherwise.** Do not change playback behaviour, `PlayerService` logic, gateways, `electron/`, IPC or the database.
 - **No new dependencies.**
 - **Angular style:** standalone components, signals and `computed`, `@if`/`@for` (never `*ngIf`/`*ngFor` in new code). Use external `.html` and `.scss` files (see [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)).
@@ -85,7 +86,7 @@ Lutstra builds in two editions. The **public** edition is this repository. The *
 3. Look at the real UI. With a dev server running, `env -u ELECTRON_RUN_AS_NODE npx electron scripts/ui-sweep.cjs` covers every route × 3 layouts × 2 themes × 1440/560 and must report 0 flagged pages. It does not measure text over images, so check those screenshots by eye.
 4. In your own probes, inject a no-transition style before measuring. Hidden windows freeze CSS transitions and give false results.
 5. Stop any dev server you started.
-6. Android changes (`android/`, `src/app/core/android/`): `npm run build:android`, then `android\gradlew.bat assembleDebug`, install on the Motorola (the only test device) and check there. `docs/ANDROID_DEVELOPMENT.md` has the status and how checks are driven over DevTools.
+6. Android changes (frozen; only build or shared-service fixes, `android/`, `src/app/core/android/`): `npm run build:android`, then `android\gradlew.bat assembleDebug`, install on the Motorola (the only test device) and check there. `docs/ANDROID_DEVELOPMENT.md` has the status and how checks are driven over DevTools.
 
 ## Working alongside other agents
 - Several agents may work at once. Work only in the folder and branch you were given (a git worktree for parallel work) and on the port you were given. Touch only the files the task names.
