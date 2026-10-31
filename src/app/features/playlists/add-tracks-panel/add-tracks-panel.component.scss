@@ -13,13 +13,12 @@
   background: var(--dialog-bg);
   color: var(--text-primary);
   border-left: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: var(--dialog-filter);
   -webkit-backdrop-filter: var(--dialog-filter);
-  animation: panel-in 180ms ease-out;
 }
 
-@keyframes panel-in { from { transform: translateX(24px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .add-panel { animation: none; } }
+:host-context(.layout-liquid-glass) .add-panel { border: 1px solid var(--glass-border); border-radius: var(--surface-radius); }
 
 .panel-header {
   display: flex;

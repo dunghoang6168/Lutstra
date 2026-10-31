@@ -8,6 +8,7 @@
       position: relative;
       display: flex;
       height: 100%;
+      overflow-x: clip; // hides the Add tracks panel while it slides off the right edge
     }
 
     .playlist-detail-page {
@@ -16,14 +17,30 @@
       padding: var(--page-pad-top) var(--page-pad-x) calc(var(--space-10) + var(--ambient-dock-clearance, 0px));
       height: 100%;
       overflow-y: auto;
-      // The Add tracks panel narrows this column, so the compact table follows this page, not main-content.
       container: playlist-page / inline-size;
     }
 
+    /* Floats over the page like the queue drawer, so the page never resizes. */
     .add-tracks-panel {
-      flex: 0 0 auto;
-      width: min(380px, 42%);
-      min-width: 0;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      width: min(var(--queue-drawer-width, 380px), 100%);
+      height: auto;
+    }
+
+    .add-tracks-panel.panel-enter { animation: panel-slide 240ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .add-tracks-panel.panel-leave { animation: panel-slide 180ms ease-in reverse forwards; }
+    @keyframes panel-slide { from { transform: translateX(calc(100% + var(--shell-gap, 0px))); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .add-tracks-panel.panel-enter, .add-tracks-panel.panel-leave { animation: none; }
+    }
+
+    /* Like the queue drawer: starts under the floating header and stops above the dock. */
+    :host-context(.layout-liquid-glass) .add-tracks-panel {
+      margin: var(--page-pad-top) var(--shell-gap) calc(var(--shell-gap) + var(--ambient-dock-clearance, 0px)) 0;
     }
 
     .breadcrumb { margin-bottom: var(--space-4); }
@@ -279,11 +296,8 @@
 
 // Too narrow to share: the panel covers the page until it is closed.
 @container main-content (max-width: 600px) {
-  .add-tracks-panel {
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-  }
+  .add-tracks-panel { left: 0; width: auto; }
+  :host-context(.layout-liquid-glass) .add-tracks-panel { margin-left: var(--shell-gap); }
 }
 
 // Measured on the content box: the full table needs about 690px.

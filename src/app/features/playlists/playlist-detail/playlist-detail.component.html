@@ -75,6 +75,7 @@
                 type="button"
                 class="btn-action"
                 (click)="openAddTracks($event)"
+                aria-controls="add-tracks-panel"
                 [attr.aria-expanded]="showAddTracksModal()"
                 aria-label="Add tracks">
                 <app-icon name="plus" [size]="16" />
@@ -89,7 +90,8 @@
           @if (trackRows().length === 0) {
             <div class="empty-playlist">
               <p>This playlist has no tracks yet.</p>
-              <button type="button" class="btn-action primary" (click)="openAddTracks($event)">
+              <button type="button" class="btn-action primary" (click)="openAddTracks($event)"
+                aria-controls="add-tracks-panel">
                 Add tracks
               </button>
             </div>
@@ -216,6 +218,6 @@
 
     <!-- Add tracks sidebar: not modal, so its rows can be dragged into the table -->
     @if (showAddTracksModal() && playlist()) {
-      <app-add-tracks-panel class="add-tracks-panel" [playlist]="playlist()!" (playlistChange)="onPlaylistUpdated($event)" (close)="closeAddTracks()" />
+      <app-add-tracks-panel class="add-tracks-panel" animate.enter="panel-enter" animate.leave="panel-leave" [playlist]="playlist()!" (playlistChange)="onPlaylistUpdated($event)" (close)="closeAddTracks()" />
     }
   </div>

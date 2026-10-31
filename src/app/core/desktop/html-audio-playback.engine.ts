@@ -9,6 +9,9 @@ import { constantSumCrossfadeGains } from '../player/crossfade-gains';
 import { logPlaybackDiagnostic } from '../player/playback-diagnostics';
 import { stateForMediaEvent } from '../player/playback-policy';
 
+/** How often a crossfade updates its gains (about 30 steps a second, smooth to the ear). */
+const FADE_STEP_MS = 33;
+
 type SinkAudioElement = HTMLAudioElement & { setSinkId?: (sinkId: string) => Promise<void>; sinkId?: string };
 
 @Injectable()
@@ -24,7 +27,7 @@ export class HtmlAudioPlaybackEngine implements PlaybackEngine, AudioAnalysisEng
   private masterVolume = 0.8;
   private muted = false;
   private fade: { outgoing: SinkAudioElement; incoming: SinkAudioElement; seconds: number } | null = null;
-  private fadeFrame: number | null = null;
+  private fadeTimer: ReturnType<typeof setTimeout> | null = null;
   private fadeWaiters: Array<() => void> = [];
   private preferredOutputId = SYSTEM_DEFAULT_OUTPUT_ID;
   private preferredOutputName = 'System Default';
@@ -337,9 +340,11 @@ export class HtmlAudioPlaybackEngine implements PlaybackEngine, AudioAnalysisEng
     if (!this.fade) return;
     this.applyVolumes();
     if (this.fade.incoming.currentTime >= this.fade.seconds || this.fade.outgoing.ended) { this.finishFade(); return; }
-    if (!this.audio.paused) this.fadeFrame = requestAnimationFrame(this.updateFade);
+    // A timer, not requestAnimationFrame: frames stop while the window is hidden, which left the incoming
+    // track silent at the start of its fade. Timers keep running in a page that plays audio.
+    if (!this.audio.paused) this.fadeTimer = setTimeout(this.updateFade, FADE_STEP_MS);
   };
-  private stopFadeFrame(): void { if (this.fadeFrame !== null) cancelAnimationFrame(this.fadeFrame); this.fadeFrame = null; }
+  private stopFadeFrame(): void { if (this.fadeTimer !== null) clearTimeout(this.fadeTimer); this.fadeTimer = null; }
   private finishFade(): void {
     this.stopFadeFrame();
     if (!this.fade) return;

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LIBRARY_GATEWAY, PLAYLIST_GATEWAY, SETTINGS_GATEWAY } from '../../../core/contracts';
@@ -47,6 +47,7 @@ export class AddTracksPanelComponent {
   private readonly playlistGateway = inject(PLAYLIST_GATEWAY);
   private readonly settingsGateway = inject(SETTINGS_GATEWAY);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   readonly playlist = input.required<Playlist>();
@@ -183,7 +184,7 @@ export class AddTracksPanelComponent {
   readonly isDrilled = computed(() => Boolean(this.drill() || this.currentFolder()));
 
   constructor() {
-    afterNextRender(() => this.searchInput()?.nativeElement.focus());
+    afterNextRender(() => this.searchInput()?.nativeElement.focus({ preventScroll: true }));
     void this.load();
   }
 
@@ -236,6 +237,22 @@ export class AddTracksPanelComponent {
     const next = this.tabs[(this.tabs.indexOf(this.tab()) + step + this.tabs.length) % this.tabs.length];
     this.setTab(next);
     (event.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-tab="${next}"]`)?.focus();
+  }
+
+  /** Like the queue: a click outside closes it; the Add tracks buttons keep it open. */
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent): void {
+    if (!(event.target instanceof Element) || this.host.nativeElement.contains(event.target)) return;
+    if (event.target.closest('[aria-controls="add-tracks-panel"]')) return;
+    this.close.emit();
+  }
+
+  /** Esc closes it from anywhere on the page; inside, onPanelKeydown steps back a level first. */
+  @HostListener('document:keydown', ['$event'])
+  onDocumentEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('[aria-modal="true"], dialog[open]')) return;
+    event.preventDefault();
+    this.close.emit();
   }
 
   onPanelKeydown(event: KeyboardEvent): void {
